@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Verify Authenticity</title>
+  <meta name="description" content="Check that an article or feed is exactly what the publisher signed, using post-quantum ML-DSA-87 and Ed448 signatures.">
+  <link rel="stylesheet" href="verify.css">
+  <script type="module" src="verify.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Content integrity</p>
+      <h1>Verify authenticity</h1>
+      <p class="lede">Every article and every feed we publish is digitally signed. If even one character is changed after publication, verification fails. Checking happens entirely in your browser; nothing you paste or upload is sent anywhere.</p>
+    </header>
+
+    <section aria-labelledby="how">
+      <h2 id="how">How it is signed</h2>
+      <ul class="facts">
+        <li><strong>ML-DSA-87</strong> (NIST FIPS 204, security category 5) — a post-quantum signature that a future quantum computer cannot forge.</li>
+        <li><strong>Ed448</strong> (RFC 8032) — a classical signature alongside it. Both must be valid, so breaking one algorithm alone is not enough.</li>
+        <li><strong>SHA-512</strong> fingerprint of the exact published bytes, covered by both signatures together with the date and address.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="keys-h">
+      <h2 id="keys-h">Publisher signing keys</h2>
+      <p>Compare this key ID with the one we publish in our DNSSEC-signed DNS record (<code>_pqsig</code> TXT) or in print. Partners should pin it.</p>
+      <ul id="keys" class="keys"><li>Loading…</li></ul>
+    </section>
+
+    <section aria-labelledby="check-h">
+      <h2 id="check-h">Check something</h2>
+      <div class="cards">
+        <form id="by-link" class="card">
+          <h3>By link</h3>
+          <label for="sig-url">Signature link on this site</label>
+          <input id="sig-url" name="sig" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="/feed.sig.json" required>
+          <button type="submit">Verify</button>
+        </form>
+        <form id="by-file" class="card">
+          <h3>By file</h3>
+          <label for="sig-file">Signature file (.sig.json)</label>
+          <input id="sig-file" type="file" accept=".json,application/json" required>
+          <label for="content-file">Content it covers <span class="hint">(only for detached signatures such as feeds)</span></label>
+          <input id="content-file" type="file">
+          <button type="submit">Verify</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="result" class="result" tabindex="-1" aria-live="polite" hidden></section>
+
+    <section id="compare" class="card" aria-labelledby="compare-h" hidden>
+      <h2 id="compare-h">Was a copy you received changed?</h2>
+      <form id="compare-form">
+        <label for="received">Paste the text you were sent, quoted or reposted</label>
+        <textarea id="received" rows="6"></textarea>
+        <button type="submit">Compare with the signed original</button>
+      </form>
+      <p id="compare-result" aria-live="polite"></p>
+    </section>
+
+    <footer>
+      <p>Prefer the command line? <code>pq verify article.sig.json --keys pqsig-keys.json --pin &lt;key-id&gt;</code></p>
+    </footer>
+  </main>
+</body>
+</html>
