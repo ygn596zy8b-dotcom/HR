@@ -1,0 +1,68 @@
+# ===================================================
+# WORDPRESS CORE & SECURITY RULES
+# ===================================================
+User-agent: *
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+Disallow: /wp-includes/
+Disallow: /readme.html
+Disallow: /license.txt
+# Personal pages (also noindex): accounts, reading dashboard, submissions
+Disallow: /account/
+Disallow: /dashboard/
+Disallow: /*?s=
+Disallow: /*?*
+# Signature checks use query strings (/verify/?sig=...); the page itself is public
+Allow: /verify/$
+Allow: /signed/
+Allow: /.well-known/pqsig-keys.json
+
+# ===================================================
+# ALLOW AI SEARCH & CITATION BOTS (GEO Strategy)
+# Allows AI models to search, read, and attribute articles
+# ===================================================
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# ===================================================
+# BLOCK UNATTRIBUTED AI SCRAPERS & AGGRESSIVE TRAINERS
+# ===================================================
+# Aggressive web scrapers & dataset builders
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: FirecrawlAgent
+Disallow: /
+
+User-agent: ApifyBot
+Disallow: /
+
+# ===================================================
+# XML SITEMAPS
+# ===================================================
+Sitemap: https://headlinerecorder.com/wp-sitemap.xml
+Sitemap: https://headlinerecorder.com/sitemap-news.xml

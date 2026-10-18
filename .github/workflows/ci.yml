@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: PHP syntax (theme, plugin, mu-plugins)
+        run: |
+          php --version
+          find wp-content -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+
+      - name: Install build tools (scripts disabled)
+        run: npm ci --ignore-scripts
+
+      - name: Browser bundles are up to date
+        run: npm run build -- --check
+
+      - name: Post-quantum toolkit tests
+        working-directory: security/pq
+        run: |
+          npm ci --ignore-scripts
+          npm test
+
+      - name: Streak engine tests
+        run: |
+          if [ -f wp-content/plugins/hr-platform/tests/streak-engine-test.php ]; then php wp-content/plugins/hr-platform/tests/streak-engine-test.php; fi
+
+      - name: Dependency audits
+        run: |
+          npm audit --audit-level=high
+          (cd security/pq && npm audit --audit-level=high)
+          (cd wp-content/plugins/hr-platform && composer validate --no-check-publish && composer audit --locked)
+
+      - name: No secrets or key material committed
+        run: |
+          if git ls-files | grep -E '\.secret\.json$|(^|/)\.env$|wp-config\.php$'; then echo "Secret-bearing file is tracked"; exit 1; fi
+          if git grep -nE 'sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----' -- ':!*.md'; then echo "Possible secret in tracked files"; exit 1; fi
+
+  package:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install PHP dependencies for the plugin (no dev, optimised autoloader)
+        working-directory: wp-content/plugins/hr-platform
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+      - name: Build deployable bundle
+        run: |
+          mkdir -p dist
+          zip -qr dist/headline-recorder-deploy.zip \
+            wp-content/themes/headlinerec-child \
+            wp-content/plugins/hr-platform \
+            wp-content/mu-plugins \
+            deploy infra docs SECURITY.md \
+            -x '*/node_modules/*' '*/assets/src/*' '*/tests/*' '*.secret.json'
+          ls -la dist
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: headline-recorder-deploy
+          path: dist/headline-recorder-deploy.zip
+          retention-days: 30

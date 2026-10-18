@@ -1,0 +1,7 @@
+# Security contact for headlinerecorder.com (RFC 9116)
+Contact: mailto:contact@headlinerecorder.com
+Expires: 2027-10-18T00:00:00.000Z
+Preferred-Languages: en, ur
+Canonical: https://headlinerecorder.com/.well-known/security.txt
+# Article and feed authenticity: https://headlinerecorder.com/verify/
+# Publisher signing keys (ML-DSA-87 + Ed448): https://headlinerecorder.com/.well-known/pqsig-keys.json

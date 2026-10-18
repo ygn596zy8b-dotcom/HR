@@ -60,8 +60,9 @@ The theme renders hook slots; the plugin fills them. Every call is guarded so ei
 | `hr_header_account` | header, right of nav/search | accounts/streaks (sign-in link or avatar + flame) |
 | `hr_home_after_banner` | home, right after the main news banner | podcast hero ("Boss") |
 | `hr_home_before_footer` | home, after the last section, before footer | client logos |
-| `hr_single_after_byline` | single post, under byline | signing badge, "Listen" button |
-| `hr_single_after_content` | single post, after content | signing note, streak read-tracker anchor |
+| `hr_single_after_byline` | single post meta strip, after read time (not inside the share group) | signing badge |
+| `hr_single_before_content` | single post, between meta strip and hero image | "Listen" button + player panel (podcast) |
+| `hr_single_after_content` | single post, right after the article body | signing note (`#hr-signature`), read sentinel (streaks) |
 | `hr_footer_trust` | footer bottom bar | "Every article is post-quantum signed — verify" |
 
 CSS tokens are defined once by the theme on `:root` (`--hr-red`, `--hr-ink`, `--hr-paper`, …); plugin CSS

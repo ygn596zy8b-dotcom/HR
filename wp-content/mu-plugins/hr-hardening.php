@@ -151,6 +151,29 @@ add_filter( 'wp_is_application_passwords_available_for_user', static function ( 
     return $available && $user instanceof WP_User && in_array( 'hr_signer', (array) $user->roles, true );
 }, 10, 2 );
 
+// REST CORS: WordPress echoes back ANY Origin with Allow-Credentials. Only this site (plus origins added through
+// the hr_cors_allowed_origins filter) gets credentialed CORS; public endpoints that want `*` send it themselves.
+add_action( 'rest_api_init', static function () {
+    remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
+    add_filter( 'rest_pre_serve_request', static function ( $served ) {
+        $origin = get_http_origin();
+        header( 'Vary: Origin', false );
+        if ( ! $origin ) {
+            return $served;
+        }
+        $home    = wp_parse_url( home_url() );
+        $allowed = (array) apply_filters( 'hr_cors_allowed_origins', array( $home['scheme'] . '://' . $home['host'] . ( isset( $home['port'] ) ? ':' . $home['port'] : '' ) ) );
+        if ( in_array( $origin, $allowed, true ) ) {
+            header( 'Access-Control-Allow-Origin: ' . $origin );
+            header( 'Access-Control-Allow-Credentials: true' );
+            header( 'Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS' );
+            header( 'Access-Control-Allow-Headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type' );
+            header( 'Access-Control-Expose-Headers: X-WP-Total, X-WP-TotalPages, Link' );
+        }
+        return $served;
+    } );
+}, 15 );
+
 // Shorter sessions for people who can change the site: 12 hours, or 3 days with "remember me".
 add_filter( 'auth_cookie_expiration', static function ( $length, $user_id, $remember ) {
     if ( user_can( $user_id, 'edit_others_posts' ) ) {
