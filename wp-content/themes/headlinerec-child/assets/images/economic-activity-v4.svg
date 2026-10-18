@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 220" width="1920" height="220">
+  <defs>
+    <!-- Metallic Gradient for Bars -->
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="40%" stop-color="#E4E4E7" />
+      <stop offset="100%" stop-color="#A1A1AA" />
+    </linearGradient>
+
+    <!-- Darker Gradient for Deep Contraction Bars -->
+    <linearGradient id="darkMetalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A1A1AA" />
+      <stop offset="100%" stop-color="#52525B" />
+    </linearGradient>
+
+    <!-- High-Energy Glow for Shatter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Trendline Soft Glow -->
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Premium Deep Charcoal Background -->
+  <rect width="1920" height="220" fill="#18181B"/>
+
+  <!-- Master Group: Scales by 50% and translates for perfect vertical/horizontal alignment -->
+  <g transform="translate(700, 45) scale(0.5)">
+    
+    <!-- The Dynamic Trendline (Ethereal Thread) -->
+    <path d="M 480 130 C 580 130, 630 65, 730 100 C 800 120, 830 190, 930 185 C 1030 180, 1100 130, 1230 110 C 1430 70, 1580 35, 1850 25" 
+          fill="none" stroke="#E0F2FE" stroke-width="3" opacity="0.6" filter="url(#softGlow)"/>
+    <path d="M 480 130 C 580 130, 630 65, 730 100 C 800 120, 830 190, 930 185 C 1030 180, 1100 130, 1230 110 C 1430 70, 1580 35, 1850 25" 
+          fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.9"/>
+
+    <!-- Phase 1: Growth (Solid Pillars) -->
+    <rect x="550" y="105" width="22" height="25" fill="url(#metalGrad)"/>
+    <rect x="600" y="90" width="22" height="40" fill="url(#metalGrad)"/>
+    <rect x="650" y="75" width="22" height="55" fill="url(#metalGrad)"/>
+    <rect x="700" y="95" width="22" height="35" fill="url(#metalGrad)"/>
+
+    <!-- Phase 2: The Shock / Contraction (Fractured Geometry) -->
+    <polygon points="750,115 772,115 772,130 760,138 750,130" fill="url(#metalGrad)"/>
+    <polygon points="760,140 772,132 770,145 755,142" fill="url(#darkMetalGrad)"/>
+    <polygon points="800,130 822,130 818,160 795,150" fill="url(#darkMetalGrad)"/>
+    <polygon points="850,130 872,130 865,175 842,168" fill="url(#darkMetalGrad)"/>
+    <polygon points="840,170 862,178 855,188 838,182" fill="url(#darkMetalGrad)"/>
+    <polygon points="900,130 922,130 922,185 895,175" fill="url(#darkMetalGrad)"/>
+    <polygon points="950,130 972,130 972,170 950,165" fill="url(#darkMetalGrad)"/>
+    <polygon points="1000,130 1022,130 1022,150 1000,155" fill="url(#metalGrad)"/>
+
+    <!-- The Shards (Debris from the shock) -->
+    <g fill="#FFFFFF" opacity="0.5">
+      <polygon points="775,135 780,133 778,140" />
+      <polygon points="790,145 793,142 795,147" />
+      <polygon points="830,155 836,150 832,160" />
+      <polygon points="875,140 882,135 880,142" />
+      <polygon points="885,160 890,155 887,165" />
+      <polygon points="840,195 845,190 848,198" filter="url(#glow)"/>
+      <polygon points="930,180 935,175 932,185" />
+      
+      <!-- Subtle Brand Accent: Red Sparks -->
+      <circle cx="860" cy="150" r="3.5" fill="#E11D48" opacity="0.9" />
+      <circle cx="890" cy="170" r="4" fill="#E11D48" opacity="0.9" />
+      
+      <circle cx="810" cy="140" r="2" />
+      <circle cx="940" cy="160" r="2.5" />
+    </g>
+
+    <!-- Phase 3: Recovery (Stable Rectangles Return) -->
+    <rect x="1050" y="130" width="22" height="15" fill="url(#metalGrad)"/>
+    <rect x="1100" y="115" width="22" height="15" fill="url(#metalGrad)"/>
+    <rect x="1150" y="105" width="22" height="25" fill="url(#metalGrad)"/>
+    <rect x="1200" y="90" width="22" height="40" fill="url(#metalGrad)"/>
+    <rect x="1250" y="100" width="22" height="30" fill="url(#metalGrad)"/>
+    <rect x="1300" y="80" width="22" height="50" fill="url(#metalGrad)"/>
+    <rect x="1350" y="70" width="22" height="60" fill="url(#metalGrad)"/>
+    <rect x="1400" y="55" width="22" height="75" fill="url(#metalGrad)"/>
+    <rect x="1450" y="65" width="22" height="65" fill="url(#metalGrad)"/>
+    <rect x="1500" y="45" width="22" height="85" fill="url(#metalGrad)"/>
+    <rect x="1550" y="35" width="22" height="95" fill="url(#metalGrad)"/>
+    <rect x="1600" y="40" width="22" height="90" fill="url(#metalGrad)"/>
+    <rect x="1650" y="25" width="22" height="105" fill="url(#metalGrad)"/>
+    <rect x="1700" y="30" width="22" height="100" fill="url(#metalGrad)"/>
+    <rect x="1750" y="15" width="22" height="115" fill="url(#metalGrad)"/>
+  </g>
+</svg>
