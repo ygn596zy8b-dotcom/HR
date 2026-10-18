@@ -30,7 +30,7 @@ require_once __DIR__ . '/includes/core/routes.php';
 require_once __DIR__ . '/includes/core/settings.php';
 
 // Each module is self-contained and optional; a missing module simply does nothing.
-foreach ( array( 'monitoring', 'accounts', 'streaks', 'submissions', 'podcast', 'clients', 'signing' ) as $module ) {
+foreach ( array( 'monitoring', 'accounts', 'streaks', 'submissions', 'podcast', 'clients', 'signing', 'site' ) as $module ) {
     $file = __DIR__ . "/includes/{$module}/module.php";
     if ( is_readable( $file ) ) {
         require_once $file;
