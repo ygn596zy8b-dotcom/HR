@@ -1,0 +1,20 @@
+{
+  "name": "headlinerecorder/hr-platform-vendor",
+  "description": "Third-party libraries bundled with the hr-platform plugin",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.2",
+    "sentry/sentry": "^4.10",
+    "anthropic-ai/sdk": "*",
+    "lbuchs/webauthn": "^2.2",
+    "guzzlehttp/guzzle": "^7.9"
+  },
+  "config": {
+    "platform": {
+      "php": "8.2.0"
+    },
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}
