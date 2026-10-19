@@ -248,7 +248,7 @@ function context_name(): string {
         return 'ajax ' . ( $known ? $action : 'unknown' );
     }
     if ( is_admin() ) {
-        return 'admin ' . sanitize_file_name( (string) ( $GLOBALS['pagenow'] ?? '' ) );
+        return 'admin ' . preg_replace( '/[^a-z0-9._\-]/', '', strtolower( (string) ( $GLOBALS['pagenow'] ?? '' ) ) );
     }
     if ( 'wp-login.php' === ( $GLOBALS['pagenow'] ?? '' ) ) {
         return 'login';
