@@ -87,8 +87,10 @@ function serve_verify_page(): void {
     get_header();
     render( 'signing/verify', array(
         'keyset'   => keyset(),
-        'rest'     => rest_url( 'hr/v1/' ),
-        'keys_url' => home_url( '/.well-known/pqsig-keys.json' ),
+        // Site-relative, so the page's same-origin checks hold whichever host name the reader arrived on.
+        'rest'     => wp_make_link_relative( rest_url( 'hr/v1/' ) ),
+        'keys_url' => wp_make_link_relative( home_url( '/.well-known/pqsig-keys.json' ) ),
+        'feeds'    => array_keys( array_filter( feed_sources(), static fn( $source, $key ) => null !== stored_feed( $key ), ARRAY_FILTER_USE_BOTH ) ),
     ) );
     get_footer();
 }

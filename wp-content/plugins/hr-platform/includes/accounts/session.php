@@ -65,9 +65,9 @@ add_action( 'hr_header_account', function () {
 } );
 
 add_action( 'wp_enqueue_scripts', function () {
-    wp_register_style( 'hr-account-chip', false, array(), asset_ver( 'js/account-chip.js' ) );
+    wp_register_style( 'hr-account-chip', false, array(), (string) filemtime( __FILE__ ) );
     wp_enqueue_style( 'hr-account-chip' );
-    $css = file_get_contents( __DIR__ . '/chip.css' );
+    $css = is_readable( __DIR__ . '/chip.css' ) ? file_get_contents( __DIR__ . '/chip.css' ) : '';
     if ( $css ) {
         wp_add_inline_style( 'hr-account-chip', $css );
     }
@@ -78,4 +78,6 @@ add_action( 'wp_enqueue_scripts', function () {
 add_action( 'wp_head', function () {
     $config = array( 'session' => admin_url( 'admin-ajax.php?action=hr_session' ) );
     printf( '<script type="application/json" id="hr-account-chip-config">%s</script>' . "\n", wp_json_encode( $config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ) );
+    // Signed-in readers should not see "Sign in" flash before the chip loads (static, identical for everyone).
+    echo '<script>/(?:^|;\\s*)hr_li=1(?:;|$)/.test(document.cookie)&&document.documentElement.classList.add("hr-li")</script>' . "\n";
 }, 2 );

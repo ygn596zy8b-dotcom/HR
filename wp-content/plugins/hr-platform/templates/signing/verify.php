@@ -1,7 +1,7 @@
 <?php
 /**
  * /verify/ — reader and partner verification. All checking runs in the browser (assets/src/verify.mjs).
- * Vars: $keyset (normalised keyset or null), $rest (hr/v1 REST root), $keys_url.
+ * Vars: $keyset (normalised keyset or null), $rest (hr/v1 REST root), $keys_url, $feeds (keys of signed feeds).
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
@@ -9,7 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 use function HR\Platform\icon;
 use function HR\Platform\Signing\group_hex;
 
-$hr_keys = (array) ( $keyset['keys'] ?? array() );
+$hr_keys  = (array) ( $keyset['keys'] ?? array() );
+$hr_feeds = array_values( array_filter( (array) ( $feeds ?? array() ), static fn( $k ) => is_string( $k ) && 1 === preg_match( '/^[a-z]+$/', $k ) ) );
 ?>
 <div id="hr-verify" class="hrp hr-verify" data-rest="<?php echo esc_url( $rest ); ?>" data-keys="<?php echo esc_url( $keys_url ); ?>">
     <header class="hr-verify-hero">
@@ -33,7 +34,7 @@ $hr_keys = (array) ( $keyset['keys'] ?? array() );
                     <div class="hrp-field">
                         <label class="hrp-label" for="hr-verify-sig-url">Signature link on this site</label>
                         <input id="hr-verify-sig-url" class="hrp-input" name="sig" type="text" inputmode="url" autocomplete="off" spellcheck="false" maxlength="2048" placeholder="/signed/1234.sig.json" aria-describedby="hr-verify-sig-url-hint" required>
-                        <span id="hr-verify-sig-url-hint" class="hrp-hint">Every article links to its signature under “Verify this article”. The feed: <code>/signed/feed.xml.sig.json</code></span>
+                        <span id="hr-verify-sig-url-hint" class="hrp-hint">Every article links to its signature under “Verify this article”.<?php if ( $hr_feeds ) : ?> Feeds: <?php echo implode( ', ', array_map( static fn( $k ) => '<code>' . esc_html( '/signed/' . $k . '.xml.sig.json' ) . '</code>', $hr_feeds ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped per item ?><?php endif; ?></span>
                     </div>
                     <button type="submit" class="hrp-btn">Verify</button>
                 </form>

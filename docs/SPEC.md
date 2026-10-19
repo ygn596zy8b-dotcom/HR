@@ -115,6 +115,10 @@ uses `var(--hr-red, <fallback>)` so it renders correctly even without the theme.
    Defaults: org_street_address "First Floor, Feroze Heights, Saadi Town", org_locality "Karachi",
    org_region "Sindh", org_postal_code "75280", org_country "PK". Phone: not provided — leave empty.
 3. All credentials exposed by the public archive have been rotated by the owner (2026-10-19).
+4. After the feature build: **extreme performance, geographic delivery and GEO optimisation** — Core Web Vitals
+   budgets (mobile LCP < 2.0 s on 4G, INP < 150 ms, CLS < 0.05, Lighthouse ≥ 95), edge caching close to readers in
+   Pakistan and abroad (Cloudflare PoPs in Karachi/Lahore/Islamabad), LiteSpeed tuning, third-party facades, image and
+   font optimisation, speculation rules, and generative-engine optimisation (llms.txt, structured data, summaries).
 
 ## Assumptions
 

@@ -82,7 +82,7 @@
 /* Result panel */
 .hr-verify-result { margin-top: clamp(28px, 4vw, 40px); padding: clamp(20px, 3vw, 28px); border: 1px solid var(--hrp-line, #e5e5ea); border-left-width: 6px; background: var(--hrp-paper-2, #f2f2f7); }
 .hr-verify-result:focus { outline: none; }
-.hr-verify-result:focus-visible { outline: 2px solid var(--hrp-red, #ff001c); outline-offset: 2px; }
+.hr-verify-result:focus-visible { outline: 2px solid var(--hrp-ink, #050505); outline-offset: 3px; }
 .hr-verify-result[data-state="ok"] { border-left-color: var(--hrp-ok, #00875a); background: #eef8f3; }
 .hr-verify-result[data-state="fail"] { border-left-color: var(--hrp-red, #ff001c); background: #fff0f2; }
 .hr-verify-result[data-state="busy"] { border-left-color: var(--hrp-muted, #5f5f66); }

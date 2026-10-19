@@ -77,7 +77,16 @@ async function request(path, { method = 'GET', body, authed = true } = {}) {
   const headers = { Accept: 'application/json' };
   if (authed) headers.Authorization = auth;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const res = await fetch(sameOriginUrl(path), { method, headers, body, redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS) });
+  let res;
+  try {
+    // redirect 'manual': a redirect is reported, never followed, so credentials cannot travel anywhere else.
+    res = await fetch(sameOriginUrl(path), { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS) });
+  } catch (err) {
+    throw new Error(`${method} ${path} → ${err?.name === 'TimeoutError' ? 'timed out' : `network error (${err?.cause?.code ?? err?.message ?? 'unknown'})`}`);
+  }
+  if (res.status >= 300 && res.status < 400) {
+    throw new Error(`${method} ${path} → HTTP ${res.status} redirect (not followed; is this page disabled on the site?)`);
+  }
   const bytes = new Uint8Array(await res.arrayBuffer());
   if (!res.ok) {
     let detail = '';

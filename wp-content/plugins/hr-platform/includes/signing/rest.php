@@ -153,12 +153,21 @@ function queue_candidate_ids( int $limit, int $offset, bool $count = false ) {
     return array_map( static fn( $r ) => (int) $r->ID, (array) $rows );
 }
 
+/** Feeds the site actually serves (key => site-relative source). Only these keys have /signed/<key>.xml routes. */
 function feed_sources(): array {
-    $feeds = array( 'feed' => '/feed/' );
-    if ( post_type_exists( 'hr_episode' ) ) {
-        $feeds['podcast'] = '/podcast/feed/';
+    $feeds = array();
+    // Yoast's "Remove global feed" setting redirects /feed/ to the home page; there is nothing to sign then.
+    if ( ! ( class_exists( '\WPSEO_Options' ) && \WPSEO_Options::get( 'remove_feed_global', false ) ) ) {
+        $feeds['feed'] = wp_make_link_relative( home_url( '/feed/' ) );
     }
-    return $feeds;
+    if ( post_type_exists( 'hr_episode' ) ) {
+        $feeds['podcast'] = wp_make_link_relative( home_url( '/podcast/feed/' ) );
+    }
+    $feeds = (array) apply_filters( 'hr_pqsig_feed_sources', $feeds );
+    return array_filter(
+        array_intersect_key( $feeds, array( 'feed' => 1, 'podcast' => 1 ) ),
+        static fn( $source ) => is_string( $source ) && str_starts_with( $source, '/' ) && ! str_starts_with( $source, '//' )
+    );
 }
 
 function stored_feed( string $key ): ?array {

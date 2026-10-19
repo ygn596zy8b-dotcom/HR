@@ -201,6 +201,11 @@ function print_config(): void {
 }
 
 function begin_page( string $title, string $sub, array $extra = array() ): void {
+    // Cookies must be written before the theme starts sending HTML.
+    if ( ! is_user_logged_in() ) {
+        browser_id();
+    }
+    take_flash();
     set_page_title( $title );
     enqueue_assets( $extra );
     add_filter( 'body_class', static fn( $c ) => array_merge( $c, array( 'hra-page', 'hra-page--' . sanitize_html_class( $sub ) ) ) );

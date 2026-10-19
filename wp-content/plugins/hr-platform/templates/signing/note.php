@@ -13,6 +13,11 @@ $hr_state  = (string) ( $state['state'] ?? 'unsigned' );
 $hr_signed = 'signed' === $hr_state;
 $hr_kid    = (string) ( $state['kid'] ?? '' );
 $hr_at     = (int) ( $state['at'] ?? 0 );
+// A site set to a UTC offset (not a named zone) prints "GMT+0000"; readers understand "UTC".
+$hr_tz = $hr_at ? wp_date( 'T', $hr_at ) : '';
+if ( 1 === preg_match( '/^(?:GMT)?[+-]/', $hr_tz ) ) {
+    $hr_tz = '+00:00' === wp_date( 'P', $hr_at ) ? 'UTC' : 'UTC' . wp_date( 'P', $hr_at );
+}
 ?>
 <aside id="hr-signature" class="hrp hr-pqsig-note hr-pqsig-note--<?php echo esc_attr( $hr_state ); ?>" aria-labelledby="hr-signature-title">
     <div class="hr-pqsig-note__icon"><?php echo icon( $hr_signed ? 'shield-check' : 'clock' ); // phpcs:ignore WordPress.Security.EscapeOutput -- static SVG ?></div>
@@ -23,7 +28,7 @@ $hr_at     = (int) ( $state['at'] ?? 0 );
             <p class="hr-pqsig-note__text">This article is digitally signed with post-quantum cryptography — ML-DSA-87 (NIST FIPS 204) together with Ed448. Changing even one character after publication breaks the signature.</p>
             <dl class="hr-pqsig-meta">
                 <?php if ( $hr_at > 0 ) : ?>
-                    <div><dt>Signed</dt><dd><time datetime="<?php echo esc_attr( gmdate( 'c', $hr_at ) ); ?>"><?php echo esc_html( wp_date( 'j M Y, H:i T', $hr_at ) ); ?></time></dd></div>
+                    <div><dt>Signed</dt><dd><time datetime="<?php echo esc_attr( gmdate( 'c', $hr_at ) ); ?>"><?php echo esc_html( wp_date( 'j M Y, H:i', $hr_at ) . ' ' . $hr_tz ); ?></time></dd></div>
                 <?php endif; ?>
                 <div><dt>Key ID</dt><dd><code title="<?php echo esc_attr( $hr_kid ); ?>"><?php echo esc_html( group_hex( $hr_kid, 4 ) ); ?></code></dd></div>
                 <div><dt>Algorithms</dt><dd>ML-DSA-87 + Ed448 · SHA-512</dd></div>
