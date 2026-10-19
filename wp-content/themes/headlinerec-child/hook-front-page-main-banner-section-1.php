@@ -53,6 +53,8 @@ if (!function_exists('covernews_front_page_main_section_1')) :
       </div>
     </section>
 
+    <?php do_action( 'hr_home_after_banner' ); // Podcast section (hr-platform) ?>
+
     <!-- 2. LIGHT THEME "TODAY'S BRIEFING" GRID -->
     <section class="sbp-light-section">
       <div class="container container-full-width">

@@ -13,6 +13,7 @@
 </div><!-- Closes #content -->
 
 <?php do_action('covernews_action_full_width_upper_footer_section'); ?>
+<?php if ( is_front_page() ) { do_action( 'hr_home_before_footer' ); } // Client logos (hr-platform) ?>
 
 <style>
     /* =========================================================
@@ -338,6 +339,7 @@
                 <li><a href="/pr-media">PR & Media</a></li>
                 <li><a href="/editorial-corrections-policy">Editorial & Corrections Policy</a></li>
             </ul>
+            <?php do_action( 'hr_footer_contact' ); // Registered address (hr-platform) ?>
         </div>
 
     </div>
@@ -346,8 +348,9 @@
     <div class="hr-footer-bottom">
         <div class="hr-bottom-inner">
             <div class="hr-copyright">
-                Copyright &copy; <?php echo date('Y'); ?> All rights reserved. | Headline Recorder
+                Copyright &copy; <?php echo esc_html( date( 'Y' ) ); ?> All rights reserved. | Headline Recorder
             </div>
+            <div class="hr-footer-trust"><?php do_action( 'hr_footer_trust' ); ?></div>
             <div class="hr-bottom-socials">
                 <a href="https://www.instagram.com/headlinerecorder/">ig</a>
                 <a href="https://www.facebook.com/profile.php?id=61573634501379">fb</a>

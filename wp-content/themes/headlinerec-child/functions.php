@@ -1266,3 +1266,19 @@ function hr_force_remove_focus_outline() {
     <?php
 }
 
+
+
+// ==============================================================================
+// HEADLINE RECORDER PLATFORM: account slot at the end of the primary menu
+// (the hr-platform plugin fills it; with the plugin off the item is simply absent)
+// ==============================================================================
+add_filter( 'wp_nav_menu_items', 'hr_nav_account_slot', 20, 2 );
+function hr_nav_account_slot( $items, $args ) {
+    if ( empty( $args->theme_location ) || 'aft-primary-nav' !== $args->theme_location || ! has_action( 'hr_header_account' ) ) {
+        return $items;
+    }
+    ob_start();
+    do_action( 'hr_header_account' );
+    $slot = trim( (string) ob_get_clean() );
+    return '' === $slot ? $items : $items . '<li class="menu-item hr-nav-account">' . $slot . '</li>';
+}

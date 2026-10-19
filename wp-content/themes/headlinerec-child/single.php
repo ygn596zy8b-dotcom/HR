@@ -1091,7 +1091,8 @@ aside#secondary {
                   <div class="hr-meta-divider"></div>
                          <span class="hr-meta-date"><?php echo esc_html($post_date); ?></span>
                         <div class="hr-meta-divider"></div>
-                     <span class="hr-meta-readtime"><?php echo $reading_minutes; ?> min read</span>
+                     <span class="hr-meta-readtime"><?php echo (int) $reading_minutes; ?> min read</span>
+                     <?php do_action( 'hr_single_after_byline', get_the_ID() ); ?>
                         <div class="hr-meta-share">
                     <?php if (isset($is_guest) && $is_guest) : ?>
                         <!-- Guest Author Social Profiles -->
@@ -1112,6 +1113,8 @@ aside#secondary {
                     <?php endif; ?>
                 </div>
             </div>
+
+            <?php do_action( 'hr_single_before_content', get_the_ID() ); ?>
 
             <!-- Hero image -->
             <?php if ( has_post_thumbnail() ) : ?>
@@ -1263,6 +1266,7 @@ setTimeout(() => {
             <div class="hr-body">
                 <?php the_content(); ?>
             </div>
+            <?php do_action( 'hr_single_after_content', get_the_ID() ); ?>
 
             <!-- Tags -->
             <?php if ($tags) : ?>

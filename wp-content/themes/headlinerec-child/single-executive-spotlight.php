@@ -509,8 +509,11 @@ while (have_posts()) : the_post();
                 <p class="esa-exec-name"><?php echo esc_html($author_name); ?></p>
                 <p class="esa-exec-role">Executive Spotlight — Headline Recorder</p>
             </div>
+            <?php do_action( 'hr_single_after_byline', get_the_ID() ); ?>
             <span class="esa-exec-date"><?php echo esc_html($post_date); ?></span>
         </div>
+
+        <?php do_action( 'hr_single_before_content', get_the_ID() ); ?>
 
         <!-- VIDEO EMBED (if YouTube URL found in content) -->
         <?php if ($youtube_embed) : ?>
@@ -531,6 +534,7 @@ while (have_posts()) : the_post();
         <div class="esa-body">
             <?php echo $post_content; ?>
         </div>
+        <?php do_action( 'hr_single_after_content', get_the_ID() ); ?>
 
         <!-- SHARE STRIP -->
         <div class="esa-share-strip">
