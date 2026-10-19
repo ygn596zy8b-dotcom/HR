@@ -29,13 +29,33 @@ require_once __DIR__ . '/includes/core/icons.php';
 require_once __DIR__ . '/includes/core/routes.php';
 require_once __DIR__ . '/includes/core/settings.php';
 
-// Each module is self-contained and optional; a missing module simply does nothing.
+// Each module is self-contained and optional; a missing module simply does nothing, and a module that fails to
+// load is skipped (and reported) instead of taking the whole news site down.
 foreach ( array( 'monitoring', 'accounts', 'streaks', 'submissions', 'podcast', 'clients', 'signing', 'site' ) as $module ) {
     $file = __DIR__ . "/includes/{$module}/module.php";
-    if ( is_readable( $file ) ) {
+    if ( ! is_readable( $file ) ) {
+        continue;
+    }
+    try {
         require_once $file;
+    } catch ( \Throwable $e ) {
+        error_log( sprintf( 'hr-platform: module "%s" failed to load: %s in %s:%d', $module, $e->getMessage(), $e->getFile(), $e->getLine() ) );
+        if ( function_exists( '\Sentry\captureException' ) ) {
+            \Sentry\captureException( $e );
+        }
+        $GLOBALS['hr_platform_failed_modules'][] = $module;
     }
 }
+
+add_action( 'admin_notices', function () {
+    if ( empty( $GLOBALS['hr_platform_failed_modules'] ) || ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+    printf(
+        '<div class="notice notice-error"><p>%s</p></div>',
+        esc_html( 'Headline Recorder Platform: these modules failed to load and are switched off: ' . implode( ', ', $GLOBALS['hr_platform_failed_modules'] ) . '. See the PHP error log or Sentry.' )
+    );
+} );
 
 /**
  * Activation and upgrades share one path: register rewrites, let modules create tables, flush rules.
