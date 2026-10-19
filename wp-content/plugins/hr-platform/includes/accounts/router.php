@@ -20,8 +20,9 @@ function dispatch( string $sub ): void {
     no_store();
     $sub = strtolower( $sub );
     if ( ! headers_sent() ) {
-        // The pages carry one-time links and personal data: never leak the URL to other sites.
-        header( 'Referrer-Policy: ' . ( in_array( $sub, array( 'reset', 'verify' ), true ) ? 'no-referrer' : 'same-origin' ) );
+        // These pages carry one-time links and personal data: never send their URL to another site. (Not
+        // "no-referrer": browsers then send "Origin: null" on our own form posts and the origin check fails.)
+        header( 'Referrer-Policy: same-origin' );
     }
     switch ( $sub ) {
         case 'login':
@@ -141,7 +142,7 @@ function overview_data( \WP_User $user ): array {
         'level'     => security_level( $score ),
         'since'     => strtotime( $user->user_registered . ' UTC' ) ?: 0,
         'pages'     => account_pages(),
-        'last'      => (int) get_user_meta( $uid, 'hr_last_login', true ),
+        'last'      => (int) get_user_meta( $uid, 'hr_prev_login', true ),
     );
 }
 
@@ -205,21 +206,61 @@ add_filter( 'hr_csp_sources', function ( array $sources ) {
     return $sources;
 }, 99 );
 
-// Third-party widgets the theme or other plugins print site-wide would only trip the CSP above; leave them out.
+// Third-party widgets the theme or other plugins print site-wide would only trip the CSP above; leave them out,
+// together with any local script that depends on one (e.g. a reCAPTCHA bootstrap without reCAPTCHA).
 add_action( 'wp_enqueue_scripts', function () {
     if ( ! is_account_request() ) {
         return;
     }
-    global $wp_scripts;
-    $home = (string) wp_parse_url( home_url(), PHP_URL_HOST );
-    foreach ( (array) ( $wp_scripts->queue ?? array() ) as $handle ) {
-        $src = (string) ( $wp_scripts->registered[ $handle ]->src ?? '' );
-        $host = (string) wp_parse_url( $src, PHP_URL_HOST );
-        if ( '' !== $host && strtolower( $host ) !== strtolower( $home ) ) {
+    $scripts = wp_scripts();
+    $home    = strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+    $foreign = static function ( string $handle, array $seen = array() ) use ( &$foreign, $scripts, $home ): bool {
+        $dep = $scripts->registered[ $handle ] ?? null;
+        if ( ! $dep || isset( $seen[ $handle ] ) ) {
+            return false;
+        }
+        $host = strtolower( (string) wp_parse_url( (string) $dep->src, PHP_URL_HOST ) );
+        if ( '' !== $host && $host !== $home ) {
+            return true;
+        }
+        $seen[ $handle ] = true;
+        foreach ( (array) $dep->deps as $child ) {
+            if ( $foreign( (string) $child, $seen ) ) {
+                return true;
+            }
+        }
+        return false;
+    };
+    foreach ( (array) $scripts->queue as $handle ) {
+        if ( $foreign( (string) $handle ) ) {
             wp_dequeue_script( $handle );
         }
     }
+    // The parent theme's bundle is built with eval() (a dev build); the CSP blocks it on every page, so do not even
+    // load it where it can only produce errors.
+    wp_dequeue_script( 'covernews-script' );
 }, 999 );
+
+// Snippets and widgets printed straight into wp_head/wp_footer (not enqueued) get the same treatment: on account
+// pages any <script> from another host is dropped before it reaches the browser (the CSP would block it anyway).
+function strip_foreign_scripts( string $html ): string {
+    $home = preg_quote( strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ), '#' );
+    return (string) preg_replace( '#<script\b[^>]*\bsrc=["\']?(?:https?:)?//(?!' . $home . '[:/"\'])[^>]*>.*?</script\s*>#is', '', $html );
+}
+
+foreach ( array( 'wp_head', 'wp_body_open', 'wp_footer' ) as $hr_accounts_hook ) {
+    add_action( $hr_accounts_hook, function () {
+        if ( is_account_request() ) {
+            ob_start();
+        }
+    }, PHP_INT_MIN );
+    add_action( $hr_accounts_hook, function () {
+        if ( is_account_request() && ob_get_level() > 0 ) {
+            echo strip_foreign_scripts( (string) ob_get_clean() ); // phpcs:ignore -- markup produced by WordPress hooks, only filtered here
+        }
+    }, PHP_INT_MAX );
+}
+unset( $hr_accounts_hook );
 
 add_action( 'template_redirect', function () {
     if ( is_account_request() && ! headers_sent() ) {

@@ -350,9 +350,19 @@ function strip_frame_vars( ?\Sentry\Stacktrace $stacktrace ): void {
     if ( ! $stacktrace ) {
         return;
     }
-    // Function arguments can hold passwords (wp_authenticate( $user, $pass )) or tokens.
+    // Function arguments can hold passwords (wp_authenticate( $user, $pass )) or tokens. Source context of
+    // wp-config.php would hold the database password and salts, so it never leaves the server.
     foreach ( $stacktrace->getFrames() as $frame ) {
         $frame->setVars( array() );
+        if ( 'wp-config.php' === basename( (string) $frame->getAbsoluteFilePath() ) ) {
+            $frame->setPreContext( array() );
+            $frame->setContextLine( null );
+            $frame->setPostContext( array() );
+            continue;
+        }
+        $frame->setPreContext( array_map( __NAMESPACE__ . '\\scrub_text', $frame->getPreContext() ) );
+        $frame->setContextLine( null !== $frame->getContextLine() ? scrub_text( $frame->getContextLine() ) : null );
+        $frame->setPostContext( array_map( __NAMESPACE__ . '\\scrub_text', $frame->getPostContext() ) );
     }
 }
 
@@ -387,7 +397,7 @@ function scrub_request( array $request ): array {
 /** Removes email addresses and masks sensitive query parameters (?token=… &key=…) anywhere in a string. */
 function scrub_text( string $text ): string {
     $text = (string) preg_replace( EMAIL, '[email]', $text );
-    return (string) preg_replace_callback( '/([?&;])([^=&#\s;]+)=([^&#\s;]*)/', static function ( $m ) {
+    return (string) preg_replace_callback( '/([?&;])([^=&#\s;?]+)=([^&#\s;?]*)/', static function ( $m ) {
         return preg_match( SENSITIVE, rawurldecode( $m[2] ) ) ? $m[1] . $m[2] . '=[Filtered]' : $m[0];
     }, $text );
 }

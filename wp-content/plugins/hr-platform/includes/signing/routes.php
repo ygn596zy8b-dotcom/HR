@@ -27,6 +27,9 @@ function send_file( string $body, string $type, int $status = 200 ): void {
         header( 'Access-Control-Allow-Origin: *' );
         header( 'Cross-Origin-Resource-Policy: cross-origin' );
         header( 'X-Content-Type-Options: nosniff' );
+        // Data, never a document: the stored feed is uploader-supplied XML and a browser opening it directly must
+        // not run anything (an XHTML <script> inside XML would otherwise execute under the site's page CSP).
+        header( "Content-Security-Policy: default-src 'none'; sandbox; frame-ancestors 'none'" );
         header( 'X-Robots-Tag: noindex' );
         header( 'Cache-Control: public, max-age=' . ( 200 === $status ? 300 : 60 ) );
         header( 'Content-Length: ' . strlen( $body ) );

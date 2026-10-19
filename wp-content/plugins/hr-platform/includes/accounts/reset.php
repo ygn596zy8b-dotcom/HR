@@ -45,7 +45,6 @@ function route_forgot(): void {
                 redirect( account_url( 'forgot' ) );
             }
         }
-        status_header( 400 );
     }
     render_auth( 'forgot', array( 'sent' => false, 'errors' => $errors, 'value' => $value ), 'Reset your password', 'forgot' );
 }
@@ -104,7 +103,7 @@ function route_reset(): void {
                 reset_password( $user, $password );
                 \WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
                 delete_user_meta( $user->ID, 'hr_stepup' );
-                update_user_meta( $user->ID, 'hr_pw_checked', time() );
+                note_password_set( (int) $user->ID );
                 update_user_meta( $user->ID, 'hr_email_verified', '1' ); // they just proved the inbox
                 set_cookie( 'hr_rp', '', 0, $path, 'Strict' );
                 mail_security_notice( $user, 'Your password was changed', 'The password for your Headline Recorder account was just reset, and every device was signed out.' );
@@ -113,7 +112,6 @@ function route_reset(): void {
                 redirect( account_url( 'reset' ) );
             }
         }
-        status_header( 400 );
     }
     render_auth( 'reset', array( 'done' => false, 'errors' => $errors, 'user' => $user ), 'Choose a new password', 'reset', array( 'strength' ) );
 }

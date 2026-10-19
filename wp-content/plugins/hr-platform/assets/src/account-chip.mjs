@@ -55,6 +55,7 @@ function config() {
 
 /** Only same-origin http(s) URLs from the payload are used as link targets. */
 function safeUrl(value) {
+  if (typeof value !== 'string' || !value) return null;
   try {
     const u = new URL(String(value), location.href);
     return u.origin === location.origin && /^https?:$/.test(u.protocol) ? u.href : null;

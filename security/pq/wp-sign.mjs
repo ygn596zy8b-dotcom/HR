@@ -143,6 +143,7 @@ async function main() {
       stored += Number(res.stored) || 0;
       for (const r of results) {
         if (r.status === 'stale') log(`article ${r.id}: changed while signing, will retry`);
+        else if (r.status === 'not_found') log(`article ${r.id}: no longer public, skipped`);
         else if (r.status !== 'stored') problem(`article ${r.id}: rejected by the site (${r.status})`);
       }
       log(`uploaded ${batch.length}: ${Number(res.stored) || 0} stored`);
@@ -174,6 +175,12 @@ function signArticle(it, keyset) {
     problem(`article ${it.id}: canonical bytes do not match the SHA-512 the site reported; refusing to sign`);
     return null;
   }
+  // Only ever sign what the site's format says an article is: a v1 record whose address is the queued one on
+  // --site. A compromised or misconfigured server then cannot get arbitrary bytes signed as an article.
+  if (!isArticleRecord(bytes, it.url)) {
+    problem(`article ${it.id}: canonical bytes are not a v1 article at ${it.url} on ${origin}; refusing to sign`);
+    return null;
+  }
   const doc = sign(bytes, secretKey, { type: 'article', url: it.url, attach: true });
   const check = verify(doc, undefined, keyset);
   if (!check.ok || check.key.kid !== secretKey.kid) {
@@ -181,6 +188,19 @@ function signArticle(it, keyset) {
     return null;
   }
   return { id: it.id, sig: doc };
+}
+
+const ARTICLE_FIELDS = 'v,url,title,author,published,modified,html';
+function isArticleRecord(bytes, path) {
+  try {
+    const a = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    if (!a || typeof a !== 'object' || Array.isArray(a) || Object.keys(a).join(',') !== ARTICLE_FIELDS || a.v !== 1) return false;
+    if (!['title', 'author', 'published', 'modified', 'html'].every((k) => typeof a[k] === 'string')) return false;
+    const signed = new URL(a.url);
+    return signed.origin === origin && signed.href === sameOriginUrl(path).href;
+  } catch {
+    return false;
+  }
 }
 
 function* batches(docs) {

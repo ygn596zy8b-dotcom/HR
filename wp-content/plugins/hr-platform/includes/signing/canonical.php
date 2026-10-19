@@ -84,10 +84,11 @@ function signature_state( int $post_id ): ?array {
     $stored  = (string) get_post_meta( $post_id, META_SHA, true );
     $kid     = (string) get_post_meta( $post_id, META_KID, true );
     $current = hash( 'sha512', canonical_bytes( $post ) );
+    $changed = '' !== $stored && ! hash_equals( $stored, $current );
     if ( '' === $stored ) {
         $state = 'unsigned';
     } else {
-        $state = hash_equals( $stored, $current ) && kid_is_valid( $kid ) ? 'signed' : 'stale';
+        $state = ! $changed && kid_is_valid( $kid ) ? 'signed' : 'stale';
     }
     // Self-heal: a change the save hooks could not see (direct DB edit, import) still reaches the signer's queue.
     if ( 'stale' === $state && '1' !== get_post_meta( $post_id, META_STALE, true ) ) {
@@ -96,6 +97,7 @@ function signature_state( int $post_id ): ?array {
     return $cache[ $post_id ] = array(
         'post_id' => $post_id,
         'state'   => $state,
+        'changed' => $changed, // false for a stale signature whose key was revoked or removed
         'kid'     => $kid,
         'at'      => (int) get_post_meta( $post_id, META_AT, true ),
         'sha512'  => $current,

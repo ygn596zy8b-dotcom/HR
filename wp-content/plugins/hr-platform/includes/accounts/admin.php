@@ -11,8 +11,17 @@ use function HR\Platform\log_security;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-function staff_mfa_enforced(): bool {
-    return ! defined( 'HR_ENFORCE_STAFF_MFA' ) || false !== HR_ENFORCE_STAFF_MFA;
+/**
+ * Must this staff account enrol a passkey or two-step verification before using wp-admin?
+ * define( 'HR_ENFORCE_STAFF_MFA', false ) in wp-config.php switches it off. Without the constant it is on, except on
+ * local development copies (WP_ENVIRONMENT_TYPE 'local'), where it is opt-in through the filter so shared test
+ * databases keep working: add_filter( 'hr_enforce_staff_mfa', '__return_true' ).
+ */
+function staff_mfa_enforced( ?\WP_User $user = null ): bool {
+    if ( defined( 'HR_ENFORCE_STAFF_MFA' ) ) {
+        return false !== HR_ENFORCE_STAFF_MFA;
+    }
+    return (bool) apply_filters( 'hr_enforce_staff_mfa', 'local' !== wp_get_environment_type(), $user );
 }
 
 add_action( 'admin_init', function () {
@@ -28,9 +37,8 @@ add_action( 'admin_init', function () {
         }
         return;
     }
-    if ( staff_mfa_enforced() && ! has_mfa( (int) $user->ID ) && ! in_array( $pagenow, array( 'profile.php', 'admin-post.php' ), true ) ) {
+    if ( staff_mfa_enforced( $user ) && ! has_mfa( (int) $user->ID ) && ! in_array( $pagenow, array( 'profile.php', 'admin-post.php' ), true ) ) {
         log_security( 'staff_mfa_redirect', array( 'uid' => (int) $user->ID ) );
-        flash( 'staff_mfa' );
         wp_safe_redirect( add_query_arg( 'enrol', 'staff', account_url( 'settings' ) ) . '#security' );
         exit;
     }
@@ -48,7 +56,7 @@ add_action( 'admin_notices', function () {
     if ( ! has_mfa( (int) $user->ID ) ) {
         printf(
             '<div class="notice notice-warning"><p><strong>Protect your staff account.</strong> %s <a href="%s">Add a passkey or turn on two-step verification</a> — it takes about a minute.</p></div>',
-            staff_mfa_enforced() ? 'Accounts that can edit content must use a passkey or two-step verification before using the dashboard.' : 'Passkeys and two-step verification stop anyone who learns your password.',
+            staff_mfa_enforced( $user ) ? 'Accounts that can edit content must use a passkey or two-step verification before using the dashboard.' : 'Passkeys and two-step verification stop anyone who learns your password.',
             esc_url( account_url( 'settings' ) . '#security' )
         );
         return;
@@ -58,7 +66,7 @@ add_action( 'admin_notices', function () {
         $missing = staff_without_mfa();
         printf(
             '<div class="notice notice-info"><p><strong>Staff sign-in policy:</strong> anyone who can edit posts %s use a passkey or two-step verification (Settings → Security on their account page). %s</p></div>',
-            staff_mfa_enforced() ? 'must' : 'should (enforcement is switched off with HR_ENFORCE_STAFF_MFA)',
+            staff_mfa_enforced() ? 'must' : 'should (enforcement is switched off on this site)',
             $missing ? esc_html( sprintf( _n( '%d staff account has not enrolled yet.', '%d staff accounts have not enrolled yet.', $missing ), $missing ) ) : 'Every staff account has enrolled.'
         );
     }
@@ -223,7 +231,7 @@ function privacy_erase( string $email, int $page = 1 ): array {
     $uid = (int) $user->ID;
     passkeys_delete_all( $uid );
     totp_disable( $uid );
-    foreach ( array( 'hr_devices', 'hr_stepup', 'hr_verify', 'hr_email_change', 'hr_last_login', 'hr_pw_checked' ) as $key ) {
+    foreach ( array( 'hr_devices', 'hr_stepup', 'hr_verify', 'hr_email_change', 'hr_last_login', 'hr_prev_login', 'hr_pw_checked', 'hr_pw_policy' ) as $key ) {
         delete_user_meta( $uid, $key );
     }
     return array( 'items_removed' => true, 'items_retained' => false, 'messages' => array( 'Passkeys, two-step verification and known devices were removed.' ), 'done' => true );

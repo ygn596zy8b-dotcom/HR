@@ -21,13 +21,15 @@ const signer = generateSigningKey();
 const keyFile = join(dir, 'signing.secret.json');
 writeFileSync(keyFile, JSON.stringify(signer.secretKey), { mode: 0o600 });
 
-const canonical = (id) => te.encode(JSON.stringify({ v: 1, url: `http://127.0.0.1/2026/10/${id}/`, title: `Story ${id} — “quoted”`, author: 'Desk', published: '2026-10-17T10:00:00Z', modified: '2026-10-17T10:00:00Z', html: `<p>Body ${id} ünïcode</p>` }));
+const canonical = (id, origin) => te.encode(JSON.stringify({ v: 1, url: `${origin}/2026/10/${id}/`, title: `Story ${id} — “quoted”`, author: 'Desk', published: '2026-10-17T10:00:00Z', modified: '2026-10-17T10:00:00Z', html: `<p>Body ${id} ünïcode</p>` }));
 const FEED = te.encode('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>HR</title></channel></rss>');
 
-/** Mock site. `opts.tamper` = ids whose reported sha512 is wrong; `opts.keyset` overrides the published keyset. */
+/**
+ * Mock site. `opts.tamper` = ids whose reported sha512 is wrong; `opts.foreign` = ids whose canonical record names
+ * another site (with a correct sha512); `opts.keyset` overrides the published keyset.
+ */
 async function mockSite(opts = {}) {
   const state = { articles: new Map(), uploads: [], feeds: [], authHeaders: new Set(), requests: [] };
-  for (let id = 1; id <= (opts.count ?? 30); id++) state.articles.set(id, { bytes: canonical(id), stored: false });
   const keyset = opts.keyset ?? { keys: [signer.publicKey] };
   const json = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
   const server = createServer(async (req, res) => {
@@ -70,6 +72,9 @@ async function mockSite(opts = {}) {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   state.url = `http://127.0.0.1:${server.address().port}`;
+  for (let id = 1; id <= (opts.count ?? 30); id++) {
+    state.articles.set(id, { bytes: canonical(id, opts.foreign?.includes(id) ? 'https://evil.example' : state.url), stored: false });
+  }
   state.close = () => new Promise((r) => server.close(r));
   return state;
 }
@@ -119,6 +124,19 @@ test('refuses to sign canonical bytes whose hash does not match what the site re
     assert.match(r.out, /article 3: canonical bytes do not match/);
     assert.ok(!site.uploads.some((u) => u.id === 3), 'tampered article was not signed');
     assert.equal(site.feeds.length, 0, 'feeds are not signed after a refusal');
+  } finally {
+    await site.close();
+  }
+});
+
+test('refuses canonical bytes that are not an article record for the queued address on this site', async () => {
+  const site = await mockSite({ count: 4, foreign: [2] });
+  try {
+    const r = await run(['--site', site.url, '--key', keyFile, '--insecure-local']);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /article 2: canonical bytes are not a v1 article/);
+    assert.ok(!site.uploads.some((u) => u.id === 2), 'foreign record was not signed');
+    assert.equal(site.uploads.length, 3, 'the other articles were still signed');
   } finally {
     await site.close();
   }

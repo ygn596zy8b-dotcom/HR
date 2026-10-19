@@ -28,7 +28,7 @@ $hra_action = account_url( 'settings' ) . '#privacy';
             <span class="hra-block__icon" aria-hidden="true"><?php echo icon( 'download' ); // phpcs:ignore -- static SVG ?></span>
             <div>
                 <h3 class="hra-h3">Download your data</h3>
-                <p class="hra-muted">A JSON file with your profile, security settings, reading history and submissions’ status. No passwords or keys.</p>
+                <p class="hra-muted">A JSON file with your profile, security settings and the data other features keep for you (such as reading history). No passwords or keys.</p>
             </div>
         </div>
         <?php if ( $recent ) : ?>
@@ -44,7 +44,7 @@ $hra_action = account_url( 'settings' ) . '#privacy';
             <span class="hra-block__icon" aria-hidden="true"><?php echo icon( 'trash' ); // phpcs:ignore -- static SVG ?></span>
             <div>
                 <h3 class="hra-h3">Delete your account</h3>
-                <p class="hra-muted">Permanently removes your account, reading streak, passkeys and settings. Published articles stay published under your name. This cannot be undone.</p>
+                <p class="hra-muted">Permanently removes your account, reading history, passkeys and settings. Articles we have already published stay on the site. This cannot be undone.</p>
             </div>
         </div>
         <?php if ( $staff ) : ?>

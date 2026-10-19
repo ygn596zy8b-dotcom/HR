@@ -35,7 +35,6 @@ function route_register(): void {
             redirect( account_url( 'register' ) );
         }
         $errors = $result;
-        status_header( 400 );
     }
     render_auth( 'register', array( 'errors' => $errors, 'values' => $values, 'ts' => signed_time() ), 'Create your account', 'register', array( 'strength' ) );
 }
@@ -128,7 +127,7 @@ function handle_register( array &$values ) {
         return array( '_form' => 'We could not create your account just now. Please try again in a minute.' );
     }
     update_user_meta( $uid, 'hr_email_verified', '0' );
-    update_user_meta( $uid, 'hr_pw_checked', time() );
+    note_password_set( (int) $uid );
     send_verification( get_userdata( $uid ) );
     log_security( 'register', array( 'uid' => (int) $uid ) );
     return true;
@@ -272,8 +271,5 @@ function route_verify(): void {
 }
 
 function render_verify_state( string $state, string $kind, array $vars ): void {
-    if ( in_array( $state, array( 'invalid', 'error' ), true ) ) {
-        status_header( 400 );
-    }
     render_auth( 'verify', array( 'state' => $state, 'kind' => $kind ) + $vars, 'email' === $kind ? 'Confirm your new email' : 'Confirm your email', 'verify' );
 }

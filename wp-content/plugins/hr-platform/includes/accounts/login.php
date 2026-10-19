@@ -30,6 +30,19 @@ function complete_login( \WP_User $user, bool $remember, string $method ): void 
     log_security( 'login', array( 'uid' => (int) $user->ID, 'method' => $method ) );
 }
 
+// The hardening mu-plugin throttles sign-ins on 'authenticate' at priority 1, but WordPress's own password check
+// (priority 20) discards an earlier WP_Error and authenticates anyway. Carry the throttle verdict past it, for every
+// sign-in path (our forms and wp-login.php).
+add_filter( 'authenticate', function ( $user ) {
+    $GLOBALS['hr_accounts_throttled'] = is_wp_error( $user ) && in_array( 'hr_rate_limited', $user->get_error_codes(), true ) ? $user : null;
+    return $user;
+}, 2 );
+add_filter( 'authenticate', function ( $user ) {
+    $throttled = $GLOBALS['hr_accounts_throttled'] ?? null;
+    unset( $GLOBALS['hr_accounts_throttled'] );
+    return $throttled instanceof \WP_Error ? $throttled : $user;
+}, 99 );
+
 // ---------------------------------------------------------------------------------------------------------------
 // Known devices: a random id in a long-lived HttpOnly cookie; the account stores keyed hashes of the last 10.
 // Runs on every sign-in path (our forms, passkeys, wp-login.php).
@@ -56,6 +69,10 @@ add_action( 'wp_login', function ( $login, $user ) {
     $known[ $hash ] = time();
     arsort( $known );
     update_user_meta( $user->ID, 'hr_devices', array_slice( $known, 0, 10, true ) );
+    $previous = (int) get_user_meta( $user->ID, 'hr_last_login', true );
+    if ( $previous ) {
+        update_user_meta( $user->ID, 'hr_prev_login', $previous );
+    }
     update_user_meta( $user->ID, 'hr_last_login', time() );
     if ( $new && ! $first && setting( 'accounts_new_device_alerts' ) && rate_limit( 'newdev-mail', (string) $user->ID, 5, DAY_IN_SECONDS ) ) {
         mail_new_device( $user, describe_ua( current_ua() ) );
@@ -92,7 +109,7 @@ function route_login(): void {
                 $result = attempt_password_login( $log, $pwd );
                 if ( $result instanceof \WP_User ) {
                     $redirect = requested_redirect() ?: account_url();
-                    if ( has_totp( (int) $result->ID ) ) {
+                    if ( needs_second_factor( $result ) ) {
                         start_second_factor( $result, $remember, $redirect );
                     }
                     complete_login( $result, $remember, 'password' );
@@ -101,9 +118,18 @@ function route_login(): void {
                 $errors['_form'] = $result;
             }
         }
-        status_header( 400 );
     }
     render_auth( 'login', array( 'errors' => $errors, 'values' => $values, 'redirect_to' => requested_redirect() ), 'Sign in', 'login' );
+}
+
+/**
+ * After a correct password: accounts with an authenticator app always need a second step; staff whose only second
+ * factor is a passkey need that passkey (otherwise their password alone would still open wp-admin). Readers who only
+ * have a passkey use it as a faster sign-in, so their password keeps working on its own.
+ */
+function needs_second_factor( \WP_User $user ): bool {
+    $uid = (int) $user->ID;
+    return has_totp( $uid ) || ( is_staff( $user ) && passkey_count( $uid ) > 0 );
 }
 
 /** WP_User on success, otherwise a message that never reveals whether the account exists. */
@@ -175,42 +201,115 @@ function route_two_factor(): void {
         flash( 'login_timeout' );
         redirect( login_url() );
     }
-    $method = 'recovery' === get_str( 'method', 10 ) || 'recovery' === post_str( 'method', 10 ) ? 'recovery' : 'totp';
-    $errors = array();
+    $uid      = (int) $state['uid'];
+    $methods  = second_factor_methods( $uid );
+    $asked    = is_post() ? post_str( 'method', 10 ) : get_str( 'method', 10 );
+    $method   = in_array( $asked, $methods, true ) ? $asked : $methods[0];
+    $errors   = array();
     if ( is_post() ) {
         if ( ! verify_form( 'two_factor' ) ) {
             $errors['_form'] = flash_messages()['csrf'][1];
         } else {
-            $code = trim( post_str( 'code', 40 ) );
             $state['attempts']++;
             if ( $state['attempts'] > 5 ) {
                 end_challenge( $state );
                 flash( 'login_timeout' );
                 redirect( login_url() );
             }
+            $challenge = (string) ( $state['wa'] ?? '' );
+            unset( $state['wa'] ); // a passkey challenge is single use, whatever happens next
             set_transient( $state['key'], array_diff_key( $state, array( 'key' => 1 ) ), max( 1, (int) $state['exp'] - time() ) );
-            if ( '' === $code ) {
-                $errors['code'] = 'recovery' === $method ? 'Enter one of your recovery codes.' : 'Enter the 6-digit code from your authenticator app.';
-            } else {
-                $result = verify_second_factor( (int) $state['uid'], $code );
-                if ( 'limited' === $result ) {
-                    $errors['_form'] = 'Too many attempts. Please wait 15 minutes and sign in again.';
-                } elseif ( $result ) {
-                    $user = get_userdata( (int) $state['uid'] );
-                    end_challenge( $state );
-                    if ( $user ) {
-                        complete_login( $user, ! empty( $state['remember'] ), 'password+' . $result );
-                        redirect( safe_redirect_target( (string) $state['redirect'], account_url() ) );
-                    }
-                    redirect( login_url() );
-                } else {
-                    $errors['code'] = 'recovery' === $method ? 'That recovery code is not valid or has been used.' : 'That code is not right. Check the time on your phone and try the newest code.';
+            $result = 'passkey' === $method ? second_factor_passkey( $uid, $challenge ) : second_factor_code( $uid, $method, $errors );
+            if ( 'limited' === $result ) {
+                $errors['_form'] = 'Too many attempts. Please wait 15 minutes and sign in again.';
+            } elseif ( $result ) {
+                $user = get_userdata( $uid );
+                end_challenge( $state );
+                if ( $user ) {
+                    complete_login( $user, ! empty( $state['remember'] ), 'password-' . $result );
+                    redirect( safe_redirect_target( (string) $state['redirect'], account_url() ) );
                 }
+                redirect( login_url() );
+            } elseif ( 'passkey' === $method ) {
+                $errors['_form'] = 'That passkey could not be verified. Try again, or use another way to confirm.';
             }
         }
-        status_header( 400 );
     }
-    render_auth( 'two-factor', array( 'errors' => $errors, 'method' => $method, 'attempts_left' => max( 0, 5 - (int) $state['attempts'] ) ), 'Two-step verification', 'two-factor' );
+    $options = '';
+    if ( 'passkey' === $method ) {
+        // A fresh challenge for this page, kept in the pending sign-in (bound to this browser by the hr_2fa cookie).
+        $options = passkey_challenge_for( $uid, $state );
+    }
+    render_auth( 'two-factor', array(
+        'errors'        => $errors,
+        'method'        => $method,
+        'methods'       => $methods,
+        'options'       => $options,
+        'attempts_left' => max( 0, 5 - (int) $state['attempts'] ),
+    ), 'Two-step verification', 'two-factor' );
+}
+
+/** Second factors this account can use, best first. */
+function second_factor_methods( int $uid ): array {
+    $methods = array();
+    if ( has_totp( $uid ) ) {
+        $methods[] = 'totp';
+    }
+    if ( passkey_count( $uid ) > 0 ) {
+        $methods[] = 'passkey';
+    }
+    if ( has_totp( $uid ) ) {
+        $methods[] = 'recovery';
+    }
+    return $methods ?: array( 'totp' );
+}
+
+/** @return string|false 'totp', 'recovery', 'limited' or false (with a field error set). */
+function second_factor_code( int $uid, string $method, array &$errors ) {
+    $code = trim( post_str( 'code', 40 ) );
+    if ( '' === $code ) {
+        $errors['code'] = 'recovery' === $method ? 'Enter one of your recovery codes.' : 'Enter the 6-digit code from your authenticator app.';
+        return false;
+    }
+    $result = verify_second_factor( $uid, $code );
+    if ( ! $result ) {
+        $errors['code'] = 'recovery' === $method ? 'That recovery code is not valid or has been used.' : 'That code is not right. Check the time on your phone and try the newest code.';
+    }
+    return $result;
+}
+
+/** Verify a posted WebAuthn assertion against this account's own passkeys. @return string|false */
+function second_factor_passkey( int $uid, string $challenge ) {
+    if ( '' === $challenge || ! rate_limit( 'totp-user', (string) $uid, 10, 15 * MINUTE_IN_SECONDS ) ) {
+        return '' === $challenge ? false : 'limited';
+    }
+    $raw = array();
+    foreach ( array( 'id', 'clientDataJSON', 'authenticatorData', 'signature' ) as $field ) {
+        $raw[ $field ] = post_str( 'wa_' . $field, 4096 );
+    }
+    $bin = bin_fields( $raw, array( 'id' => 1400, 'clientDataJSON' => 4096, 'authenticatorData' => 4096, 'signature' => 2048 ) );
+    $row = $bin ? find_credential( $bin['id'], $uid ) : null;
+    if ( ! $row || ! verify_assertion( $bin, $row, $challenge ) ) {
+        log_security( 'second_factor_failed', array( 'uid' => $uid, 'method' => 'passkey' ) );
+        return false;
+    }
+    rate_limit_reset( 'totp-user', (string) $uid );
+    return 'passkey';
+}
+
+/** Request options (JSON) for the account's passkeys; the challenge is stored in the pending sign-in. */
+function passkey_challenge_for( int $uid, array $state ): string {
+    global $wpdb;
+    $wa = webauthn();
+    if ( ! $wa ) {
+        return '';
+    }
+    $table = passkeys_table();
+    $ids   = array_map( 'HR\Platform\b64url_decode', (array) $wpdb->get_col( $wpdb->prepare( "SELECT credential_id FROM {$table} WHERE user_id = %d", $uid ) ) );
+    $args  = $wa->getGetArgs( $ids, 120, true, true, true, true, true, 'required' );
+    $state['wa'] = b64url( $wa->getChallenge()->getBinaryString() );
+    set_transient( $state['key'], array_diff_key( $state, array( 'key' => 1 ) ), max( 1, (int) $state['exp'] - time() ) );
+    return (string) wp_json_encode( $args->publicKey, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -234,7 +333,6 @@ function route_logout(): void {
             redirect( home_url( '/' ) );
         }
         $error = flash_messages()['csrf'][1];
-        status_header( 400 );
     }
     render_auth( 'logout', array( 'error' => $error, 'user' => wp_get_current_user() ), 'Sign out', 'logout' );
 }

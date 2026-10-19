@@ -49,8 +49,22 @@
  *                                          session; when false, render step_up_panel( $return_anchor ) instead of
  *                                          the sensitive form
  *   step_up_panel( string $anchor ): void  inline re-authentication panel (password or passkey)
- *   login_url( string $redirect = '' ): string
+ *   login_url( string $redirect = '' ): string   redirect is validated (same site, never back into an auth page)
  *   account_url( string $slug = '' ): string
+ *   has_mfa( int $uid ): bool              authenticator app or at least one passkey
+ *
+ * Browser (assets/js/account-chip.js, loaded site-wide): window.HR.session is a Promise of the hr_session payload
+ *   (or null when signed out) and document fires 'hr:session' once with the same detail. Dispatch
+ *   document.dispatchEvent( new CustomEvent( 'hr:streak', { detail: streak } ) ) to update the header chip.
+ *   The REST nonce in the payload lives in memory only — never copy it to localStorage/sessionStorage.
+ *
+ * Staff sign-in policy — apply_filters( 'hr_enforce_staff_mfa', bool $on, ?WP_User $user ): anyone who can
+ *   edit_posts must have a passkey or two-step verification before using wp-admin. On by default; off with
+ *   define( 'HR_ENFORCE_STAFF_MFA', false ); opt-in (filter) on WP_ENVIRONMENT_TYPE 'local' copies.
+ *
+ * Routes: /account/{,login,register,verify,forgot,reset,logout,two-factor,settings,<contributed slug>}/
+ * REST:   hr/v1/passkeys/{register,login,stepup}/{options,verify} (see passkeys.php)
+ * AJAX:   admin-ajax.php?action=hr_session (see session.php)
  * ---------------------------------------------------------------------------------------------------------------
  */
 

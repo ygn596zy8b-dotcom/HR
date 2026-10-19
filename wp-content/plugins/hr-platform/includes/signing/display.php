@@ -13,10 +13,25 @@ use function HR\Platform\render;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+// The footer line is on every page, so it gets a few inline rules instead of a render-blocking stylesheet;
+// signing.css is only for articles (pill + note) and /verify/ (enqueued by its route).
+const TRUST_CSS = '.hr-pqsig-trust{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:0;font:400 13px/1.5 var(--hrp-font,sans-serif);color:inherit}'
+    . '.hr-pqsig-trust .hr-icon{width:16px;height:16px;flex:none;color:var(--hrp-red,#ff001c)}'
+    . '.hr-pqsig-trust a{display:inline-flex;align-items:center;min-height:44px;color:#fff;font-weight:700;text-decoration:none}'
+    . '.hr-pqsig-trust a:hover{color:var(--hrp-red,#ff001c);text-decoration:underline;text-underline-offset:3px}'
+    . '.hr-pqsig-trust a:focus-visible{outline:2px solid var(--hrp-red,#ff001c);outline-offset:2px}'
+    // Phones: one flowing line (the icon stays with the text, whatever alignment the footer uses), no dangling dot.
+    . '@media (max-width:600px){.hr-pqsig-trust{display:block}.hr-pqsig-trust .hr-icon{display:inline-block;vertical-align:-3px;margin-right:6px}'
+    . '.hr-pqsig-trust>span[aria-hidden="true"]{display:none}.hr-pqsig-trust a{margin-left:6px}}';
+
 add_action( 'wp_enqueue_scripts', function () {
-    // Small stylesheet, needed site-wide because the footer line is on every page.
-    enqueue_base_style();
-    wp_enqueue_style( 'hr-signing', asset_url( 'css/signing.css' ), array( 'hr-platform' ), asset_ver( 'css/signing.css' ) );
+    wp_register_style( 'hr-signing-trust', false, array(), null );
+    wp_enqueue_style( 'hr-signing-trust' );
+    wp_add_inline_style( 'hr-signing-trust', TRUST_CSS );
+    if ( is_singular( 'post' ) ) {
+        enqueue_base_style();
+        wp_enqueue_style( 'hr-signing', asset_url( 'css/signing.css' ), array( 'hr-platform' ), asset_ver( 'css/signing.css' ) );
+    }
 } );
 
 function current_post_id( $post_id ): int {

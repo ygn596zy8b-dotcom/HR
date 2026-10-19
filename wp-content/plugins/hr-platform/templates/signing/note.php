@@ -41,14 +41,16 @@ if ( 1 === preg_match( '/^(?:GMT)?[+-]/', $hr_tz ) ) {
             <h2 id="hr-signature-title" class="hr-pqsig-note__title">Signature pending</h2>
             <p class="hr-pqsig-note__text">
                 Every article on Headline Recorder is digitally signed with post-quantum cryptography — ML-DSA-87 (NIST FIPS 204) together with Ed448.
-                <?php if ( 'stale' === $hr_state ) : ?>
+                <?php if ( 'stale' === $hr_state && ! empty( $state['changed'] ) ) : ?>
                     This article was updated after it was last signed. The new version is signed automatically, usually within 15 minutes.
+                <?php elseif ( 'stale' === $hr_state ) : ?>
+                    The key that signed this article has been retired. A new signature is added automatically, usually within 15 minutes.
                 <?php else : ?>
-                    This article was published moments ago; its signature is added automatically, usually within 15 minutes.
+                    This article has not been signed yet. Signatures are added automatically, usually within 15 minutes of publication.
                 <?php endif; ?>
             </p>
             <div class="hr-pqsig-actions">
-                <?php if ( 'stale' === $hr_state ) : ?>
+                <?php if ( 'stale' === $hr_state && ! empty( $state['changed'] ) ) : ?>
                     <a class="hrp-btn hrp-btn--ghost" href="<?php echo esc_url( $verify_url ); ?>"><?php echo icon( 'shield-check' ); // phpcs:ignore WordPress.Security.EscapeOutput ?><span>Check the previous version</span></a>
                 <?php else : ?>
                     <a class="hrp-btn hrp-btn--ghost" href="<?php echo esc_url( $about_url ); ?>"><span>How verification works</span><?php echo icon( 'arrow-right' ); // phpcs:ignore WordPress.Security.EscapeOutput ?></a>

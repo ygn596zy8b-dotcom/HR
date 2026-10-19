@@ -11,6 +11,7 @@ use function HR\Platform\Accounts\step_up_panel;
 use function HR\Platform\Accounts\aaguid_name;
 use function HR\Platform\Accounts\fmt_time;
 use function HR\Platform\Accounts\rel_time;
+use function HR\Platform\Accounts\notice;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -18,7 +19,7 @@ $hra_action   = account_url( 'settings' );
 $hra_sec_err  = $errors['security'] ?? array();
 $hra_totp_err = $errors['totp'] ?? array();
 $hra_count    = count( $passkeys );
-$hra_methods  = array( 'password' => 'password', 'passkey' => 'passkey', 'password+totp' => 'password + code', 'password+recovery' => 'password + recovery code', 'email-link' => 'email link' );
+$hra_methods  = array( 'password' => 'password', 'passkey' => 'passkey', 'password-totp' => 'password + code', 'password-recovery' => 'password + recovery code', 'password-passkey' => 'password + passkey', 'email-link' => 'email link' );
 ?>
 <section class="hra-section" id="security" aria-labelledby="security-title">
     <header class="hra-section__head">
@@ -26,7 +27,12 @@ $hra_methods  = array( 'password' => 'password', 'passkey' => 'passkey', 'passwo
         <p class="hra-muted">Each step makes your account harder to break into. Most take under a minute.</p>
     </header>
 
-    <?php render( 'account/checklist', array( 'checklist' => $checklist, 'score' => $score, 'level' => $level ) ); ?>
+    <?php
+    if ( $staff_notice ) {
+        notice( 'warn', 'Accounts that can edit the site must use a passkey or two-step verification before opening the dashboard. Add one below — it takes about a minute — then open the dashboard again.', 'One more step for staff' );
+    }
+    render( 'account/checklist', array( 'checklist' => $checklist, 'score' => $score, 'level' => $level ) );
+    ?>
 
     <?php if ( isset( $hra_sec_err['_form'] ) ) : ?>
         <p class="hrp-error hra-inline-error" role="alert"><?php echo icon( 'x' ); // phpcs:ignore -- static SVG ?><span><?php echo esc_html( $hra_sec_err['_form'] ); ?></span></p>

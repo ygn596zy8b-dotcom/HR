@@ -407,6 +407,8 @@ function rest_feeds( \WP_REST_Request $request ) {
         'kid'    => $header['kid'],
         'at'     => (int) $header['signedAtTs'],
     ), false );
+    // The server cannot check the signature itself, so every replacement of a public file is on the record.
+    log_security( 'pqsig_feed_stored', array( 'key' => $key, 'kid' => substr( $header['kid'], 0, 16 ), 'bytes' => strlen( $xml ) ) );
     do_action( 'litespeed_purge_url', home_url( '/signed/' . $key . '.xml' ) );
     do_action( 'litespeed_purge_url', home_url( '/signed/' . $key . '.xml.sig.json' ) );
     return new \WP_REST_Response( array( 'key' => $key, 'status' => 'stored' ) );

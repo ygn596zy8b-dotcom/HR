@@ -260,7 +260,7 @@ function handle_password_change( \WP_User $user ): array {
     wp_set_auth_cookie( $uid, $remember, is_ssl() ); // a new session for this browser only
     wp_set_current_user( $uid );
     mark_recent_auth( $uid );
-    update_user_meta( $uid, 'hr_pw_checked', time() );
+    note_password_set( $uid );
     mail_security_notice( $user, 'Your password was changed', 'The password for your Headline Recorder account was changed, and your other devices were signed out.' );
     log_security( 'password_changed', array( 'uid' => $uid ) );
     settings_redirect( 'password', 'password_saved' );
@@ -319,6 +319,17 @@ function security_checklist( \WP_User $user ): array {
     $uid      = (int) $user->ID;
     $settings = account_url( 'settings' );
     $pw_at    = (int) get_user_meta( $uid, 'hr_pw_checked', true );
+    $pw_ok    = (int) get_user_meta( $uid, 'hr_pw_policy', true );
+    $hibp     = (bool) \HR\Platform\setting( 'accounts_hibp' );
+    if ( $pw_at > 0 ) {
+        $pw_detail = 'Checked against breach lists on ' . fmt_time( $pw_at, false ) . '.';
+    } elseif ( $pw_ok > 0 && ! $hibp ) {
+        $pw_detail = 'Meets our password rules (set ' . fmt_time( $pw_ok, false ) . ').';
+    } elseif ( $pw_ok > 0 ) {
+        $pw_detail = 'Meets our rules, but the breach check was unavailable when you set it. Change it once to run the check.';
+    } else {
+        $pw_detail = 'We have not checked this password yet. Change it once to make sure it is not in a breach list.';
+    }
     return array(
         array(
             'key'    => 'email',
@@ -330,9 +341,9 @@ function security_checklist( \WP_User $user ): array {
         ),
         array(
             'key'    => 'password',
-            'done'   => $pw_at > 0,
+            'done'   => $pw_at > 0 || ( $pw_ok > 0 && ! $hibp ),
             'title'  => 'Strong, unique password',
-            'detail' => $pw_at > 0 ? 'Checked against breach lists on ' . fmt_time( $pw_at, false ) . '.' : 'We have not checked this password yet. Change it once to make sure it is not in a breach list.',
+            'detail' => $pw_detail,
             'url'    => $settings . '#password',
             'cta'    => 'Update',
         ),
@@ -428,7 +439,14 @@ function handle_delete( \WP_User $user ): array {
     \WP_Session_Tokens::get_instance( $uid )->destroy_all();
     wp_clear_auth_cookie();
     require_once ABSPATH . 'wp-admin/includes/user.php';
-    wp_delete_user( $uid );
+    // Anything already published (e.g. an accepted op-ed) stays on the site, credited to the publication;
+    // wp_delete_user() would otherwise delete those posts too.
+    $reassign = null;
+    if ( count_user_posts( $uid, get_post_types( array( 'public' => true ) ) ) > 0 ) {
+        $admins   = get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ID', 'orderby' => 'ID' ) );
+        $reassign = $admins ? (int) $admins[0] : null;
+    }
+    wp_delete_user( $uid, $reassign );
     wp_set_current_user( 0 );
     mail_goodbye( $email );
     log_security( 'account_deleted', array( 'uid' => $uid ) );

@@ -246,7 +246,14 @@ add_action( 'login_form', function () {
 } );
 
 add_filter( 'authenticate', function ( $user ) {
-    if ( ! $user instanceof \WP_User || ! empty( $GLOBALS['hr_accounts_internal_auth'] ) || ! has_totp( (int) $user->ID ) ) {
+    if ( ! $user instanceof \WP_User || ! empty( $GLOBALS['hr_accounts_internal_auth'] ) ) {
+        return $user;
+    }
+    if ( ! has_totp( (int) $user->ID ) ) {
+        if ( is_staff( $user ) && passkey_count( (int) $user->ID ) > 0 ) {
+            // No code field can carry a passkey: send them to the sign-in page that can.
+            return new \WP_Error( 'hr_use_passkey', sprintf( '<strong>This account signs in with a passkey.</strong> <a href="%s">Continue on the Headline Recorder sign-in page</a>.', esc_url( login_url( admin_url() ) ) ) );
+        }
         return $user;
     }
     $code   = isset( $_POST['hr_otp'] ) && is_string( $_POST['hr_otp'] ) ? sanitize_text_field( wp_unslash( $_POST['hr_otp'] ) ) : '';
@@ -258,7 +265,7 @@ add_filter( 'authenticate', function ( $user ) {
         // Same wording as a wrong password, so this is not an oracle for "the password was right".
         return new \WP_Error( 'hr_otp_invalid', '<strong>Error:</strong> The sign-in details are incorrect.' );
     }
-    $GLOBALS['hr_accounts_login_method'] = 'password+' . $result;
+    $GLOBALS['hr_accounts_login_method'] = 'password-' . $result;
     return $user;
 }, 100 );
 

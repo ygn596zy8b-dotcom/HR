@@ -118,8 +118,12 @@ function passkey_rename( int $uid, int $id, string $name ): bool {
     if ( '' === $name ) {
         return false;
     }
-    // Ownership is part of the WHERE clause: an id from someone else's account matches nothing.
-    return false !== $wpdb->update( passkeys_table(), array( 'name' => $name ), array( 'id' => $id, 'user_id' => $uid ), array( '%s' ), array( '%d', '%d' ) );
+    $table = passkeys_table();
+    // Ownership is checked and is part of the WHERE clause: an id from someone else's account matches nothing.
+    if ( ! $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE id = %d AND user_id = %d", $id, $uid ) ) ) {
+        return false;
+    }
+    return false !== $wpdb->update( $table, array( 'name' => $name ), array( 'id' => $id, 'user_id' => $uid ), array( '%s' ), array( '%d', '%d' ) );
 }
 
 function passkey_delete( int $uid, int $id ): bool {

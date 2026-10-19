@@ -211,7 +211,8 @@ function begin_page( string $title, string $sub, array $extra = array() ): void 
     add_filter( 'body_class', static fn( $c ) => array_merge( $c, array( 'hra-page', 'hra-page--' . sanitize_html_class( $sub ) ) ) );
     if ( in_array( $sub, array( 'reset', 'verify' ), true ) ) {
         add_action( 'wp_head', static function () {
-            echo '<meta name="referrer" content="no-referrer">' . "\n";
+            // same-origin, not no-referrer: the latter makes the confirm/reset POST carry "Origin: null".
+            echo '<meta name="referrer" content="same-origin">' . "\n";
         }, 1 );
     }
     add_action( 'wp_footer', __NAMESPACE__ . '\\print_config', 1 );
@@ -221,7 +222,7 @@ function begin_page( string $title, string $sub, array $extra = array() ): void 
 /** Signed-out pages: login, register, forgot, reset, verify, two-factor. */
 function render_auth( string $view, array $vars, string $title, string $sub, array $extra = array() ): void {
     begin_page( $title, $sub, $extra );
-    render( 'account/auth', array( 'view' => $view, 'vars' => $vars, 'sub' => $sub ) );
+    render( 'account/auth', array( 'view' => $view, 'data' => $vars, 'sub' => $sub ) );
     get_footer();
 }
 

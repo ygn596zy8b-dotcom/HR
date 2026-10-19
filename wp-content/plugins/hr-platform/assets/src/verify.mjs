@@ -20,7 +20,10 @@ function init(root) {
     return url;
   };
   const fetchBytes = async (u) => {
-    const res = await fetch(sameOrigin(u), { credentials: 'omit', cache: 'no-store', redirect: 'error' });
+    const url = sameOrigin(u);
+    let res;
+    // A redirect or a network failure only says "Failed to fetch"; tell the reader what could not be loaded.
+    try { res = await fetch(url, { credentials: 'omit', cache: 'no-store', redirect: 'error' }); } catch { throw new Error(`Could not load ${u}. Check the link and your connection.`); }
     if (!res.ok) throw new Error(res.status === 404 ? `Nothing found at ${u}.` : `Could not load ${u} (HTTP ${res.status}).`);
     return new Uint8Array(await res.arrayBuffer());
   };

@@ -90,29 +90,3 @@ function country_name( string $code ): string {
 function analytics_waits_for_consent(): bool {
     return 'advanced' !== setting( 'consent_analytics_mode' );
 }
-
-// Ask the owner (once per screen, administrators only) for details we must not invent.
-add_action( 'admin_notices', function () {
-    if ( ! current_user_can( 'manage_options' ) ) {
-        return;
-    }
-    $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-    if ( ! $screen || ! in_array( $screen->id, array( 'dashboard', 'settings_page_hr-platform' ), true ) ) {
-        return;
-    }
-    $org     = org();
-    $missing = array();
-    foreach ( array( 'street_address' => 'street address', 'phone' => 'phone number' ) as $key => $label ) {
-        if ( empty( $org[ $key ] ) ) {
-            $missing[] = $label;
-        }
-    }
-    if ( ! $missing ) {
-        return;
-    }
-    printf(
-        '<div class="notice notice-info"><p><strong>Headline Recorder:</strong> add the organisation’s %1$s under <a href="%2$s">Settings → Headline Recorder → Organisation</a>. It appears in search results (structured data) and in the footer. Empty fields are left out — nothing is guessed.</p></div>',
-        esc_html( implode( ' and ', $missing ) ),
-        esc_url( admin_url( 'options-general.php?page=hr-platform#hr-organisation' ) )
-    );
-} );

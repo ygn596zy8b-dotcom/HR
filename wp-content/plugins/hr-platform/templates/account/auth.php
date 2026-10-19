@@ -4,7 +4,7 @@
  * Theme override: headlinerec-child/hr/account/auth.php
  *
  * @var string $view  login|register|inbox|forgot|reset|verify|two-factor|logout
- * @var array  $vars  view data
+ * @var array  $data  view data
  * @var string $sub   route
  */
 
@@ -22,7 +22,7 @@ $hra_brand = in_array( $hra_view, array( 'login', 'register', 'two-factor' ), tr
         <main class="hra-auth__main" id="hra-main">
             <div class="hra-auth__card" data-hra-reveal>
                 <?php render_flash(); ?>
-                <?php render( 'account/auth/' . $hra_view, (array) $vars ); ?>
+                <?php render( 'account/auth/' . $hra_view, (array) $data ); ?>
             </div>
         </main>
         <?php if ( $hra_brand ) : ?>

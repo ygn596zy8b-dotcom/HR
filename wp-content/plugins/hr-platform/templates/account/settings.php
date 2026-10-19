@@ -27,9 +27,6 @@ $hra_sections = array(
 </nav>
 
 <?php
-if ( $staff_notice ) {
-    notice( 'warn', 'Accounts that can edit the site must use a passkey or two-step verification before opening the dashboard. Add a passkey below — it takes about a minute.', 'One more step for staff' );
-}
 if ( isset( $errors['csrf']['_form'] ) ) {
     notice( 'error', $errors['csrf']['_form'] );
 }

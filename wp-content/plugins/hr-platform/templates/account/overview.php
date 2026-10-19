@@ -99,7 +99,7 @@ $hra_submit = page_url( 'submit' );
             <li><a href="<?php echo esc_url( account_url( 'settings' ) . '#privacy' ); ?>"><?php echo icon( 'download' ); // phpcs:ignore -- static SVG ?><span><strong>Your data</strong><small>Download or delete it</small></span></a></li>
         </ul>
         <?php if ( $last ) : ?>
-            <p class="hra-note">Last sign-in <?php echo esc_html( wp_date( 'j M Y, H:i', $last ) ); ?></p>
+            <p class="hra-note">Previous sign-in <?php echo esc_html( wp_date( 'j M Y, H:i', $last ) ); ?></p>
         <?php endif; ?>
     </section>
 </div>

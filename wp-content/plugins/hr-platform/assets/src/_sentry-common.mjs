@@ -19,9 +19,10 @@ import {
   makeFetchTransport,
 } from '@sentry/browser';
 
-const SENSITIVE = /pass|pwd|token|key|nonce|secret|sig|code|email|auth|login/i;
+const SENSITIVE_TERMS = ['pass', 'pwd', 'token', 'key', 'nonce', 'secret', 'sig', 'code', 'email', 'auth', 'login'];
+const SENSITIVE = new RegExp(SENSITIVE_TERMS.join('|'), 'i');
 const EMAIL = /[A-Z0-9._%+-]+(?:@|%40)[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const QUERY_PARAM = /([?&;])([^=&#\s;]+)=([^&#\s;]*)/g;
+const QUERY_PARAM = /([?&;])([^=&#\s;?]+)=([^&#\s;?]*)/g;
 
 function decode(s) {
   try {
@@ -83,6 +84,16 @@ export function start(cfg, extraIntegrations = [], tracesSampleRate = 0) {
     release: cfg.release,
     tunnel: cfg.tunnel,
     sendDefaultPii: false,
+    // SDK 11 replaced sendDefaultPii with dataCollection, whose defaults collect user info, cookies and headers.
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: { request: { allow: ['user-agent'] }, response: false },
+      httpBodies: [],
+      urlQueryParams: { deny: SENSITIVE_TERMS },
+      graphQL: { document: false, variables: false },
+      stackFrameVariables: false,
+    },
     sendClientReports: false,
     tracesSampleRate,
     transport: makeFetchTransport,
@@ -104,7 +115,8 @@ export function start(cfg, extraIntegrations = [], tracesSampleRate = 0) {
     ignoreErrors: [/^ResizeObserver loop/, /Non-Error promise rejection captured/, /extension:\/\//i, /^Script error\.?$/, /webkit-masked-url/i],
     tracePropagationTargets: [ownOrigin],
     beforeSend: scrubEvent,
-    beforeSendTransaction: scrubEvent,
+    // Performance data is streamed as spans in SDK 11, so beforeSendTransaction would never run.
+    beforeSendSpan: scrub,
   });
   getCurrentScope().setClient(client);
   client.init();

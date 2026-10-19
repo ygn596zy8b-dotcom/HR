@@ -15,7 +15,7 @@ $hr_signed = 'signed' === ( $state['state'] ?? '' );
         <span>PQ-signed</span><span class="hr-pqsig-pill__sep" aria-hidden="true">·</span><span class="hr-pqsig-pill__alg">ML-DSA-87</span>
     </a>
 <?php else : ?>
-    <a class="hr-pqsig-pill hr-pqsig-pill--pending" href="#hr-signature" title="A new post-quantum signature for this version of the article is on its way.">
+    <a class="hr-pqsig-pill hr-pqsig-pill--pending" href="#hr-signature" title="A post-quantum signature for this version of the article is on its way.">
         <?php echo icon( 'clock' ); // phpcs:ignore WordPress.Security.EscapeOutput -- static SVG ?>
         <span>Signature pending</span>
     </a>

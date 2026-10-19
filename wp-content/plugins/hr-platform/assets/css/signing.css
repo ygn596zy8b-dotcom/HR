@@ -1,5 +1,6 @@
 /*
- * Content signing: byline pill, the note after the article, footer line and the /verify/ page.
+ * Content signing: byline pill, the note after the article and the /verify/ page. Loaded on single articles and
+ * /verify/ only; the one-line footer notice has its own few inline rules (includes/signing/display.php).
  * Builds on hr-platform.css tokens (--hrp-*). Flat, sharp corners, black/white with the red accent.
  */
 
@@ -7,14 +8,14 @@
 .hr-pqsig-pill {
   position: relative; display: inline-flex; align-items: center; gap: 6px; vertical-align: middle;
   min-height: 28px; padding: 3px 10px; border: 1px solid currentColor; border-radius: 0;
-  color: var(--hrp-red, #ff001c); background: transparent;
+  color: var(--hrp-red-deep, #c0001a); background: transparent;
   font: 700 11px/1.3 var(--hrp-font, sans-serif); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
   text-decoration: none !important; transition: background-color .2s var(--hrp-ease, ease), color .2s var(--hrp-ease, ease);
 }
 /* 44px hit area without making the pill visually heavier than the meta strip around it. */
 .hr-pqsig-pill::after { content: ""; position: absolute; inset: -8px -4px; }
 .hr-pqsig-pill .hr-icon { width: 14px; height: 14px; }
-.hr-pqsig-pill:hover { background: var(--hrp-red, #ff001c); border-color: var(--hrp-red, #ff001c); color: #fff; }
+.hr-pqsig-pill:hover { background: var(--hrp-red-deep, #c0001a); border-color: var(--hrp-red-deep, #c0001a); color: #fff; }
 .hr-pqsig-pill:focus-visible { outline: 2px solid var(--hrp-red, #ff001c); outline-offset: 2px; }
 .hr-pqsig-pill__sep { opacity: .6; }
 .hr-pqsig-pill__alg { font-family: var(--hrp-mono, monospace); letter-spacing: .02em; }
@@ -34,7 +35,8 @@
 .hr-pqsig-note .hrp-eyebrow { margin-bottom: 6px; }
 .hr-pqsig-note__title { margin: 0 0 8px; font-size: 20px; line-height: 1.25; font-weight: 800; letter-spacing: -0.01em; color: var(--hrp-ink, #111); }
 .hr-pqsig-note__text { margin: 0; font-size: 16px; line-height: 1.6; color: var(--hrp-ink, #111); max-width: 68ch; }
-.hr-pqsig-meta { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--hrp-line, #e5e5ea); }
+/* The theme frames every <dl> in article context; this one is a plain row of facts. */
+.hr-pqsig-note .hr-pqsig-meta { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 16px 0 0; padding: 14px 0 0; border: 0; border-top: 1px solid var(--hrp-line, #e5e5ea); background: none; }
 .hr-pqsig-meta div { min-width: 0; }
 .hr-pqsig-meta dt { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hrp-muted, #5f5f66); }
 .hr-pqsig-meta dd { margin: 2px 0 0; font-size: 14px; color: var(--hrp-ink, #111); }
@@ -47,13 +49,6 @@
   .hr-pqsig-note__icon { width: 40px; height: 40px; }
   .hr-pqsig-actions .hrp-btn { width: 100%; }
 }
-
-/* ---- Footer line (dark bottom bar) -------------------------------------------------------------------------- */
-.hr-pqsig-trust { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; font: 400 13px/1.5 var(--hrp-font, sans-serif); color: inherit; }
-.hr-pqsig-trust .hr-icon { width: 16px; height: 16px; color: var(--hrp-red, #ff001c); }
-.hr-pqsig-trust a { display: inline-flex; align-items: center; min-height: 44px; color: #fff; font-weight: 700; text-decoration: none; }
-.hr-pqsig-trust a:hover { color: var(--hrp-red, #ff001c); text-decoration: underline; text-underline-offset: 3px; }
-.hr-pqsig-trust a:focus-visible { outline: 2px solid var(--hrp-red, #ff001c); outline-offset: 2px; }
 
 /* ---- /verify/ ------------------------------------------------------------------------------------------------ */
 .hr-verify { background: var(--hrp-paper, #fff); margin-bottom: 40px; }
@@ -82,7 +77,8 @@
 /* Result panel */
 .hr-verify-result { margin-top: clamp(28px, 4vw, 40px); padding: clamp(20px, 3vw, 28px); border: 1px solid var(--hrp-line, #e5e5ea); border-left-width: 6px; background: var(--hrp-paper-2, #f2f2f7); }
 .hr-verify-result:focus { outline: none; }
-.hr-verify-result:focus-visible { outline: 2px solid var(--hrp-ink, #050505); outline-offset: 3px; }
+/* Neutral ring (beats the red .hrp [tabindex] default), so an "Authentic" result never looks like an error. */
+.hrp .hr-verify-result:focus-visible { outline: 2px solid var(--hrp-ink, #050505); outline-offset: 3px; }
 .hr-verify-result[data-state="ok"] { border-left-color: var(--hrp-ok, #00875a); background: #eef8f3; }
 .hr-verify-result[data-state="fail"] { border-left-color: var(--hrp-red, #ff001c); background: #fff0f2; }
 .hr-verify-result[data-state="busy"] { border-left-color: var(--hrp-muted, #5f5f66); }
@@ -132,5 +128,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hr-pqsig-pill, .hr-pqsig-trust a { transition: none; }
+  .hr-pqsig-pill { transition: none; }
 }

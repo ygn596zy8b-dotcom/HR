@@ -55,6 +55,7 @@ function pwned_count( string $password ): int {
         log_security( 'hibp_unavailable', array( 'error' => is_wp_error( $res ) ? $res->get_error_code() : (int) wp_remote_retrieve_response_code( $res ) ) );
         return 0;
     }
+    $GLOBALS['hr_accounts_hibp_ok'] = true; // the breach check really ran for this request
     foreach ( preg_split( '/\r?\n/', (string) wp_remote_retrieve_body( $res ) ) as $line ) {
         [ $hash, $count ] = array_pad( explode( ':', trim( $line ), 2 ), 2, '0' );
         if ( hash_equals( $suffix, strtoupper( $hash ) ) ) {
@@ -72,4 +73,17 @@ function burn_password_check( string $password ): void {
         update_option( 'hr_accounts_dummy_hash', $hash, false );
     }
     wp_check_password( $password, $hash );
+}
+
+/**
+ * Remember what we know about the password just set, for the honest security checklist: hr_pw_policy = it met the
+ * length/identity rules, hr_pw_checked = it was also checked against breach lists (only when HIBP answered).
+ */
+function note_password_set( int $uid ): void {
+    update_user_meta( $uid, 'hr_pw_policy', time() );
+    if ( ! empty( $GLOBALS['hr_accounts_hibp_ok'] ) ) {
+        update_user_meta( $uid, 'hr_pw_checked', time() );
+    } else {
+        delete_user_meta( $uid, 'hr_pw_checked' );
+    }
 }
