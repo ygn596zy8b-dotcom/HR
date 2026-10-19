@@ -115,7 +115,12 @@ uses `var(--hr-red, <fallback>)` so it renders correctly even without the theme.
    Defaults: org_street_address "First Floor, Feroze Heights, Saadi Town", org_locality "Karachi",
    org_region "Sindh", org_postal_code "75280", org_country "PK". Phone: not provided — leave empty.
 3. All credentials exposed by the public archive have been rotated by the owner (2026-10-19).
-4. After the feature build: **extreme performance, geographic delivery and GEO optimisation** — Core Web Vitals
+4. **Submissions** (signed-in writers only): headshot, short intro, title/designation, email, article/op-ed title,
+   type, category, body. Op-ed body 800–1,200 words; article body at most 1,500 words. They arrive in
+   wp-admin → Submissions (editors/admins) plus an email notice; content is opened with the editors' offline key.
+5. **Responsiveness** must be flawless site-wide at 320–1920 px (no horizontal scroll, ≥ 44 px tap targets).
+6. Authorship: name the author/team "MSBJ" in code, docs and commits — never "Claude".
+7. After the feature build: **extreme performance, geographic delivery and GEO optimisation** — Core Web Vitals
    budgets (mobile LCP < 2.0 s on 4G, INP < 150 ms, CLS < 0.05, Lighthouse ≥ 95), edge caching close to readers in
    Pakistan and abroad (Cloudflare PoPs in Karachi/Lahore/Islamabad), LiteSpeed tuning, third-party facades, image and
    font optimisation, speculation rules, and generative-engine optimisation (llms.txt, structured data, summaries).
