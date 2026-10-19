@@ -65,6 +65,8 @@ function boot(): void {
             'attach_stacktrace'       => true,
             'error_types'             => E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_USER_NOTICE,
             'traces_sample_rate'      => $rate,
+            // The browser tunnel and uptime pings would otherwise make up most transactions.
+            'ignore_transactions'     => array( 'rest /hr/v1/monitoring/tunnel', 'rest /hr/v1/monitoring/health' ),
             'in_app_include'          => array_values( array_unique( $in_app ) ),
             'in_app_exclude'          => array( rtrim( $root, '/' ) . '/' ),
             'prefixes'                => array_values( array_unique( array( ABSPATH, rtrim( $root, '/' ) . '/' ) ) ),
@@ -111,12 +113,15 @@ function add_hooks(): void {
 function capture_fatal( array $error ): void {
     $labels = array( E_ERROR => 'Error', E_PARSE => 'Parse Error', E_CORE_ERROR => 'Core Error', E_CORE_WARNING => 'Core Warning', E_COMPILE_ERROR => 'Compile Error', E_COMPILE_WARNING => 'Compile Warning' );
     $type   = (int) ( $error['type'] ?? 0 );
-    if ( ! isset( $labels[ $type ] ) ) {
-        return; // E_USER_ERROR / E_RECOVERABLE_ERROR already went through Sentry's error handler.
+    $text   = (string) ( $error['message'] ?? '' );
+    // E_USER_ERROR / E_RECOVERABLE_ERROR went through Sentry's error handler and uncaught exceptions through its
+    // exception handler already; reporting them here would duplicate them.
+    if ( ! isset( $labels[ $type ] ) || str_starts_with( $text, 'Uncaught ' ) ) {
+        return;
     }
     try {
         // Same shape as Sentry's FatalErrorListenerIntegration, so the per-request dedupe drops a second copy.
-        $exception = new \Sentry\Exception\FatalErrorException( $labels[ $type ] . ': ' . (string) ( $error['message'] ?? '' ), 0, $type, (string) ( $error['file'] ?? '' ), (int) ( $error['line'] ?? 0 ) );
+        $exception = new \Sentry\Exception\FatalErrorException( $labels[ $type ] . ': ' . $text, 0, $type, (string) ( $error['file'] ?? '' ), (int) ( $error['line'] ?? 0 ) );
         ( new \ReflectionProperty( \Exception::class, 'trace' ) )->setValue( $exception, array() );
         \Sentry\captureException( $exception, \Sentry\EventHint::fromArray( array(
             'mechanism' => new \Sentry\ExceptionMechanism( \Sentry\ExceptionMechanism::TYPE_GENERIC, false ),

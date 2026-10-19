@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "build": "esbuild verify/verify.src.mjs --bundle --format=esm --minify --target=es2022 --outfile=verify/verify.js"
+    "build": "esbuild verify/verify.src.mjs --bundle --format=esm --minify --target=es2022 --outfile=verify/verify.js",
+    "sign": "node wp-sign.mjs"
   },
   "engines": {
     "node": ">=20.19"

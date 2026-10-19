@@ -109,6 +109,10 @@ add_action( 'wp_head', function () {
         'tracesSampleRate' => const_rate( 'HR_SENTRY_BROWSER_TRACES' ),
         'tunnel'           => rest_url( 'hr/v1/monitoring/tunnel' ),
     );
+    // sentry.js swaps itself for this bundle on the sampled share of page views (tracing doubles the SDK size).
+    if ( $config['tracesSampleRate'] > 0 && is_readable( HR_PLATFORM_DIR . '/assets/js/sentry-tracing.js' ) ) {
+        $config['tracingSrc'] = add_query_arg( 'ver', asset_ver( 'js/sentry-tracing.js' ), asset_url( 'js/sentry-tracing.js' ) );
+    }
     // JSON_HEX_TAG keeps "</script>" from ever closing the block.
     echo '<script type="application/json" id="hr-sentry-config">' . wp_json_encode( $config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ) . "</script>\n";
 }, 1 );
