@@ -6,3 +6,4 @@ node_modules/
 # Built by `composer install --no-dev` in wp-content/plugins/hr-platform (CI packages it)
 wp-content/plugins/hr-platform/vendor
 __pycache__/
+dist/
