@@ -4,7 +4,7 @@
  *
  *   add_filter( 'hr_settings_schema', function ( $s ) {
  *       $s['podcast'] = array( 'title' => 'Podcast', 'fields' => array(
- *           'podcast_title' => array( 'label' => 'Show name', 'type' => 'text', 'default' => 'Boss' ),
+ *           'podcast_title' => array( 'label' => 'Show name', 'type' => 'text', 'default' => 'Podcast' ),
  *       ) );
  *       return $s;
  *   } );

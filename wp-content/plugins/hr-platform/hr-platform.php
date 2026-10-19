@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Headline Recorder Platform
- * Description:       Reader accounts and reading streaks, sealed article/op-ed submissions, the "Boss" podcast, client logos, post-quantum article signing and Sentry monitoring.
+ * Description:       Reader accounts and reading streaks, sealed article/op-ed submissions, the Headline Recorder Podcast, client logos, post-quantum article signing and Sentry monitoring.
  * Version:           1.0.0
  * Requires at least: 6.8
  * Requires PHP:      8.2

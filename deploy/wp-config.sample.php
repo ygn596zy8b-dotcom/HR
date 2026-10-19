@@ -51,7 +51,7 @@ define( 'WP_AUTO_UPDATE_CORE', 'minor' );
 // define( 'HR_SENTRY_TRACES', 0.05 );           // share of requests traced for performance
 // define( 'HR_RELEASE', 'headline-recorder@1.0.0' );
 
-// Claude API for AI-drafted "Boss" episodes (Settings → Headline Recorder → Podcast → enable). SECRET.
+// Claude API for AI-drafted podcast episodes (Settings → Headline Recorder → Podcast → enable). SECRET.
 // define( 'ANTHROPIC_API_KEY', 'CHANGE_ME' );
 
 // Encrypted reader submissions are stored here, outside the web root.

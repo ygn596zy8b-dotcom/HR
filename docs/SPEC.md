@@ -9,7 +9,7 @@ Source of the current site: Zenodo 10.5281/zenodo.23458635 (DB dump + full webro
 Keep every existing feature, page, colour and piece of content. On top of it:
 
 1. **Elevate the design** — same palette and fonts, better rhythm, states, motion and accessibility.
-2. **Podcast** — a "Podcast" page (`/podcast/`) and a home-page hero for the show **"Boss"** with a player.
+2. **Podcast** — a "Podcast" page (`/podcast/`) and a home-page hero for the Headline Recorder Podcast with a player.
    "AI podcast": episodes can be AI-drafted from the day's articles (Claude API) and reviewed by an editor;
    episodes without uploaded audio can be played with the reader's on-device voice.
 3. **Accounts** — create an account / sign in (password + passkeys), track a Duolingo-style **reading streak**
@@ -58,7 +58,7 @@ The theme renders hook slots; the plugin fills them. Every call is guarded so ei
 | Action | Where (theme) | Filled by |
 |---|---|---|
 | `hr_header_account` | header, right of nav/search | accounts/streaks (sign-in link or avatar + flame) |
-| `hr_home_after_banner` | home, right after the main news banner | podcast hero ("Boss") |
+| `hr_home_after_banner` | home, right after the main news banner | podcast hero ("Podcast") |
 | `hr_home_before_footer` | home, after the last section, before footer | client logos |
 | `hr_single_after_byline` | single post meta strip, after read time (not inside the share group) | signing badge |
 | `hr_single_before_content` | single post, between meta strip and hero image | "Listen" button + player panel (podcast) |
@@ -105,10 +105,20 @@ uses `var(--hr-red, <fallback>)` so it renders correctly even without the theme.
 - Ask first: deleting content, changing the palette, adding third-party services beyond Sentry/Claude.
 - Never: commit secrets or the site dump; ship the signing secret key to the server; weaken a check to pass a test.
 
-## Assumptions (to confirm with the owner)
+## Owner decisions (confirmed — these OVERRIDE any older wording in task prompts)
 
-1. The podcast is named **"Boss"** (from the request); the name and tagline are editable in settings.
-2. "AI podcast" means AI-drafted episodes (Claude) reviewed by an editor before publishing, plus on-device
+1. **The podcast is called simply "Podcast"** — not "Boss". Page title, home hero heading, nav item, feed title,
+   episode titles ("Daily Briefing — <date>: …"), CTAs ("Listen to the Podcast") all use "Podcast" /
+   "Headline Recorder Podcast". The setting `podcast_title` defaults to "Podcast". Never output the word "Boss".
+2. **Organisation address** (use in schema, contact page, footer, legal pages):
+   First Floor, Feroze Heights, Saadi Town, Karachi, Sindh 75280, Pakistan.
+   Defaults: org_street_address "First Floor, Feroze Heights, Saadi Town", org_locality "Karachi",
+   org_region "Sindh", org_postal_code "75280", org_country "PK". Phone: not provided — leave empty.
+3. All credentials exposed by the public archive have been rotated by the owner (2026-10-19).
+
+## Assumptions
+
+1. "AI podcast" means AI-drafted episodes (Claude) reviewed by an editor before publishing, plus on-device
    voice playback when no audio file is attached. Nothing AI-generated is published automatically.
-3. Client logos are uploaded by the team in wp-admin (no logos are invented).
-4. Hosting stays on LiteSpeed/cPanel; PQ TLS for readers comes from Cloudflare (or a VPS with the nginx config).
+2. Client logos are uploaded by the team in wp-admin (no logos are invented).
+3. Hosting stays on LiteSpeed/cPanel; PQ TLS for readers comes from Cloudflare (or a VPS with the nginx config).

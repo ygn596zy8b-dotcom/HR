@@ -17,6 +17,12 @@ Zenodo records are permanent and indexed.
 | A full **Duplicator backup** (`*.daf`, `installer.php.bak`) | `wp-content/duplicator-backups/` | Same data again; installer endpoints if the files are still on the server |
 | Error/debug logs | `error_log`, `wp-content/debug.log` | Paths, plugin versions, possibly request data |
 
+## Status
+
+- **2026-10-19 — owner confirmed all exposed credentials have been rotated** (DB password, salts, staff passwords,
+  API keys). Still worth doing: ask Zenodo to delete the record (it also holds readers' emails and password hashes,
+  which rotation does not un-publish), and remove backups/logs from the server (steps 6–8 below).
+
 ## Do now (in this order)
 
 1. **Ask Zenodo to remove the record.** Zenodo → the record → "Request deletion" (or support@zenodo.org) citing
