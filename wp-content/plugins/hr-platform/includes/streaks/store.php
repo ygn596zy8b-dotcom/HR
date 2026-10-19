@@ -27,7 +27,7 @@ function install(): void {
         UNIQUE KEY user_post (user_id,post_id),
         KEY user_day (user_id,read_on)
     ) " . $wpdb->get_charset_collate() . ';' );
-    update_option( 'hr_streaks_db_version', DB_VERSION, false );
+    update_option( 'hr_streaks_db_version', DB_VERSION, true );
 }
 
 function today(): string {
@@ -101,10 +101,12 @@ function import( int $uid ): void {
                 insert_read( $uid, $post_id, $date, kind_of( $post ), $date . ' 00:00:00' );
             }
         }
+        $c = counts( $uid, today() );
         if ( ! $s['xp'] ) {
-            $c       = counts( $uid, today() );
             $s['xp'] = ( $c['total'] - $c['opeds'] ) * XP_ARTICLE + $c['opeds'] * XP_OPED;
         }
+        // A count of 0 leaves the streak alone and only awards the badges the imported history already earns.
+        [ $s ] = apply( $s, today(), 0, DEFAULT_GOAL, $c );
         save( $uid, $s );
     }
     update_user_meta( $uid, '_hr_streak_v', 1 );

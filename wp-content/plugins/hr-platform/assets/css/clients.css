@@ -1,0 +1,39 @@
+/* Client & partner logo band (home page end, [hr_client_logos] shortcode). Fixed logo heights: no layout shift. */
+.hr-clients {
+  --hr-clients-gap: clamp(32px, 5vw, 64px);
+  background: #fff; color: var(--hrp-ink);
+  border-block: 1px solid var(--hrp-line);
+  padding: clamp(40px, 6vw, 64px) env(safe-area-inset-right, 0) clamp(40px, 6vw, 64px) env(safe-area-inset-left, 0);
+}
+.hr-clients__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; margin-bottom: clamp(24px, 4vw, 40px); }
+.hr-clients .hrp-eyebrow { margin-bottom: 10px; }
+.hr-clients__title { margin: 0; max-width: 30ch; font: 800 clamp(22px, 3vw, 32px)/1.15 var(--hrp-font); letter-spacing: -0.02em; color: var(--hrp-ink); }
+.hr-clients__toggle { flex: none; }
+.hr-clients__icon-play, .hr-clients.is-paused .hr-clients__icon-pause { display: none; }
+.hr-clients.is-paused .hr-clients__icon-play { display: inline; }
+
+.hr-clients__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px var(--hr-clients-gap); }
+.hr-clients__item { display: flex; margin: 0; padding: 0; }
+.hr-clients__link { display: inline-flex; align-items: center; justify-content: center; height: 60px; padding: 8px; }
+.hr-clients .hr-clients__logo { display: block; width: auto; height: 44px; max-width: 160px; object-fit: contain; filter: grayscale(1); opacity: .7; transition: filter .25s var(--hrp-ease), opacity .25s var(--hrp-ease); }
+.hr-clients__item:hover .hr-clients__logo, .hr-clients__link:focus-visible .hr-clients__logo { filter: none; opacity: 1; }
+
+/* Marquee: two identical copies, the track slides by one copy (-50%) and loops seamlessly. */
+.hr-clients__viewport { overflow: hidden; container-type: inline-size; padding-block: 6px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.hr-clients__track { display: flex; width: max-content; animation: hr-clients-scroll var(--hr-clients-dur, 40s) linear infinite; }
+/* Each copy is at least as wide as the band, so a short list never leaves a gap at the end of the loop. */
+.hr-clients--marquee .hr-clients__list { flex-wrap: nowrap; justify-content: space-around; min-width: 100vw; min-width: 100cqw; padding-inline: calc(var(--hr-clients-gap) / 2); }
+.hr-clients__viewport:hover .hr-clients__track, .hr-clients__viewport:focus-within .hr-clients__track, .hr-clients.is-paused .hr-clients__track { animation-play-state: paused; }
+@keyframes hr-clients-scroll { to { transform: translate3d(-50%, 0, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hr-clients__track { animation: none !important; width: auto; }
+  .hr-clients__list[aria-hidden], .hr-clients__toggle { display: none; }
+  .hr-clients--marquee .hr-clients__list { flex-wrap: wrap; justify-content: center; min-width: 0; padding-inline: 16px; }
+  .hr-clients__viewport { -webkit-mask-image: none; mask-image: none; }
+}
+
+/* Editors only: shown when no client is published yet. */
+.hr-clients--empty { padding-block: 32px; }
+.hr-clients__empty { display: flex; align-items: center; justify-content: center; min-height: 96px; padding: 16px; border: 2px dashed #c7c7cc; color: var(--hrp-muted); font-weight: 700; text-align: center; text-decoration: none; }
+.hr-clients__empty:hover { border-color: var(--hrp-red); color: var(--hrp-red); }

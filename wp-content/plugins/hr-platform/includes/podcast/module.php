@@ -87,7 +87,7 @@ function sanitize_audio_url( $url ): string {
 /** Post IDs from an array or a comma/space separated string; at most 20, no duplicates. */
 function sanitize_ids( $value ): array {
     $value = is_string( $value ) ? preg_split( '/[\s,]+/', $value ) : (array) $value;
-    return array_slice( array_values( array_unique( array_filter( array_map( 'absint', $value ) ) ) ), 0, 20 );
+    return array_slice( array_values( array_unique( array_filter( array_map( 'intval', $value ), static fn( $id ) => $id > 0 ) ) ), 0, 20 );
 }
 
 add_filter( 'hr_settings_schema', function ( array $schema ): array {
@@ -101,7 +101,7 @@ add_filter( 'hr_settings_schema', function ( array $schema ): array {
             'podcast_description' => array(
                 'label'   => 'Description',
                 'type'    => 'textarea',
-                'default' => 'The Headline Recorder Podcast is our AI-assisted show. Each episode turns the day’s most important business, markets and policy reporting into a short audio briefing. Scripts are drafted with AI from our journalists’ reporting and reviewed by our editors before they are published.',
+                'default' => 'The Headline Recorder Podcast is our AI-assisted show: each episode turns the day’s most important business, markets and policy reporting into a short audio briefing. Scripts are drafted with AI from our journalists’ reporting and reviewed by our editors before they are published.',
             ),
             'podcast_cover'       => array( 'label' => 'Cover art', 'type' => 'image', 'description' => 'Square JPEG or PNG, 1400–3000 px (Apple Podcasts requirement).' ),
             'podcast_author'      => array( 'label' => 'Author', 'type' => 'text', 'default' => 'Headline Recorder' ),
@@ -168,8 +168,17 @@ function episode( \WP_Post $post ): array {
     );
 }
 
+/** Episodes with playable audio (a Media Library file or an external URL). */
+const HAS_AUDIO = array(
+    'relation' => 'OR',
+    array( 'key' => '_hr_audio_id', 'value' => 0, 'compare' => '>', 'type' => 'NUMERIC' ),
+    array( 'key' => '_hr_audio_url', 'value' => '', 'compare' => '!=' ),
+);
+
+/** The newest published episode, preferring one that can actually be played. */
 function latest(): ?array {
-    $posts = get_posts( array( 'post_type' => CPT, 'post_status' => 'publish', 'numberposts' => 1, 'no_found_rows' => true ) );
+    $args  = array( 'post_type' => CPT, 'post_status' => 'publish', 'numberposts' => 1, 'no_found_rows' => true );
+    $posts = get_posts( $args + array( 'meta_query' => HAS_AUDIO ) ) ?: get_posts( $args );
     return $posts ? episode( $posts[0] ) : null;
 }
 
@@ -299,7 +308,7 @@ add_filter( 'wp_nav_menu_items', function ( $items, $args ) {
         '<li class="menu-item menu-item-type-post_type_archive hr-nav-podcast%s"><a href="%s"%s>%s</a></li>',
         $current ? ' current-menu-item' : '',
         esc_url( $url ),
-        $current ? ' aria-current="page"' : '',
+        is_post_type_archive( CPT ) ? ' aria-current="page"' : '',
         esc_html( show_name() )
     );
 }, 10, 2 );

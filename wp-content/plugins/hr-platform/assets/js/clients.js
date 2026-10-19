@@ -1,0 +1,1 @@
+(()=>{for(let t of document.querySelectorAll("[data-hr-clients]")){let e=t.querySelector("[data-hr-clients-toggle]");if(!e)continue;let l=e.querySelector("[data-hr-clients-label]");e.addEventListener("click",()=>{l.textContent=t.classList.toggle("is-paused")?"Play":"Pause"})}})();

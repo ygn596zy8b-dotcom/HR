@@ -114,12 +114,14 @@ function rest_complete( \WP_REST_Request $request ) {
     $now     = time();
     $counted = insert_read( $uid, $post->ID, today(), kind_of( $post ), gmdate( 'Y-m-d H:i:s', $now ) );
     if ( ! $counted ) {
-        return array( 'counted' => false, 'already_read' => true, 'xp_gained' => 0, 'streak' => summary( $uid ), 'celebrate' => null );
+        $view   = summary( $uid );
+        $events = array( 'xp' => 0, 'goal_met' => false, 'milestone' => null, 'new_best' => false, 'freeze_earned' => false, 'badges' => array() );
+    } else {
+        [ $view, $events ] = refresh( $uid, array( 'kind' => kind_of( $post ), 'hour' => local_hour( $now, wp_timezone() ) ) );
     }
-    [ $view, $events ] = refresh( $uid, array( 'kind' => kind_of( $post ), 'hour' => local_hour( $now, wp_timezone() ) ) );
     return array(
-        'counted'      => true,
-        'already_read' => false,
+        'counted'      => $counted,
+        'already_read' => ! $counted,
         'xp_gained'    => (int) $events['xp'],
         'streak'       => $view,
         'celebrate'    => array(

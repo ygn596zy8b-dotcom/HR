@@ -194,16 +194,12 @@ add_action( 'admin_post_hr_podcast_generate', function () {
         wp_safe_redirect( add_query_arg( 'hr_ai', 'busy', $back ) );
         exit;
     }
-    if ( function_exists( 'set_time_limit' ) ) {
-        set_time_limit( 300 );
-    }
     $result = generate_briefing( get_current_user_id() );
     if ( is_wp_error( $result ) ) {
         $code = str_replace( 'hr_ai_', '', $result->get_error_code() );
-        wp_safe_redirect( add_query_arg( 'hr_ai', in_array( $code, array( 'exists', 'too_few', 'unavailable' ), true ) ? $code : 'failed', $back ) );
+        wp_safe_redirect( add_query_arg( 'hr_ai', in_array( $code, array( 'exists', 'too_few', 'unavailable', 'busy' ), true ) ? $code : 'failed', $back ) );
         exit;
     }
-    notify_admin( $result );
     wp_safe_redirect( add_query_arg( 'hr_ai', 'created', $back ) );
     exit;
 } );

@@ -1,0 +1,1 @@
+(()=>{for(let e of document.querySelectorAll(".hrs-form"))e.addEventListener("submit",r=>{let t=e.querySelector('[type="submit"]');if(t){if(t.getAttribute("aria-busy")==="true")return r.preventDefault();t.setAttribute("aria-busy","true")}});document.querySelector(".hrs-flash")?.focus();})();

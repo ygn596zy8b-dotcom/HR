@@ -13,15 +13,14 @@
  *   Browser: document 'hr:streak' event (detail = streak view) after each counted read; the account chip listens.
  *   Streak view shape: { current, best, today, goal, met_today, at_risk, freezes, xp, level, next_level_xp },
  *   also added to the hr_session payload as 'streak'.
- *   Helpers (HR\Platform\Streaks): summary( $uid ): array (view), refresh( $uid ), erase( $uid ), dashboard_url().
- *   Cron: 'hr_streak_reminders' daily at 19:00 site time (monitored as 'streak-reminders').
+ *   Helpers (HR\Platform\Streaks): summary( $uid ): array (view), refresh( $uid ), erase( $uid ), dashboard_url(),
+ *   dashboard_page() — renders /dashboard/ (called by the theme's page-dashboard.php; see dashboard.php).
+ *   Cron: 'hr_streak_reminders' daily at 19:00 site time (monitored as 'streak-reminders'); see reminders.php.
  *   Route: /reading/unsubscribe/?u=<id>&t=<token> (reminder unsubscribe; GET confirms, POST unsubscribes).
  * Storage: table {prefix}hr_reads; user meta listed in META_KEYS (includes the old theme dashboard's keys).
  */
 
 namespace HR\Platform\Streaks;
-
-use function HR\Platform\icon;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -62,9 +61,10 @@ add_action( 'hr_single_after_content', function ( $post_id = 0 ) {
     }
     $done = true;
     printf(
-        '<div class="hr-read-sentinel" data-hr-post="%d" data-hr-words="%d" data-hr-css="%s" data-hr-dashboard="%s" aria-hidden="true"></div>',
+        '<div class="hr-read-sentinel" data-hr-post="%d" data-hr-words="%d" data-hr-rest="%s" data-hr-css="%s" data-hr-dashboard="%s" aria-hidden="true"></div>',
         (int) $post->ID,
         (int) word_count( $post ),
+        esc_url( rest_url( 'hr/v1/reads/' ) ),
         esc_url( \HR\Platform\asset_url( 'css/streaks.css' ) . '?ver=' . \HR\Platform\asset_ver( 'css/streaks.css' ) ),
         esc_url( dashboard_url() )
     );
