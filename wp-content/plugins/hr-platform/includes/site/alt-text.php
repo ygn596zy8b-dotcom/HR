@@ -25,13 +25,17 @@ add_action( 'end_fetch_post_thumbnail_html', static function () {
 
 /** True for titles WordPress derived from a file name, e.g. "HR-Website-temp-From-now-on-3-4" or "IMG_1234". */
 function looks_like_filename( string $title, int $attachment_id ): bool {
-    $norm = strtolower( trim( $title ) );
+    $norm = (string) preg_replace( '/\s*\(\d+\)$/', '', strtolower( trim( $title ) ) ); // "photo (1)" duplicates
     if ( '' === $norm ) {
         return true;
     }
-    $stem = strtolower( pathinfo( (string) get_post_meta( $attachment_id, '_wp_attached_file', true ), PATHINFO_FILENAME ) );
-    $stem = (string) preg_replace( '/-(?:\d+x\d+|scaled|rotated|e\d{10,})$/', '', $stem );
-    if ( $norm === $stem || str_replace( array( '-', '_' ), ' ', $stem ) === $norm ) {
+    $stem  = strtolower( pathinfo( (string) get_post_meta( $attachment_id, '_wp_attached_file', true ), PATHINFO_FILENAME ) );
+    $stem  = (string) preg_replace( '/-(?:\d+x\d+|scaled|rotated|e\d{10,})$/', '', $stem );
+    $t = (string) preg_replace( '/[^a-z0-9]/', '', $norm );
+    $f = (string) preg_replace( '/[^a-z0-9]/', '', $stem );
+    // Same letters and digits as the file name, allowing WordPress's numeric duplicate suffix
+    // ("Headline Recorder 23 January (17)" from Headline-Recorder-23-January-17-1.png).
+    if ( $t === $f || ( '' !== $t && str_starts_with( $f, $t ) && ctype_digit( substr( $f, strlen( $t ) ) ) ) ) {
         return true;
     }
     // One "word" glued together with dashes, underscores, dots or digits.

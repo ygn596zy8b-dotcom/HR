@@ -60,7 +60,8 @@ add_action( 'hr_single_after_content', function ( $post_id = 0 ) {
 }, 10, 1 );
 
 add_action( 'hr_footer_trust', function () {
-    render( 'signing/footer-trust', array( 'verify_url' => verify_url() ) );
+    // Only claim signed feeds when the site serves one (Yoast's "Remove global feed" switches /feed/ off).
+    render( 'signing/footer-trust', array( 'verify_url' => verify_url(), 'has_feeds' => (bool) feed_sources() ) );
 } );
 
 add_action( 'wp_head', function () {

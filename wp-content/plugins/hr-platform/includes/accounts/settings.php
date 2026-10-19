@@ -146,9 +146,14 @@ function section_for( string $action ): string {
     return 'security';
 }
 
-function handle_stepup( \WP_User $user, string $action ): array {
-    $anchor = post_str( 'return', 20 );
-    $anchor = in_array( $anchor, array( 'email', 'security', 'privacy', 'passkeys', 'two-step' ), true ) ? $anchor : 'security';
+/**
+ * Step-up form posts (password or authenticator/recovery code). On success redirects back to $base#anchor (the
+ * settings page, or the contributed page that showed step_up_panel()); on failure records the error for the panel.
+ */
+function handle_stepup( \WP_User $user, string $action, string $base = '' ): array {
+    $anchor = post_str( 'return', 40 );
+    $anchor = preg_match( '/^[a-z0-9-]{1,40}$/', $anchor ) ? $anchor : 'security';
+    $back   = ( '' !== $base ? $base : account_url( 'settings' ) ) . '#' . $anchor;
     $uid    = (int) $user->ID;
     if ( 'stepup_password' === $action ) {
         $pwd = post_str( 'stepup_pwd', 1024 );
@@ -158,7 +163,8 @@ function handle_stepup( \WP_User $user, string $action ): array {
         }
         if ( '' !== $pwd && wp_check_password( $pwd, $user->user_pass, $uid ) ) {
             mark_recent_auth( $uid );
-            settings_redirect( $anchor, 'stepup_ok' );
+            flash( 'stepup_ok' );
+            redirect( $back );
         }
         log_security( 'stepup_failed', array( 'uid' => $uid ) );
         $GLOBALS['hr_accounts_stepup_errors'][ $anchor ] = array( 'stepup_pwd' => 'That password is not right.' );
@@ -167,7 +173,8 @@ function handle_stepup( \WP_User $user, string $action ): array {
     $result = verify_second_factor( $uid, post_str( 'stepup_code', 40 ) );
     if ( $result && 'limited' !== $result ) {
         mark_recent_auth( $uid );
-        settings_redirect( $anchor, 'stepup_ok' );
+        flash( 'stepup_ok' );
+        redirect( $back );
     }
     $GLOBALS['hr_accounts_stepup_errors'][ $anchor ] = array( 'stepup_code' => 'limited' === $result ? 'Too many attempts. Please wait 15 minutes.' : 'That code is not right.' );
     return array();
@@ -434,25 +441,63 @@ function handle_delete( \WP_User $user ): array {
         return array( 'errors' => array( 'privacy' => array( 'confirm_delete' => 'Type DELETE in capital letters to confirm.' ) ) );
     }
     $email = $user->user_email;
+    $GLOBALS['hr_accounts_deleted'][ $uid ] = true;
     do_action( 'hr_account_deleted', $uid ); // modules purge their rows while the user still exists
     passkeys_delete_all( $uid );
     \WP_Session_Tokens::get_instance( $uid )->destroy_all();
     wp_clear_auth_cookie();
     require_once ABSPATH . 'wp-admin/includes/user.php';
-    // Anything already published (e.g. an accepted op-ed) stays on the site, credited to the publication;
-    // wp_delete_user() would otherwise delete those posts too.
-    $reassign = null;
-    if ( count_user_posts( $uid, get_post_types( array( 'public' => true ) ) ) > 0 ) {
-        $admins   = get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ID', 'orderby' => 'ID' ) );
-        $reassign = $admins ? (int) $admins[0] : null;
-    }
-    wp_delete_user( $uid, $reassign );
+    wp_delete_user( $uid, purge_unpublished_content( $uid ) );
     wp_set_current_user( 0 );
     mail_goodbye( $email );
     log_security( 'account_deleted', array( 'uid' => $uid ) );
     flash( 'deleted' );
     redirect( login_url() );
     return array();
+}
+
+/**
+ * Before a reader's account is deleted: anything already published (e.g. an accepted op-ed, with its images) stays on
+ * the site, credited to the publication; everything else they authored — drafts, pending submissions, uploads such as
+ * a headshot — is deleted, as the deletion page promises. Returns the administrator to reassign the published posts
+ * to, or null when nothing is kept (wp_delete_user() then deletes the rest).
+ */
+function purge_unpublished_content( int $uid ): ?int {
+    global $wpdb;
+    $rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT ID, post_type, post_status, post_parent FROM {$wpdb->posts} WHERE post_author = %d", $uid ) );
+    $kept = array();
+    foreach ( $rows as $row ) {
+        if ( 'publish' === $row->post_status && 'attachment' !== $row->post_type && 'revision' !== $row->post_type && is_post_type_viewable( $row->post_type ) ) {
+            $kept[ (int) $row->ID ] = true;
+        }
+    }
+    $images = array();
+    foreach ( array_keys( $kept ) as $post_id ) {
+        $images[ (int) get_post_thumbnail_id( $post_id ) ] = true;
+    }
+    foreach ( $rows as $row ) {
+        $id     = (int) $row->ID;
+        $parent = (int) $row->post_parent;
+        if ( isset( $kept[ $id ] ) ) {
+            continue;
+        }
+        if ( 'attachment' === $row->post_type ) {
+            if ( isset( $kept[ $parent ] ) || isset( $images[ $id ] ) ) {
+                $kept[ $id ] = true;
+            } else {
+                wp_delete_attachment( $id, true );
+            }
+        } elseif ( 'revision' === $row->post_type && isset( $kept[ $parent ] ) ) {
+            $kept[ $id ] = true;
+        } elseif ( get_post( $id ) ) { // may already be gone with its parent
+            wp_delete_post( $id, true );
+        }
+    }
+    if ( ! $kept ) {
+        return null;
+    }
+    $admins = get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ID', 'orderby' => 'ID' ) );
+    return $admins ? (int) $admins[0] : null;
 }
 
 function settings_view_data( \WP_User $user, array $state ): array {

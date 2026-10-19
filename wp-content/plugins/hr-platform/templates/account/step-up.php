@@ -1,7 +1,8 @@
 <?php
 /**
  * Inline re-authentication before a sensitive change (valid 10 minutes for this session).
- * @var string $anchor  section to come back to  @var bool $has_totp  @var bool $has_passkey  @var array $errors
+ * @var string $action  page the forms post to  @var string $anchor  section to come back to
+ * @var bool $has_totp  @var bool $has_passkey  @var array $errors
  */
 
 use function HR\Platform\icon;
@@ -12,7 +13,7 @@ use function HR\Platform\Accounts\account_url;
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 $hra_anchor = $anchor ?: 'security';
-$hra_action = account_url( 'settings' ) . '#' . $hra_anchor;
+$hra_action = ( empty( $action ) ? account_url( 'settings' ) : $action ) . '#' . $hra_anchor;
 $hra_open   = ! empty( $errors );
 ?>
 <div class="hra-stepup<?php echo $hra_open ? ' is-open' : ''; ?>" id="<?php echo esc_attr( 'stepup-' . $hra_anchor ); ?>" data-hra-stepup>

@@ -203,6 +203,16 @@ function isArticleRecord(bytes, path) {
   }
 }
 
+function isRssFeed(bytes) {
+  let xml;
+  try { xml = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { return false; }
+  if (xml.includes('\0') || /<!(?:DOCTYPE|ENTITY)/i.test(xml)) return false;
+  // Optional BOM, XML declaration (UTF-8 if it names an encoding), processing instructions or comments, then <rss>.
+  const decl = /^﻿?\s*<\?xml\b[^>]*?\bencoding=["']([^"']+)["']/.exec(xml);
+  if (decl && decl[1].toUpperCase() !== 'UTF-8') return false;
+  return /^﻿?\s*(?:<\?[\s\S]*?\?>\s*|<!--[\s\S]*?-->\s*)*<rss[\s>]/.test(xml);
+}
+
 function* batches(docs) {
   let batch = [], size = 0;
   for (const d of docs) {
@@ -217,6 +227,8 @@ function* batches(docs) {
 async function signFeed(feed, keyset) {
   if (!/^[a-z0-9-]{1,32}$/.test(feed?.key ?? '')) throw new Error('malformed feed entry');
   const bytes = await request(feed.source, { authed: false });
+  // Like articles: only ever sign what a feed is (UTF-8 RSS without a DTD), never whatever bytes a path returned.
+  if (!isRssFeed(bytes)) throw new Error(`${feed.source} did not return a UTF-8 RSS feed without a DTD; refusing to sign`);
   const sha = sha512hex(bytes);
   if (feed.signed_sha512 === sha) { log(`feed ${feed.key}: unchanged`); return; }
   const url = `/signed/${feed.key}.xml`;

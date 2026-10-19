@@ -109,9 +109,10 @@ function mark_recent_auth( int $uid ): void {
     update_user_meta( $uid, 'hr_stepup', array_slice( $map, 0, 10, true ) );
 }
 
-// Any successful sign-in (our forms, passkeys, wp-login.php) counts as a fresh authentication for that session.
+// Any successful sign-in (our forms, passkeys, wp-login.php) counts as a fresh authentication for that session —
+// except the email confirmation link, which proves the inbox, not a password, passkey or code.
 add_action( 'wp_login', function ( $login, $user ) {
-    if ( $user instanceof \WP_User ) {
+    if ( $user instanceof \WP_User && 'email-link' !== ( $GLOBALS['hr_accounts_login_method'] ?? '' ) ) {
         mark_recent_auth( (int) $user->ID );
     }
 }, 5, 2 );

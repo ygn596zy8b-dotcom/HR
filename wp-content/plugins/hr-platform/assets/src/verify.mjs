@@ -50,11 +50,17 @@ function init(root) {
     return n;
   }
 
+  // Short messages for screen readers (a role="status" region); the report itself is announced through focus.
+  const announce = (text) => { $('status').textContent = text; };
+  const verdict = (text) => { const p = el('p', text, 'hr-verify-verdict'); p.id = 'hr-verify-verdict'; return p; };
+
   function busy(message) {
     const out = $('result');
-    out.replaceChildren(el('p', message, 'hr-verify-verdict'));
+    out.replaceChildren(verdict(message));
+    out.removeAttribute('aria-describedby');
     out.dataset.state = 'busy';
     out.hidden = false;
+    announce(message);
   }
 
   function show(result) {
@@ -62,8 +68,15 @@ function init(root) {
     out.replaceChildren();
     out.hidden = false;
     out.dataset.state = result.ok ? 'ok' : 'fail';
-    out.append(el('p', result.ok ? 'Authentic — this is exactly what the publisher signed.' : 'Not verified', 'hr-verify-verdict'));
-    if (!result.ok) out.append(el('p', result.reason));
+    out.append(verdict(result.ok ? 'Authentic — this is exactly what the publisher signed.' : 'Not verified'));
+    out.removeAttribute('aria-describedby');
+    announce('');
+    if (!result.ok) {
+      const reason = el('p', result.reason);
+      reason.id = 'hr-verify-reason';
+      out.append(reason);
+      out.setAttribute('aria-describedby', reason.id);
+    }
 
     const h = result.header;
     if (h && typeof h === 'object') {
@@ -126,6 +139,7 @@ function init(root) {
     }
     line.textContent = text;
     line.dataset.state = state;
+    announce(text);
   }
 
   async function loadKeyset() {

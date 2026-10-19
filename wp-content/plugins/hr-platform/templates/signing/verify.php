@@ -16,7 +16,7 @@ $hr_feeds = array_values( array_filter( (array) ( $feeds ?? array() ), static fn
     <header class="hr-verify-hero">
         <p class="hrp-eyebrow">Content integrity</p>
         <h1 class="hrp-title">Verify authenticity</h1>
-        <p class="hrp-lede">Every article and every feed we publish is digitally signed. If even one character is changed after publication, verification fails. Checking happens entirely in your browser; nothing you paste or upload is sent anywhere.</p>
+        <p class="hrp-lede"><?php echo $hr_feeds ? 'Every article and every feed we publish is digitally signed.' : 'Every article we publish is digitally signed.'; ?> If even one character is changed after publication, verification fails. Checking happens entirely in your browser; nothing you paste or upload is sent anywhere.</p>
         <ul class="hr-verify-facts" aria-label="How it is signed">
             <li><strong>ML-DSA-87</strong><span>NIST FIPS 204, security category 5 — a post-quantum signature that a future quantum computer cannot forge.</span></li>
             <li><strong>Ed448</strong><span>RFC 8032 — a classical signature alongside it. Both must be valid, so breaking one algorithm is not enough.</span></li>
@@ -52,7 +52,9 @@ $hr_feeds = array_values( array_filter( (array) ( $feeds ?? array() ), static fn
                 </form>
             </div>
 
-            <section id="hr-verify-result" class="hr-verify-result" tabindex="-1" aria-live="polite" aria-atomic="true" hidden></section>
+            <?php // Focus moves here after a check and announces the verdict (its label); the full report is not a live region, so a long article is never read out unasked. ?>
+            <section id="hr-verify-result" class="hr-verify-result" tabindex="-1" aria-labelledby="hr-verify-verdict" hidden></section>
+            <p id="hr-verify-status" class="hr-verify-sr" role="status"></p>
 
             <section id="hr-verify-compare" class="hrp-card hr-verify-compare" aria-labelledby="hr-verify-compare-h" hidden>
                 <h2 id="hr-verify-compare-h" class="hr-verify-h2">Was a copy you received changed?</h2>

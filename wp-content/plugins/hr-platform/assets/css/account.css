@@ -42,6 +42,7 @@
 .hra-btn-danger { background: var(--hrp-red-deep); border-color: var(--hrp-red-deep); }
 .hra-btn-danger:hover { background: var(--hrp-black); border-color: var(--hrp-black); }
 .hra-danger-link.hrp-btn--link { color: #b00016; }
+.hra .hrp-btn--link { min-height: 44px; } /* text-style buttons still get a full-size tap target */
 .hrp-btn .hr-icon { width: 18px; height: 18px; }
 .hra-field--code .hrp-input { font: 600 24px/1.2 var(--hrp-mono); letter-spacing: .28em; text-align: center; max-width: 280px; }
 .hra-field--code .hrp-input::placeholder { color: #c7c7cc; letter-spacing: .2em; }
@@ -128,11 +129,12 @@
 .hra-app__head .hrp-eyebrow { margin-bottom: 4px; }
 .hra-avatar { display: grid; place-items: center; flex: none; width: 56px; height: 56px; background: var(--hrp-black); color: #fff; font-weight: 800; font-size: 20px; letter-spacing: .04em; border-bottom: 3px solid var(--hrp-red); }
 .hra-app__who { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0; font-size: 20px; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; }
-.hra-app__body { width: 100%; display: grid; gap: 24px; }
+.hra-app__body { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; } /* minmax(0,…): the tab strip must scroll, not widen the page */
 .hra-app__main { min-width: 0; }
 .hra-page-title { font-size: clamp(28px, 3.6vw, 40px); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 20px; color: var(--hrp-ink); }
 .hra-flash:empty { display: none; }
 
+.hra-nav { min-width: 0; }
 .hra-nav__list { list-style: none; margin: 0; padding: 0; }
 .hra-nav__link { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 14px; color: var(--hrp-ink) !important; font-weight: 600; text-decoration: none; border-left: 3px solid transparent; transition: background-color .15s, border-color .15s; }
 .hra-nav__link:hover { background: var(--hrp-paper-2); }
@@ -280,7 +282,8 @@
 .hra-codes__title .hr-icon { color: var(--hrp-red); }
 .hra-codes p { margin: 0 0 12px; }
 .hra-codes__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; margin: 0; padding: 14px 16px 14px 40px; background: #fff; border: 1px solid var(--hrp-line); }
-.hra-codes__list code { font: 600 17px/1.5 var(--hrp-mono); letter-spacing: .06em; background: none; color: var(--hrp-ink); padding: 0; }
+.hra-codes__list code { font: 600 17px/1.5 var(--hrp-mono); letter-spacing: .06em; white-space: nowrap; background: none; color: var(--hrp-ink); padding: 0; }
+@media (max-width: 599px) { .hra-codes { padding: 16px; } .hra-codes__list { gap: 8px 12px; padding: 12px 10px 12px 30px; } .hra-codes__list code { font-size: 15px; letter-spacing: .02em; } }
 .hra-codes__list li::marker { color: var(--hrp-muted); font-size: 13px; }
 @media (min-width: 600px) { .hra-codes__list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 

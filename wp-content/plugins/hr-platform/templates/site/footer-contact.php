@@ -30,6 +30,6 @@ if ( ! $hr_lines && empty( $org['phone'] ) && empty( $org['email'] ) ) {
         <a class="hr-footer-address__tel" href="<?php echo esc_url( 'tel:' . preg_replace( '/[^0-9+]/', '', $org['phone'] ), array( 'tel' ) ); ?>"><?php echo esc_html( $org['phone'] ); ?></a>
     <?php endif; ?>
     <?php if ( ! empty( $org['email'] ) ) : ?>
-        <a class="hr-footer-address__email" href="<?php echo esc_url( 'mailto:' . $org['email'] ); ?>"><?php echo esc_html( $org['email'] ); ?></a>
+        <a class="hr-footer-address__email" href="<?php echo esc_url( 'mailto:' . $org['email'] ); ?>"><?php echo str_replace( '@', '@<wbr>', esc_html( $org['email'] ) ); // Narrow footer column: break after the @, never mid-word. ?></a>
     <?php endif; ?>
 </address>

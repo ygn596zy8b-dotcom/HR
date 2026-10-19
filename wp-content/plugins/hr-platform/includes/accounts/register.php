@@ -164,11 +164,20 @@ function token_record( int $uid, string $meta_key, string $token ): ?array {
     return hash_equals( (string) $rec['h'], hash( 'sha256', $token ) ) ? $rec : null;
 }
 
+/**
+ * The confirmation link signs the reader in only in the browser that asked for it. Opened anywhere else it just
+ * confirms the address: otherwise anyone could mail their own link to a victim and sign them into the sender's
+ * account (whatever the victim then submits would land in the sender's account).
+ */
+function verify_browser_binding( string $browser_id ): string {
+    return 43 === strlen( $browser_id ) ? mac( 'verify-browser', $browser_id ) : '';
+}
+
 function send_verification( $user ): void {
     if ( ! $user instanceof \WP_User ) {
         return;
     }
-    $token = issue_token( (int) $user->ID, 'hr_verify' );
+    $token = issue_token( (int) $user->ID, 'hr_verify', array( 'b' => verify_browser_binding( browser_id() ) ) );
     mail_verify( $user, add_query_arg( array( 'u' => (int) $user->ID, 't' => $token ), account_url( 'verify' ) ) );
 }
 
@@ -260,8 +269,11 @@ function route_verify(): void {
         flash( 'welcome' );
         redirect( account_url() );
     }
-    // The link proves the inbox; sign in only accounts without a second factor (never bypass 2FA/passkeys).
-    if ( has_mfa( $uid ) ) {
+    // The link proves the inbox; sign in only accounts without a second factor (never bypass 2FA/passkeys), and
+    // only in the browser that registered or asked for the link (see verify_browser_binding()).
+    $binding      = verify_browser_binding( read_cookie( 'hr_fs', 64 ) );
+    $same_browser = '' !== $binding && hash_equals( (string) ( $record['b'] ?? '' ), $binding );
+    if ( has_mfa( $uid ) || ! $same_browser ) {
         flash( 'verified_signin' );
         redirect( login_url() );
     }

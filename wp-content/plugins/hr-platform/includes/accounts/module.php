@@ -37,8 +37,9 @@
  *   met_today, at_risk, freezes )). In the browser: window.HR.session (Promise<payload|null>), event 'hr:session'
  *   on document; dispatch 'hr:streak' (detail = streak object) to update the chip live.
  *
- * Account deletion — do_action( 'hr_account_deleted', int $user_id ): fired BEFORE the user is deleted; purge your
- *   module's rows for that user.
+ * Account deletion — do_action( 'hr_account_deleted', int $user_id ): fired once, BEFORE the user is deleted, both when
+ *   readers delete their own account and when an administrator deletes a user; purge your module's rows for that user.
+ *   (Self-service deletion then deletes the reader's unpublished posts/uploads; published ones go to an administrator.)
  *
  * Data export — apply_filters( 'hr_account_export', array $data, int $user_id ): add a top-level key with that
  *   user's data (no secrets). Returned to the reader as a JSON download.
@@ -48,7 +49,10 @@
  *   require_recent_auth(): bool            password/passkey/authenticator code confirmed within 10 minutes in this
  *                                          session; when false, render step_up_panel( $return_anchor ) instead of
  *                                          the sensitive form
- *   step_up_panel( string $anchor ): void  inline re-authentication panel (password or passkey)
+ *   step_up_panel( string $anchor ): void  inline re-authentication panel (password, passkey or code). Works on
+ *                                          Settings and on contributed pages: it posts back to the same page
+ *                                          (handled before your 'handle' callback, which is not called for it) and
+ *                                          returns to #<anchor>; the panel's element id is "stepup-<anchor>"
  *   login_url( string $redirect = '' ): string   redirect is validated (same site, never back into an auth page)
  *   account_url( string $slug = '' ): string
  *   has_mfa( int $uid ): bool              authenticator app or at least one passkey
@@ -61,6 +65,12 @@
  * Staff sign-in policy — apply_filters( 'hr_enforce_staff_mfa', bool $on, ?WP_User $user ): anyone who can
  *   edit_posts must have a passkey or two-step verification before using wp-admin. On by default; off with
  *   define( 'HR_ENFORCE_STAFF_MFA', false ); opt-in (filter) on WP_ENVIRONMENT_TYPE 'local' copies.
+ *
+ * Policies outside /account/: wp-login.php needs the authentication code for two-step accounts (staff with only a
+ *   passkey are sent to /account/login/); wp-login.php?action=register|lostpassword redirect to our pages; core
+ *   password resets sign out every session; REST: nobody changes their own email/password through /wp/v2/users
+ *   (Settings does it with step-up + confirmation), and unenrolled staff cannot write through /wp/v2/ while
+ *   enforcement is on.
  *
  * Routes: /account/{,login,register,verify,forgot,reset,logout,two-factor,settings,<contributed slug>}/
  * REST:   hr/v1/passkeys/{register,login,stepup}/{options,verify} (see passkeys.php)

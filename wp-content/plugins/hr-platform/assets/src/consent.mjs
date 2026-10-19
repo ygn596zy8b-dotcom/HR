@@ -130,7 +130,7 @@ const panel = root?.querySelector('#hr-cc-panel');
 const chooseBtn = root?.querySelector('[data-hr-cc-action="choose"]');
 const analyticsBox = root?.querySelector('#hr-cc-analytics');
 const embedsBox = root?.querySelector('#hr-cc-embeds');
-const status = root?.querySelector('[data-hr-cc-status]');
+const status = document.querySelector('[data-hr-cc-status]');
 let returnFocus = null;
 
 function syncToggles(current) {

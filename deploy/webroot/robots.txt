@@ -1,63 +1,45 @@
 # ===================================================
 # WORDPRESS CORE & SECURITY RULES
+# One group for every crawler, so the AI search and citation bots below follow the same
+# exclusions (a crawler obeys only the most specific group that names it).
 # ===================================================
 User-agent: *
-Disallow: /wp-admin/
-Allow: /wp-admin/admin-ajax.php
-Disallow: /wp-includes/
-Disallow: /readme.html
-Disallow: /license.txt
-# Personal pages (also noindex): accounts, reading dashboard, submissions
-Disallow: /account/
-Disallow: /dashboard/
-Disallow: /*?s=
-Disallow: /*?*
-# Signature checks use query strings (/verify/?sig=...); the page itself is public
-Allow: /verify/$
-Allow: /signed/
-Allow: /.well-known/pqsig-keys.json
-
-# ===================================================
 # ALLOW AI SEARCH & CITATION BOTS (GEO Strategy)
 # Allows AI models to search, read, and attribute articles
-# ===================================================
 User-agent: OAI-SearchBot
-Allow: /
-
 User-agent: ChatGPT-User
-Allow: /
-
 User-agent: PerplexityBot
-Allow: /
-
 User-agent: Claude-SearchBot
-Allow: /
-
 User-agent: Claude-Web
-Allow: /
-
 User-agent: GPTBot
-Allow: /
-
 User-agent: ClaudeBot
-Allow: /
-
 User-agent: Google-Extended
-Allow: /
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+Disallow: /readme.html
+Disallow: /license.txt
+# Personal pages (also noindex): accounts, reading dashboard
+Disallow: /account/
+Disallow: /dashboard/
+# Internal search results and comment-reply duplicates. Other query strings (e.g. utm_ tags) stay crawlable:
+# their canonical tag points at the clean URL, and CSS/JS with ?ver= must stay fetchable for rendering.
+Disallow: /?s=
+Disallow: /*?s=
+Disallow: /*&s=
+Disallow: /search/
+Disallow: /*?replytocom=
+# Signature checks use query strings (/verify/?sig=...); the page itself is public
+Disallow: /verify/?
+Allow: /signed/
+Allow: /.well-known/pqsig-keys.json
 
 # ===================================================
 # BLOCK UNATTRIBUTED AI SCRAPERS & AGGRESSIVE TRAINERS
 # ===================================================
 # Aggressive web scrapers & dataset builders
 User-agent: CCBot
-Disallow: /
-
 User-agent: Bytespider
-Disallow: /
-
 User-agent: FirecrawlAgent
-Disallow: /
-
 User-agent: ApifyBot
 Disallow: /
 

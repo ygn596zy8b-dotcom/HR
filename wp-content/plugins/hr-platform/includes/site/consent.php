@@ -63,13 +63,11 @@ add_filter( 'script_loader_tag', function ( $tag, $handle ) {
     return $p->get_updated_html();
 }, 30, 2 );
 
+// site.css also styles the footer address and the thank-you page, so it loads even with the banner switched off.
 add_action( 'wp_enqueue_scripts', function () {
-    if ( ! consent_enabled() ) {
-        return;
-    }
     enqueue_base_style();
     wp_enqueue_style( 'hr-site', asset_url( 'css/site.css' ), array( 'hr-platform' ), asset_ver( 'css/site.css' ) );
-    if ( is_readable( HR_PLATFORM_DIR . '/assets/js/consent.js' ) ) {
+    if ( consent_enabled() ) {
         wp_enqueue_script( 'hr-consent', asset_url( 'js/consent.js' ), array(), asset_ver( 'js/consent.js' ), array( 'in_footer' => true, 'strategy' => 'defer' ) );
     }
 } );

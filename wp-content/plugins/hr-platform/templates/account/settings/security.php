@@ -49,7 +49,11 @@ $hra_methods  = array( 'password' => 'password', 'passkey' => 'passkey', 'passwo
             <span class="hra-block__icon" aria-hidden="true"><?php echo icon( 'key' ); // phpcs:ignore -- static SVG ?></span>
             <div>
                 <h3 class="hra-h3">Passkeys</h3>
-                <p class="hra-muted">Sign in with your fingerprint, face or screen lock. Passkeys cannot be phished or leaked, and they count as two-step verification.</p>
+                <?php if ( $staff ) : ?>
+                    <p class="hra-muted">Sign in with your fingerprint, face or screen lock. Passkeys cannot be phished or leaked, and on staff accounts a passkey also confirms every password sign-in.</p>
+                <?php else : ?>
+                    <p class="hra-muted">Sign in with your fingerprint, face or screen lock. Passkeys cannot be phished or leaked. Your password still works on its own, so turn on two-step verification as well to protect it.</p>
+                <?php endif; ?>
             </div>
             <?php if ( $hra_count ) : ?><span class="hrp-badge hrp-badge--ok"><?php echo icon( 'check' ); // phpcs:ignore -- static SVG ?>On</span><?php endif; ?>
         </div>

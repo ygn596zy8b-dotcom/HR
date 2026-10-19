@@ -10,9 +10,6 @@
 namespace HR\Platform\Site;
 
 use function HR\Platform\add_route;
-use function HR\Platform\enqueue_base_style;
-use function HR\Platform\asset_url;
-use function HR\Platform\asset_ver;
 use function HR\Platform\render;
 use function HR\Platform\route_url;
 use function HR\Platform\set_page_title;
@@ -56,10 +53,6 @@ add_route( 'thank-you', '^thank-you/?$', function () {
     $for      = isset( $variants[ $for ] ) ? $for : 'generic';
 
     set_page_title( 'newsletter' === $for ? 'Confirm your subscription' : 'Thank you', false );
-    add_action( 'wp_enqueue_scripts', function () {
-        enqueue_base_style();
-        wp_enqueue_style( 'hr-site', asset_url( 'css/site.css' ), array( 'hr-platform' ), asset_ver( 'css/site.css' ) );
-    } );
     add_filter( 'body_class', static fn( $classes ) => array_merge( $classes, array( 'hr-thank-you-page' ) ) );
 
     $latest = get_posts( array(

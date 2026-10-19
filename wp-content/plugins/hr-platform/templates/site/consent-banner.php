@@ -70,5 +70,6 @@ if ( ! defined( 'ABSPATH' ) ) exit;
             <button type="button" class="hr-cc__close" data-hr-cc-action="close" aria-label="Close cookie choices"><?php echo icon( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput -- static SVG ?></button>
         </div>
     </div>
-    <p class="hr-cc__status hrp-sr" role="status" aria-live="polite" data-hr-cc-status></p>
 </section>
+<p class="hrp-sr" role="status" aria-live="polite" data-hr-cc-status></p><?php // Outside the banner so the confirmation is still announced after it hides. ?>
+

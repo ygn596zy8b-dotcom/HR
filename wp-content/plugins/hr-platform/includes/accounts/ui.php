@@ -248,7 +248,11 @@ function nav_items(): array {
 /** Inline re-authentication panel shown in place of a sensitive form. */
 function step_up_panel( string $anchor = '' ): void {
     $user = wp_get_current_user();
+    $sub  = (string) ( $GLOBALS['hr_accounts_sub'] ?? 'settings' );
+    // Posts back to the page showing the panel: settings, or a contributed page (route_contributed() handles it).
+    $page = isset( account_pages()[ $sub ] ) ? $sub : 'settings';
     render( 'account/step-up', array(
+        'action'      => account_url( $page ),
         'anchor'      => sanitize_html_class( $anchor ),
         'has_totp'    => has_totp( (int) $user->ID ),
         'has_passkey' => passkey_count( (int) $user->ID ) > 0,

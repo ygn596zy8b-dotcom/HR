@@ -26,7 +26,7 @@ const FEED = te.encode('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
 
 /**
  * Mock site. `opts.tamper` = ids whose reported sha512 is wrong; `opts.foreign` = ids whose canonical record names
- * another site (with a correct sha512); `opts.keyset` overrides the published keyset.
+ * another site (with a correct sha512); `opts.keyset` overrides the published keyset; `opts.feedBody` replaces /feed/.
  */
 async function mockSite(opts = {}) {
   const state = { articles: new Map(), uploads: [], feeds: [], authHeaders: new Set(), requests: [] };
@@ -39,7 +39,7 @@ async function mockSite(opts = {}) {
     const path = new URL(req.url, 'http://x').pathname;
     state.requests.push(`${req.method} ${path}`);
     if (path === '/.well-known/pqsig-keys.json') return json(res, 200, keyset);
-    if (path === '/feed/') { res.writeHead(200, { 'Content-Type': 'application/rss+xml' }); return res.end(FEED); }
+    if (path === '/feed/') { res.writeHead(200, { 'Content-Type': 'application/rss+xml' }); return res.end(opts.feedBody ?? FEED); }
     if (!path.startsWith('/wp-json/hr/v1/')) return json(res, 404, { code: 'rest_no_route' });
     state.authHeaders.add(req.headers.authorization ?? '');
     if (req.headers.authorization !== `Basic ${Buffer.from(`${USER}:${PASS}`).toString('base64')}`) return json(res, 401, { code: 'rest_forbidden' });
@@ -139,6 +139,26 @@ test('refuses canonical bytes that are not an article record for the queued addr
     assert.equal(site.uploads.length, 3, 'the other articles were still signed');
   } finally {
     await site.close();
+  }
+});
+
+test('refuses to sign a feed source that is not a UTF-8 RSS document without a DTD', async () => {
+  const bodies = [
+    te.encode('<!doctype html><html><body>Home page</body></html>'),
+    te.encode('<?xml version="1.0"?><!DOCTYPE rss [<!ENTITY x "y">]><rss version="2.0"><channel><title>&x;</title></channel></rss>'),
+    new Uint8Array([0xff, 0xfe, ...[...te.encode('<rss/>')].flatMap((b) => [b, 0])]),
+  ];
+  for (const feedBody of bodies) {
+    const site = await mockSite({ count: 2, feedBody });
+    try {
+      const r = await run(['--site', site.url, '--key', keyFile, '--insecure-local']);
+      assert.equal(r.code, 1, r.out);
+      assert.match(r.out, /feed feed: .*refusing to sign/);
+      assert.equal(site.feeds.length, 0, 'nothing was signed or uploaded for the feed');
+      assert.equal(site.uploads.length, 2, 'articles were still signed');
+    } finally {
+      await site.close();
+    }
   }
 });
 

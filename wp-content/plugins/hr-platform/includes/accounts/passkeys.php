@@ -275,6 +275,9 @@ function rest_register_verify( \WP_REST_Request $request ) {
     if ( passkey_count( $uid ) > 0 && ! require_recent_auth() ) {
         return rest_error( 'hr_step_up_required', 'For your security, confirm it is you before adding another passkey.', 403 );
     }
+    if ( passkey_count( $uid ) >= PASSKEY_MAX ) {
+        return rest_error( 'hr_bad_request', 'You have reached the maximum number of passkeys. Remove one first.', 400 );
+    }
     $wa = webauthn();
     if ( ! $wa || ! origin_ok( $bin['clientDataJSON'] ) ) {
         return rest_error( 'hr_passkey_failed', 'We could not add that passkey. Please try again.', 400 );

@@ -19,6 +19,7 @@ const PUBLIC_ROUTES = array( 'login', 'register', 'verify', 'forgot', 'reset', '
 function dispatch( string $sub ): void {
     no_store();
     $sub = strtolower( $sub );
+    $GLOBALS['hr_accounts_sub'] = $sub; // where step_up_panel() posts back to
     if ( ! headers_sent() ) {
         // These pages carry one-time links and personal data: never send their URL to another site. (Not
         // "no-referrer": browsers then send "Origin: null" on our own form posts and the origin check fails.)
@@ -161,7 +162,8 @@ function route_contributed( \WP_User $user, string $slug, array $page ): void {
     }
     $gated = $page['requires_verified'] && ! is_verified( (int) $user->ID );
     if ( is_post() ) {
-        if ( 'resend_verify' === posted_action() ) {
+        $action = posted_action();
+        if ( 'resend_verify' === $action ) {
             handle_resend( $user );
             redirect( account_url( $slug ) );
         }
@@ -170,7 +172,15 @@ function route_contributed( \WP_User $user, string $slug, array $page ): void {
             flash( 'csrf' );
             redirect( account_url( $slug ) );
         }
-        if ( ! $gated && $page['handle'] ) {
+        if ( in_array( $action, array( 'stepup_password', 'stepup_totp' ), true ) ) {
+            // step_up_panel() on a contributed page: confirm here and come back to this page. On a wrong password
+            // the page renders again with the error inside its panel; the module's handler is not called.
+            if ( ! verify_form( $action ) ) {
+                flash( 'csrf' );
+                redirect( account_url( $slug ) );
+            }
+            handle_stepup( $user, $action, account_url( $slug ) );
+        } elseif ( ! $gated && $page['handle'] ) {
             call_user_func( $page['handle'], $user );
         }
     }

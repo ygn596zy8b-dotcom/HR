@@ -353,9 +353,13 @@ function store_article_signature( int $id, $sig ): string {
     return 'stored';
 }
 
-/** Well-formed RSS, parsed without network access, DTDs or entity expansion (no XXE, no billion laughs). */
+/**
+ * Well-formed UTF-8 RSS without a DTD, parsed without network access or entity expansion (no XXE, no billion laughs).
+ * Partners' feed readers parse these bytes too, so a DTD is refused outright, not merely left unexpanded.
+ */
 function is_well_formed_feed( string $xml ): bool {
-    if ( 1 === preg_match( '/<!(?:DOCTYPE|ENTITY)/i', $xml ) ) {
+    // UTF-8 only (it is served as charset=utf-8); this also stops a UTF-16 document hiding a DOCTYPE from the regex.
+    if ( str_contains( $xml, "\0" ) || 1 !== preg_match( '//u', $xml ) || 1 === preg_match( '/<!(?:DOCTYPE|ENTITY)/i', $xml ) ) {
         return false;
     }
     $previous = libxml_use_internal_errors( true );
@@ -363,7 +367,8 @@ function is_well_formed_feed( string $xml ): bool {
     $ok       = $doc->loadXML( $xml, LIBXML_NONET | LIBXML_COMPACT );
     libxml_clear_errors();
     libxml_use_internal_errors( $previous );
-    return $ok && $doc->documentElement && 'rss' === $doc->documentElement->nodeName;
+    return $ok && null === $doc->doctype && 'UTF-8' === strtoupper( (string) ( $doc->xmlEncoding ?? 'UTF-8' ) )
+        && $doc->documentElement && 'rss' === $doc->documentElement->nodeName;
 }
 
 function rest_feeds( \WP_REST_Request $request ) {

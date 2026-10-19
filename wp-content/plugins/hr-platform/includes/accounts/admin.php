@@ -44,6 +44,48 @@ add_action( 'admin_init', function () {
     }
 }, 1 );
 
+// The same policy for the REST API: a browser session of a staff account that has not enrolled could otherwise still
+// change content through /wp/v2/ with a REST nonce (e.g. the one hr_session hands out). Reads, our own hr/v1 routes
+// (passkey enrolment) and application-password requests (no browser session) are unaffected.
+add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
+    if ( null !== $result || ! is_user_logged_in() || ! $request instanceof \WP_REST_Request ) {
+        return $result;
+    }
+    if ( in_array( $request->get_method(), array( 'GET', 'HEAD', 'OPTIONS' ), true ) || ! str_starts_with( $request->get_route(), '/wp/v2/' ) ) {
+        return $result;
+    }
+    if ( function_exists( 'rest_get_authenticated_app_password' ) && rest_get_authenticated_app_password() ) {
+        return $result;
+    }
+    $user = wp_get_current_user();
+    if ( ! is_staff( $user ) || has_mfa( (int) $user->ID ) || ! staff_mfa_enforced( $user ) ) {
+        return $result;
+    }
+    log_security( 'staff_mfa_rest_blocked', array( 'uid' => (int) $user->ID ) );
+    return new \WP_Error( 'hr_staff_mfa_required', 'Add a passkey or two-step verification to your account (Account → Settings → Security) before editing the site.', array( 'status' => 403 ) );
+}, 10, 3 );
+
+// Core's REST users endpoint lets anyone change their own email address and password with just a session and a REST
+// nonce: no current password, no step-up, no confirmation of the new address. That would turn any hijacked session
+// into a full account takeover, so self-service email/password changes only go through Account → Settings.
+// (Administrators editing other users are unaffected.)
+add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
+    if ( null !== $result || ! is_user_logged_in() || ! $request instanceof \WP_REST_Request ) {
+        return $result;
+    }
+    if ( ! in_array( $request->get_method(), array( 'POST', 'PUT', 'PATCH' ), true ) || ! preg_match( '#^/wp/v2/users/(me|\d+)/?$#', $request->get_route(), $m ) ) {
+        return $result;
+    }
+    if ( ( 'me' === $m[1] ? get_current_user_id() : (int) $m[1] ) !== get_current_user_id() ) {
+        return $result;
+    }
+    if ( null === $request->get_param( 'email' ) && null === $request->get_param( 'password' ) ) {
+        return $result;
+    }
+    log_security( 'rest_self_credentials_blocked', array( 'uid' => get_current_user_id() ) );
+    return new \WP_Error( 'hr_use_account_settings', 'Change your email address or password in Account → Settings.', array( 'status' => 403 ) );
+}, 9, 3 );
+
 add_filter( 'show_admin_bar', function ( $show ) {
     return is_user_logged_in() && ! is_staff( wp_get_current_user() ) ? false : $show;
 }, 20 );
@@ -174,6 +216,37 @@ add_action( 'login_form_register', function () {
     exit;
 } );
 add_filter( 'register_url', fn() => account_url( 'register' ) );
+
+// Same for "Lost your password?": core's form has no rate limit (anyone could flood an inbox with reset emails); ours
+// has, and its links work for staff too. Reset links already issued by core (wp-login.php?action=rp) keep working.
+foreach ( array( 'login_form_lostpassword', 'login_form_retrievepassword' ) as $hr_accounts_hook ) {
+    add_action( $hr_accounts_hook, function () {
+        if ( isset( $_GET['error'] ) && in_array( $_GET['error'], array( 'expiredkey', 'invalidkey' ), true ) ) {
+            flash( 'reset_expired' ); // core's own reset link was stale
+        }
+        wp_safe_redirect( account_url( 'forgot' ), 303 );
+        exit;
+    } );
+}
+unset( $hr_accounts_hook );
+add_filter( 'lostpassword_url', fn() => account_url( 'forgot' ) );
+
+// A password reset through core's wp-login.php signs out every session too, as ours does.
+add_action( 'after_password_reset', function ( $user ) {
+    if ( $user instanceof \WP_User ) {
+        \WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
+    }
+}, 5 );
+
+// An administrator deleting a user (Users screen, WP-CLI) is an account deletion too: let modules purge that person's
+// data first, as they do for self-service deletion (which has already fired the action).
+add_action( 'delete_user', function ( $uid ) {
+    $uid = (int) $uid;
+    if ( empty( $GLOBALS['hr_accounts_deleted'][ $uid ] ) ) {
+        $GLOBALS['hr_accounts_deleted'][ $uid ] = true;
+        do_action( 'hr_account_deleted', $uid );
+    }
+}, 1 );
 
 // ---------------------------------------------------------------------------------------------------------------
 // Tools → Export/Erase Personal Data
