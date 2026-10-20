@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
     <?php endif; ?>
     <?php
     field( array(
-        'name'         => 'log',
+        'name'         => 'hr_log',
         'label'        => 'Email address',
         'type'         => 'text',
         'value'        => $values['log'],
@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
     <div class="hra-field-row">
         <?php
         field( array(
-            'name'         => 'pwd',
+            'name'         => 'hr_pwd',
             'label'        => 'Password',
             'type'         => 'password',
             'error'        => $errors['pwd'] ?? '',

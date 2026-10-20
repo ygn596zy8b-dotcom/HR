@@ -227,13 +227,13 @@ function hr_csp_sources(): array {
     $sources = array(
         'default-src'     => array( "'self'" ),
         // Inline scripts are still needed by WordPress core and plugins; external scripts are allowlisted by host.
-        'script-src'      => array( "'self'", "'unsafe-inline'", 'https://s3.tradingview.com', 'https://www.google.com', 'https://www.gstatic.com', 'https://www.googletagmanager.com', 'https://*.google-analytics.com' ),
+        'script-src'      => array( "'self'", "'unsafe-inline'", 'https://s3.tradingview.com', 'https://www.google.com', 'https://www.gstatic.com', 'https://www.googletagmanager.com', 'https://*.google-analytics.com' , 'https://challenges.cloudflare.com'),
         'style-src'       => array( "'self'", "'unsafe-inline'" ),
         'img-src'         => array( "'self'", 'data:', 'blob:', 'https:' ),
         'font-src'        => array( "'self'", 'data:' ),
-        'connect-src'     => array( "'self'", 'https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://www.google.com', 'https://*.tradingview.com' ),
+        'connect-src'     => array( "'self'", 'https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://www.google.com', 'https://*.tradingview.com' , 'https://challenges.cloudflare.com'),
         'media-src'       => array( "'self'", 'blob:' ),
-        'frame-src'       => array( "'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://www.google.com', 'https://*.tradingview.com', 'https://www.tradingview-widget.com' ),
+        'frame-src'       => array( "'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://www.google.com', 'https://*.tradingview.com', 'https://www.tradingview-widget.com' , 'https://challenges.cloudflare.com'),
         'worker-src'      => array( "'self'", 'blob:' ),
         'manifest-src'    => array( "'self'" ),
         'object-src'      => array( "'none'" ),

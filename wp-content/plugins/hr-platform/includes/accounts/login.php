@@ -93,8 +93,8 @@ function route_login(): void {
         if ( ! verify_form( 'login' ) ) {
             $errors['_form'] = flash_messages()['csrf'][1];
         } else {
-            $log      = trim( post_str( 'log', 100 ) );
-            $pwd      = post_str( 'pwd', 1024 );
+            $log      = trim( post_str( 'hr_log', 100 ) ); // not 'log'/'pwd': AIOS would demand its wp-login CAPTCHA here
+            $pwd      = post_str( 'hr_pwd', 1024 );
             $remember = ! empty( $_POST['remember'] );
             $values   = array( 'log' => $log, 'remember' => $remember );
             if ( '' === $log ) {
