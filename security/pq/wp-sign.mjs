@@ -105,12 +105,19 @@ const problem = (msg) => { failures++; console.error(`[wp-sign] ${msg}`); };
 
 async function main() {
   // 1. The site must publish our key; otherwise readers could not verify anything we upload.
+  // Hosts often answer /.well-known/ before WordPress does, so fall back to the plugin's REST copy.
   let keyset;
-  try {
-    keyset = await getJson('/.well-known/pqsig-keys.json', { authed: false });
-  } catch (err) {
-    fail(`could not load ${origin}/.well-known/pqsig-keys.json (${err.message}). Paste signing.public.json into Settings → Headline Recorder → Content signing.`);
+  const errors = [];
+  for (const path of ['/.well-known/pqsig-keys.json', '/wp-json/hr/v1/signing/keyset']) {
+    try {
+      keyset = await getJson(path, { authed: false });
+      break;
+    } catch (err) {
+      errors.push(err.message);
+    }
   }
+  if (!keyset) fail(`could not load the site keyset (${errors.join('; ')}). Update the Headline Recorder platform, then paste signing.public.json into Settings → Headline Recorder → Content signing.`);
+  if (errors.length) console.error(`[wp-sign] note: /.well-known/pqsig-keys.json is not reachable (${errors[0]}); used the REST copy. Partners should be able to fetch the well-known URL — see docs/DEPLOY.md.`);
   const published = (keyset?.keys ?? []).find((k) => k.kid === secretKey.kid);
   if (!published) fail(`key ${secretKey.kid.slice(0, 16)}… is not in the site keyset. Paste signing.public.json into Settings → Headline Recorder → Content signing.`);
   if (published.revoked) fail(`key ${secretKey.kid.slice(0, 16)}… is marked revoked on the site; sign with the current key.`);

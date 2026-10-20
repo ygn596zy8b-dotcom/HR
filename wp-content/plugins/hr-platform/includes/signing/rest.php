@@ -2,6 +2,7 @@
 /**
  * REST API (namespace hr/v1):
  *   GET  /canonical?url=…  /canonical/<id>   public: exact canonical bytes of a published article
+ *   GET  /signing/keyset                     public: the publisher keyset (same as /.well-known/pqsig-keys.json)
  *   GET  /signing/queue                      signer: articles needing a signature, plus the feeds to sign
  *   POST /signing/signatures                 signer: upload article signatures
  *   POST /signing/feeds                      signer: upload a signed feed snapshot
@@ -29,6 +30,11 @@ const FEED_MAX_BYTES      = 5 * MB_IN_BYTES;
 const HEADER_MAX_B64      = 4096;
 
 add_action( 'rest_api_init', function () {
+    register_rest_route( 'hr/v1', '/signing/keyset', array(
+        'methods'             => 'GET',
+        'callback'            => __NAMESPACE__ . '\\rest_keyset',
+        'permission_callback' => '__return_true',
+    ) );
     register_rest_route( 'hr/v1', '/canonical', array(
         'methods'             => 'GET',
         'callback'            => __NAMESPACE__ . '\\rest_canonical',
@@ -418,4 +424,12 @@ function rest_feeds( \WP_REST_Request $request ) {
     do_action( 'litespeed_purge_url', home_url( '/signed/' . $key . '.xml' ) );
     do_action( 'litespeed_purge_url', home_url( '/signed/' . $key . '.xml.sig.json' ) );
     return new \WP_REST_Response( array( 'key' => $key, 'status' => 'stored' ) );
+}
+
+function rest_keyset(): \WP_REST_Response {
+    $keyset   = keyset();
+    $response = new \WP_REST_Response( $keyset ?? array( 'code' => 'not_found' ), $keyset ? 200 : 404 );
+    $response->header( 'Access-Control-Allow-Origin', '*' );
+    $response->header( 'Cache-Control', 'public, max-age=300' );
+    return $response;
 }

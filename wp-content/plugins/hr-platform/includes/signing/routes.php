@@ -64,12 +64,8 @@ function serve_signed( string $sub ): void {
 }
 
 function serve_keyset(): void {
-    $keyset = keyset();
-    if ( ! $keyset ) {
-        send_not_found();
-        return;
-    }
-    send_file( wp_json_encode( $keyset, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT ) . "\n", 'application/json; charset=utf-8' );
+    $json = keyset_json();
+    '' === $json ? send_not_found() : send_file( $json, 'application/json; charset=utf-8' );
 }
 
 function serve_verify_page(): void {
@@ -92,7 +88,8 @@ function serve_verify_page(): void {
         'keyset'   => keyset(),
         // Site-relative, so the page's same-origin checks hold whichever host name the reader arrived on.
         'rest'     => wp_make_link_relative( rest_url( 'hr/v1/' ) ),
-        'keys_url' => wp_make_link_relative( home_url( '/.well-known/pqsig-keys.json' ) ),
+        // REST, not /.well-known/: that path may be answered by the host before WordPress (see sync_keyset_file()).
+        'keys_url' => wp_make_link_relative( rest_url( 'hr/v1/signing/keyset' ) ),
         'feeds'    => array_keys( array_filter( feed_sources(), static fn( $source, $key ) => null !== stored_feed( $key ), ARRAY_FILTER_USE_BOTH ) ),
     ) );
     get_footer();

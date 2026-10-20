@@ -93,6 +93,37 @@ function keyset(): ?array {
     return $cache[ $raw ];
 }
 
+/** The public keyset document exactly as published, or '' when none is configured. */
+function keyset_json(): string {
+    $keyset = keyset();
+    return $keyset ? wp_json_encode( $keyset, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT ) . "\n" : '';
+}
+
+/**
+ * Many hosts (cPanel/LiteSpeed AutoSSL) answer /.well-known/ themselves, so the rewrite route never runs there.
+ * Keep a static copy in the web root instead; it is also faster. The REST route hr/v1/signing/keyset always works.
+ */
+function sync_keyset_file(): void {
+    $file    = ABSPATH . '.well-known/pqsig-keys.json';
+    $json    = keyset_json();
+    $current = is_readable( $file ) ? (string) file_get_contents( $file ) : null;
+    if ( '' === $json ) {
+        null !== $current && @unlink( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors -- best effort
+        return;
+    }
+    if ( $current === $json ) {
+        return;
+    }
+    if ( ! wp_mkdir_p( dirname( $file ) ) || false === file_put_contents( $file, $json, LOCK_EX ) ) {
+        error_log( 'hr-platform: could not write ' . $file . ' (the REST keyset URL still works)' );
+        return;
+    }
+    @chmod( $file, 0644 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+}
+add_action( 'update_option_hr_platform_settings', __NAMESPACE__ . '\\sync_keyset_file', 20 ); // after option() drops its cache
+add_action( 'add_option_hr_platform_settings', __NAMESPACE__ . '\\sync_keyset_file', 20 );
+add_action( 'admin_init', __NAMESPACE__ . '\\sync_keyset_file' ); // a keyset saved before this existed
+
 /** Key IDs that may sign new content (present and not revoked). */
 function valid_kids(): array {
     $kids = array();

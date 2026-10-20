@@ -13,6 +13,7 @@ function option( string $key, $default = null ) {
     if ( null === $all ) {
         $all = (array) get_option( 'hr_platform_settings', array() );
         add_action( 'update_option_hr_platform_settings', function () use ( &$all ) { $all = null; } );
+        add_action( 'add_option_hr_platform_settings', function () use ( &$all ) { $all = null; } );
     }
     return array_key_exists( $key, $all ) && '' !== $all[ $key ] ? $all[ $key ] : $default;
 }
