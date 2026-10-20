@@ -35,7 +35,7 @@ while (have_posts()) : the_post();
     hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author_link, 'description' => get_the_author_meta('description')), 'esa');
 ?>
 
-<div class="esa-wrapper">
+<main class="esa-wrapper">
 
     <!-- BREADCRUMB -->
     <div class="esa-breadcrumb">
@@ -82,12 +82,7 @@ while (have_posts()) : the_post();
                 <span>Watch the Full Interview</span>
             </div>
             <div class="esa-video-frame">
-                <iframe src="<?php echo esc_url($youtube_embed); ?>"
-                        title="<?php echo esc_attr(sprintf('Video: %s', wp_strip_all_tags($post_title))); ?>"
-                        allow="encrypted-media; picture-in-picture; web-share"
-                        referrerpolicy="strict-origin-when-cross-origin"
-                        allowfullscreen
-                        loading="lazy"></iframe>
+                <?php echo hr_youtube_facade( $yt_matches[1], sprintf( 'Video: %s', wp_strip_all_tags( $post_title ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside ?>
             </div>
         </div>
         <?php endif; ?>
@@ -157,7 +152,7 @@ while (have_posts()) : the_post();
         </div>
 
     </article>
-</div>
+</main>
 
 <?php
 endwhile;

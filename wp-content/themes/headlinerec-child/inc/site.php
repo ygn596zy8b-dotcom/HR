@@ -55,7 +55,7 @@ function hr_ticker_tape() {
 <div class="hr-ticker-tape">
   <div class="tradingview-widget-container hr-ticker-tape__widget">
     <div class="tradingview-widget-container__widget"></div>
-    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+    <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js">
     {
     "symbols": [
       { "proName": "FX_IDC:USDPKR", "title": "USD/PKR" },

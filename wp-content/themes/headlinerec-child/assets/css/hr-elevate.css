@@ -110,6 +110,7 @@ body #page .sbp-biz-main-title { letter-spacing: -0.015em !important; line-heigh
 .hr-body a, .esa-body a { color: var(--hr-red-deep); text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .hr-body a:hover, .esa-body a:hover { opacity: 1; text-decoration-thickness: 2px; }
 .hr-body :is(table, pre) { display: block; max-width: 100%; overflow-x: auto; }
+:is(.hr-body, .esa-body) pre { white-space: pre-wrap; word-break: normal; overflow-wrap: break-word; font-size: 13px; line-height: 1.65; }
 
 /* Pull quotes */
 body #page :is(.hr-body, .esa-body) :is(blockquote, .wp-block-quote) {
@@ -118,7 +119,11 @@ body #page :is(.hr-body, .esa-body) :is(blockquote, .wp-block-quote) {
     background: none !important;
     padding: 4px 0 4px clamp(20px, 3vw, 32px) !important;
     margin: 2.2em 0 !important;
+    text-align: left !important;
 }
+/* the parent theme centres a black quote glyph and a hairline frame over every blockquote */
+body #page :is(.hr-body, .esa-body) :is(blockquote, .wp-block-quote)::before,
+body #page :is(.hr-body, .esa-body) :is(blockquote, .wp-block-quote)::after { content: none !important; }
 body #page :is(.hr-body, .esa-body) :is(blockquote, .wp-block-quote) p {
     font-family: var(--hr-font-serif);
     font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem) !important;
@@ -224,7 +229,15 @@ body #page :is(.sbp-story-cat, .sbp-feature-cat) { letter-spacing: 0.14em !impor
 @media (min-width: 769px) {
     body #page .sbp-premium-hero-dark .sbp-flex-row { display: flex !important; align-items: stretch !important; }
     body #page .sbp-premium-hero-dark .sbp-main-stage-container { display: flex !important; flex-direction: column; justify-content: space-between; gap: var(--hr-s6); }
+    body #page .sbp-premium-hero-dark .sbp-horizontal-macro-row { margin-top: 0 !important; }
+    /* the lead image takes the space left beside a tall "Latest News" column; its black ground melts into the hero */
+    .hr-lead-media { position: relative; display: block; flex: 1 1 0; min-height: 220px; max-height: 480px; overflow: hidden; }
+    .hr-lead-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: lighten; transition: transform var(--hr-dur-3) var(--hr-ease-out); }
 }
+@media (min-width: 769px) and (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .sbp-premium-hero-dark .sbp-main-stage-container:has(.sbp-mockup-feature:hover, .hr-lead-media:hover) .hr-lead-media img { transform: scale(1.04); }
+}
+@media (max-width: 768px) { .hr-lead-media { display: none; } }
 
 /* 5e. Opinion cards: author avatar or monogram */
 body #page .hr-opinion-author { display: flex; align-items: center; gap: 10px; }
@@ -234,6 +247,11 @@ body #page .hr-opinion-avatar {
     border-radius: 50%;
     object-fit: cover;
     box-shadow: 0 0 0 1px var(--hr-line);
+}
+/* an avatar that fails to load shows a soft disc, not its alt text spilling out */
+img:is(.hr-opinion-avatar, .esa-exec-avatar, .hr-author-avatar, .hr-meta-avatar, .hr-contrib-avatar) {
+    color: transparent; font-size: 0; overflow: hidden;
+    background: linear-gradient(135deg, var(--hr-paper-2), var(--hr-line));
 }
 body #page span.hr-opinion-avatar {
     display: inline-grid; place-items: center;
@@ -380,8 +398,31 @@ body #page .hr-404-story-cat { color: var(--hr-red-deep); }
 
 /* 5n. Article furniture: sidebar clears the sticky nav, share/tag targets */
 .hr-sidebar { top: 72px; }
+@media (max-width: 600px) { .hr-meta-author + .hr-meta-divider { display: none; } } /* the date wraps below: no orphan rule */
 :is(.hr-share-btn, .hr-tag) { min-height: 32px; }
 @media (pointer: coarse) { :is(.hr-share-btn, .hr-tag) { min-height: 44px; min-width: 44px; } }
+
+/* 5o. Touch: every stand-alone link gets a 44 x 44 hit area. Small links grow an invisible ::before, so nothing moves;
+       stacked footer links become 44px rows. */
+@media (pointer: coarse) {
+    :is(.sbp-readmore, .sbp-read-interview, .sbp-view-all, .hr-macro-link, .hr-spotlight-link, .hr-qa-link, .hr-bio-toggle,
+        .hr-cat-badge a, .hr-breadcrumb a, .esa-breadcrumb a, .es-top-nav-path a, .hr-social-icon, .site-title a, a.search-icon,
+        .hr-cat-toggle, .hr-feat-read, .hr-dn-link, .trail-item a, .hr-cat-sidebar a[href$="/markets"]) { position: relative; }
+    :is(.sbp-readmore, .sbp-read-interview, .sbp-view-all, .hr-macro-link, .hr-spotlight-link, .hr-qa-link, .hr-bio-toggle,
+        .hr-cat-badge a, .hr-breadcrumb a, .esa-breadcrumb a, .es-top-nav-path a, .hr-social-icon, .site-title a, a.search-icon,
+        .hr-cat-toggle, .hr-feat-read, .hr-dn-link, .trail-item a, .hr-cat-sidebar a[href$="/markets"])::before {
+        content: "";
+        position: absolute;
+        top: 50%; left: 50%;
+        width: max(100%, 44px); height: max(100%, 44px);
+        transform: translate(-50%, -50%);
+    }
+    body #page a.page-numbers { min-width: 44px; min-height: 44px; }
+    body .hr-footer-wrapper .hr-company-menu li { margin-bottom: 0; }
+    body .hr-footer-wrapper .hr-company-menu a { display: block; padding: 10px 0; }
+    body .hr-footer-wrapper .hr-bottom-socials { gap: 0; }
+    body .hr-footer-wrapper .hr-bottom-socials a { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+}
 
 /* ==========================================================================
    6. Motion (all of it off under prefers-reduced-motion)
@@ -433,9 +474,15 @@ body #page .hr-404-story-cat { color: var(--hr-red-deep); }
 /* ==========================================================================
    7. Layout rhythm, tablet tier, performance
    ========================================================================== */
-body.home #page :is(.sbp-dual-list-section, .sbp-world-news-section, .hr-opinion-section) {
+/* Every home section below the first screen skips layout and paint until it nears the viewport. The placeholder
+   height is above the tallest real section (mobile 1,690 px, desktop 1,100 px), so skipped content never spills onto
+   the next section; the real height is remembered once rendered. */
+body.home #page :is(.sbp-executive-spotlight-section, .sbp-business-section, .sbp-dark-terminal-section, .sbp-dual-list-section, .hr-opinion-section, .hr-clients) {
     content-visibility: auto;
-    contain-intrinsic-size: auto 900px;
+    contain-intrinsic-size: auto 1200px;
+}
+@media (max-width: 768px) {
+    body.home #page :is(.sbp-executive-spotlight-section, .sbp-business-section, .sbp-dark-terminal-section, .sbp-dual-list-section, .hr-opinion-section, .hr-clients) { contain-intrinsic-size: auto 1750px; }
 }
 @media (min-width: 769px) and (max-width: 1024px) {
     body #page .sbp-remaining-grid { display: flex !important; flex-wrap: wrap !important; row-gap: var(--hr-s6); }
@@ -444,8 +491,57 @@ body.home #page :is(.sbp-dual-list-section, .sbp-world-news-section, .hr-opinion
     .hr-page-grid { gap: var(--hr-s6) !important; }
 }
 body #page .hr-standards-grid { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); } /* about-us: no overflow at 320px */
+/* contact-us: the four quick-access cards sit 2 x 2, never 3 + an orphan (4-up would split the e-mail addresses) */
+@media (min-width: 561px) { body #page .hr-qa-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+body #page .hr-qa-card a { overflow-wrap: anywhere; }
 @media (max-width: 768px) {
     body #page .sbp-section-title { letter-spacing: 0.12em !important; }
     body #page .sbp-exec-header .sbp-section-title { flex-wrap: wrap; row-gap: 6px; }
     body #page .sbp-live-indicator { margin-left: 12px !important; }
 }
+
+/* ==========================================================================
+   8. Plugin primitives (hr-platform.css) follow the same AA rules as §3:
+      small red text on light surfaces and white-on-red buttons use the deep red;
+      on .hrp-dark bands red text keeps the bright red (5:1 on near-black).
+   ========================================================================== */
+.hrp-eyebrow, .hrp-badge--red, .hrp-ep__num, .hrp-related__cat { color: var(--hr-red-deep); }
+.hrp-dark :is(.hrp-eyebrow, .hrp-badge--red, .hrp-ep__num, .hrp-related__cat) { color: var(--hr-red); }
+.hrp-btn:not(.hrp-btn--ghost, .hrp-btn--link) { background: var(--hr-red-deep); border-color: var(--hr-red-deep); }
+.hrp-btn:not(.hrp-btn--ghost, .hrp-btn--link):hover { background: var(--hr-red-press); border-color: var(--hr-red-press); }
+body #page code { overflow-wrap: anywhere; } /* a long e-mail in <code> must not widen a 320px page */
+body #page code a:is(:link, :visited) { color: inherit; } /* links inside <code> keep the code colour (the parent theme's blue fails on its pink ground) */
+/* Social/share links: the two-letter marks are icons, drawn by CSS so the link's name is its aria-label alone */
+[data-abbr]::after { content: attr(data-abbr); } /* ::after: touch screens use ::before for the 44px hit area */
+/* A breadcrumb that is only "Home" (plugin routes: account, verify, thank-you) says nothing; drop the band */
+.em-breadcrumbs:has(.trail-items > li:only-of-type) { display: none; }
+/* 404 search: keep the dark field (the parent theme's body.default input rule turned it white under white text);
+   below 480px the button drops under the field so the placeholder is never clipped */
+body #page .hr-404-field input { background: #111112; }
+@media (max-width: 480px) {
+    body #page .hr-404-field { flex-wrap: wrap; gap: var(--hr-s2); }
+    body #page .hr-404-field :is(input, button) { flex: 1 1 100%; }
+    body #page .hr-404-field input { border-right: 1px solid #3a3a40; }
+}
+
+/* ======================================================================
+   Performance (MSBJ, inc/perf.php): reserved embed space, YouTube facade, skipped off-screen rendering
+   ====================================================================== */
+/* The ticker-tape iframe arrives after load: hold its 46 px so nothing below jumps. */
+.hr-ticker-tape__widget { min-height: 46px; }
+
+.hr-yt { position: relative; aspect-ratio: 16 / 9; background: #111; }
+:is(.esa-video-frame, .wp-has-aspect-ratio .wp-block-embed__wrapper) .hr-yt { position: absolute; inset: 0; aspect-ratio: auto; }
+.hr-yt__btn { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: #111; cursor: pointer; }
+.hr-yt__btn img { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; object-fit: cover; }
+.hr-yt__play { position: absolute; top: 50%; left: 50%; width: 68px; height: 48px; margin: -24px 0 0 -34px; border-radius: 12px; background: var(--hr-red, #c0001a); }
+.hr-yt__play::after { content: ""; position: absolute; top: 14px; left: 27px; border-style: solid; border-width: 10px 0 10px 17px; border-color: transparent transparent transparent #fff; }
+.hr-yt__btn:focus-visible { outline: 3px solid var(--hr-red, #c0001a); outline-offset: 3px; }
+.hr-yt iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+
+/* While the cookie sheet is open, anything scrolled to (keyboard focus, in-page links) stops above it (WCAG 2.4.11). */
+html:has(#hr-cc.is-open) { scroll-padding-bottom: calc(260px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 769px) { html:has(#hr-cc.is-open) { scroll-padding-bottom: 160px; } }
+/* "Latest News" is now the h2 its h3 headlines need (heading order); it keeps the look of the old label. */
+body #page .sbp-sidebar-header h2.sbp-sidebar-title { margin-top: 0; line-height: 1.6; font-family: inherit; }

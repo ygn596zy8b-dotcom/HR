@@ -18,13 +18,20 @@ function hr_publisher_logo(): ?array {
     return $src ? array( '@type' => 'ImageObject', 'url' => $src[0], 'width' => (int) $src[1], 'height' => (int) $src[2] ) : null;
 }
 
+/** Featured image as an ImageObject (with its size), or an empty array. */
+function hr_schema_image( int $attachment_id ): array {
+    $src = $attachment_id ? wp_get_attachment_image_src( $attachment_id, 'full' ) : false;
+    return $src ? array( '@type' => 'ImageObject', 'url' => $src[0], 'width' => (int) $src[1], 'height' => (int) $src[2] ) : array();
+}
+
 /**
  * @param int    $post_id
- * @param array  $author    name, url and (optional) description of the byline shown on the page.
+ * @param array  $author    name, url and (optional) description and same_as profile URLs of the byline shown on the page.
  * @param string $scope     CSS class of the template's headline/body ("hr" → .hr-headline / .hr-body).
  */
 function hr_print_article_schema( int $post_id, array $author, string $scope ) {
-    $schema = array(
+    $summary = hr_schema_text( get_post_meta( $post_id, '_hr_geo_summary', true ) );
+    $schema  = array(
         '@context'            => 'https://schema.org',
         '@type'               => 'NewsArticle',
         'mainEntityOfPage'    => array( '@type' => 'WebPage', '@id' => get_permalink( $post_id ) ),
@@ -32,15 +39,23 @@ function hr_print_article_schema( int $post_id, array $author, string $scope ) {
         'description'         => hr_schema_text( get_the_excerpt( $post_id ) ),
         'datePublished'       => get_the_date( 'c', $post_id ),
         'dateModified'        => get_the_modified_date( 'c', $post_id ),
-        'image'               => array_values( array_filter( array( get_the_post_thumbnail_url( $post_id, 'full' ) ) ) ),
+        'image'               => hr_schema_image( (int) get_post_thumbnail_id( $post_id ) ),
+        'inLanguage'          => get_bloginfo( 'language' ),
+        'articleSection'      => hr_schema_text( get_the_category( $post_id )[0]->name ?? '' ),
+        'keywords'            => implode( ', ', wp_list_pluck( get_the_tags( $post_id ) ?: array(), 'name' ) ),
+        'wordCount'           => str_word_count( wp_strip_all_tags( (string) get_post_field( 'post_content', $post_id ) ) ),
+        // The editor-written GEO summary (shown as the "briefing" above the body): the article's own abstract.
+        'abstract'            => $summary,
         'author'              => array_filter( array(
             '@type'       => 'Person',
             'name'        => hr_schema_text( $author['name'] ?? '' ),
             'url'         => $author['url'] ?? '',
             'description' => hr_schema_text( $author['description'] ?? '' ),
+            'sameAs'      => array_values( array_filter( array_map( 'esc_url_raw', (array) ( $author['same_as'] ?? array() ) ) ) ),
         ) ),
         'publisher'           => array_filter( array(
-            '@type' => 'Organization',
+            '@type' => 'NewsMediaOrganization',
+            '@id'   => home_url( '/#organization' ), // the same node as the site-wide Organization graph (Yoast)
             'name'  => 'Headline Recorder',
             'url'   => home_url( '/' ),
             'logo'  => hr_publisher_logo(),
@@ -48,9 +63,33 @@ function hr_print_article_schema( int $post_id, array $author, string $scope ) {
         'isAccessibleForFree' => true,
         'speakable'           => array(
             '@type'       => 'SpeakableSpecification',
-            'cssSelector' => array( ".{$scope}-headline", ".{$scope}-body > p:first-of-type", ".{$scope}-body > p:nth-of-type(2)" ),
+            'cssSelector' => array_values( array_filter( array( ".{$scope}-headline", ( $summary && 'hr' === $scope ) ? '#ai-content-box' : '', ".{$scope}-body > p:first-of-type", ".{$scope}-body > p:nth-of-type(2)" ) ) ),
         ),
     );
     $schema = array_filter( $schema, static fn( $v ) => '' !== $v && array() !== $v );
     echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP ) . "</script>\n";
 }
+
+// Guest author archives: the author as a Person (bio, photo, profiles) on a ProfilePage, so the byline on their
+// op-eds resolves to a real expert (E-E-A-T). The term meta is saved by the Guest Author box (functions.php).
+add_action( 'wp_head', static function () {
+    if ( ! is_tax( 'guest_author' ) ) {
+        return;
+    }
+    $term    = get_queried_object();
+    $profile = array_values( array_filter( array_map( static fn( $key ) => esc_url_raw( (string) get_term_meta( $term->term_id, $key, true ) ), array( 'guest_author_linkedin', 'guest_author_twitter', 'guest_author_facebook' ) ) ) );
+    $schema  = array(
+        '@context'   => 'https://schema.org',
+        '@type'      => 'ProfilePage',
+        'url'        => get_term_link( $term ),
+        'mainEntity' => array_filter( array(
+            '@type'       => 'Person',
+            'name'        => hr_schema_text( $term->name ),
+            'url'         => get_term_link( $term ),
+            'description' => hr_schema_text( get_term_meta( $term->term_id, 'guest_author_bio', true ) ),
+            'image'       => esc_url_raw( (string) get_term_meta( $term->term_id, 'guest_author_avatar', true ) ),
+            'sameAs'      => $profile,
+        ) ),
+    );
+    echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP ) . "</script>\n";
+}, 20 );

@@ -51,7 +51,7 @@ add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
     if ( null !== $result || ! is_user_logged_in() || ! $request instanceof \WP_REST_Request ) {
         return $result;
     }
-    if ( in_array( $request->get_method(), array( 'GET', 'HEAD', 'OPTIONS' ), true ) || ! str_starts_with( $request->get_route(), '/wp/v2/' ) ) {
+    if ( in_array( $request->get_method(), array( 'GET', 'HEAD', 'OPTIONS' ), true ) || ! str_starts_with( strtolower( $request->get_route() ), '/wp/v2/' ) ) {
         return $result;
     }
     if ( function_exists( 'rest_get_authenticated_app_password' ) && rest_get_authenticated_app_password() ) {
@@ -69,11 +69,12 @@ add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
 // nonce: no current password, no step-up, no confirmation of the new address. That would turn any hijacked session
 // into a full account takeover, so self-service email/password changes only go through Account → Settings.
 // (Administrators editing other users are unaffected.)
+// Routes match case-insensitively (/WP/V2/USERS/ME reaches the same handler), so compare the lowercased route.
 add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
     if ( null !== $result || ! is_user_logged_in() || ! $request instanceof \WP_REST_Request ) {
         return $result;
     }
-    if ( ! in_array( $request->get_method(), array( 'POST', 'PUT', 'PATCH' ), true ) || ! preg_match( '#^/wp/v2/users/(me|\d+)/?$#', $request->get_route(), $m ) ) {
+    if ( ! in_array( $request->get_method(), array( 'POST', 'PUT', 'PATCH' ), true ) || ! preg_match( '#^/wp/v2/users/(me|\d+)/?$#', strtolower( $request->get_route() ), $m ) ) {
         return $result;
     }
     if ( ( 'me' === $m[1] ? get_current_user_id() : (int) $m[1] ) !== get_current_user_id() ) {

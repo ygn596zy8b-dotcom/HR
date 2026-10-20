@@ -12,7 +12,7 @@ if (!function_exists('covernews_front_page_main_section_1')) :
             <div class="for-main-row sbp-flex-row">
               <!-- Left Column: Latest News -->
               <div class="col-sm-3 sbp-sidebar-picks">
-                <div class="sbp-sidebar-header"><span class="sbp-sidebar-title"><span class="sbp-red-line">&mdash;</span> Latest News</span></div>
+                <div class="sbp-sidebar-header"><h2 class="sbp-sidebar-title"><span class="sbp-red-line">&mdash;</span> Latest News</h2></div>
                 <div class="sbp-text-stories-list">
                   <?php
                   $sidebar_query = new WP_Query(['post_type'=>'post', 'posts_per_page'=>3, 'offset'=>1, 'ignore_sticky_posts'=>true, 'post_status'=>'publish', 'no_found_rows'=>true]);
@@ -20,7 +20,7 @@ if (!function_exists('covernews_front_page_main_section_1')) :
                   ?>
                       <div class="sbp-text-story-item">
                         <span class="sbp-story-cat"><?php $cats = get_the_category(); if(!empty($cats)){ foreach($cats as $c){ if(strtolower($c->name)!=="editor's picks"){ echo esc_html($c->name); break; } } } ?></span>
-                        <h4 class="sbp-story-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h4>
+                        <h3 class="sbp-story-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h3>
                         <span class="sbp-story-date"><?php echo esc_html(get_the_date('M d, Y')); ?></span>
                       </div>
                   <?php endwhile; endif; wp_reset_postdata(); ?>
@@ -35,6 +35,7 @@ if (!function_exists('covernews_front_page_main_section_1')) :
                     $main_query = new WP_Query(['post_type'=>'post', 'posts_per_page'=>1, 'ignore_sticky_posts'=>true, 'post_status'=>'publish', 'no_found_rows'=>true]);
                     if ($main_query->have_posts()) : while ($main_query->have_posts()) : $main_query->the_post();
                     ?>
+                        <?php $hr_lead_id = get_the_ID(); ?>
                         <div class="sbp-mockup-feature">
                             <span class="sbp-feature-cat"><?php $cats = get_the_category(); if(!empty($cats)){ foreach($cats as $c){ if(strtolower($c->name)!=="editor's picks"){ echo esc_html($c->name); break; } } } ?></span>
                             <h2 class="sbp-feature-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h2>
@@ -46,6 +47,19 @@ if (!function_exists('covernews_front_page_main_section_1')) :
                         </div>
                     <?php endwhile; endif; wp_reset_postdata(); ?>
                 </div>
+                <?php
+                // Lead image, desktop only: fills the column beside "Latest News". Phones get a 1px GIF (no download).
+                $hr_lead_img = empty( $hr_lead_id ) ? 0 : get_post_thumbnail_id( $hr_lead_id );
+                $hr_lead_src = $hr_lead_img ? wp_get_attachment_image_src( $hr_lead_img, 'large' ) : false;
+                if ( $hr_lead_src ) :
+                ?>
+                <a class="hr-lead-media" href="<?php echo esc_url( get_permalink( $hr_lead_id ) ); ?>" tabindex="-1" aria-hidden="true">
+                    <picture>
+                        <source media="(min-width: 769px)" srcset="<?php echo esc_attr( wp_get_attachment_image_srcset( $hr_lead_img, 'large' ) ?: $hr_lead_src[0] ); ?>" sizes="(min-width: 1440px) 860px, 62vw">
+                        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" width="<?php echo (int) $hr_lead_src[1]; ?>" height="<?php echo (int) $hr_lead_src[2]; ?>" fetchpriority="high" decoding="async">
+                    </picture>
+                </a>
+                <?php endif; ?>
                 <div class="sbp-horizontal-macro-row"><?php do_action('covernews_action_banner_trending_posts'); ?></div>
               </div>
             </div>
@@ -63,33 +77,22 @@ if (!function_exists('covernews_front_page_main_section_1')) :
         <div class="row sbp-remaining-grid">
             <?php
             $remaining_query = new WP_Query(['post_type'=>'post', 'posts_per_page'=>4, 'offset'=>4, 'ignore_sticky_posts'=>true, 'post_status'=>'publish', 'no_found_rows'=>true]);
-            $briefing_count = 0; // Initialize counter for LCP image logic
             
             if ($remaining_query->have_posts()) : while ($remaining_query->have_posts()) : $remaining_query->the_post();
-                $briefing_count++;
             ?>
                 <div class="col-sm-3 sbp-remaining-item">
                     <figure class="sbp-briefing-thumb">
                         <span class="sbp-card-badge"><?php $cats = get_the_category(); if(!empty($cats)){ foreach($cats as $c){ if(strtolower($c->name)!=="editor's picks"){ echo esc_html($c->name); break; } } } ?></span>
                         <a href="<?php echo esc_url(get_permalink()); ?>">
                             <?php 
-                            if (has_post_thumbnail()) { 
-                                if ($briefing_count === 1) {
-                                    // Grab the image HTML
-                                    $lcp_image = get_the_post_thumbnail(get_the_ID(), 'medium', [
-                                        'data-no-lazy'  => '1',
-                                        'fetchpriority' => 'high'
-                                    ]);
-                                    // Forcefully rip out WordPress core's lazy loading and swap it to eager
-                                    echo str_replace('loading="lazy"', 'loading="eager"', $lcp_image);
-                                } else {
-                                    the_post_thumbnail('medium'); 
-                                }
-                            } 
+                            // Below the fold on every width (the lead story above is the LCP): lazy like the rest.
+                            if (has_post_thumbnail()) {
+                                the_post_thumbnail('medium');
+                            }
                             ?>
                         </a>
                     </figure>
-                    <h4 class="sbp-card-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h4>
+                    <h3 class="sbp-card-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h3>
                     <span class="sbp-card-date"><?php echo esc_html(get_the_date('M d, Y')); ?></span>
                 </div>
             <?php endwhile; endif; wp_reset_postdata(); ?>
@@ -177,7 +180,7 @@ if (!function_exists('covernews_front_page_main_section_1')) :
                 <?php while ($biz_query->have_posts()) : $biz_query->the_post(); // Next 3 list items (Right) ?>
                     <div class="sbp-biz-list-item">
                         <span class="sbp-story-cat">BUSINESS</span>
-                        <h4 class="sbp-card-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h4>
+                        <h3 class="sbp-card-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h3>
                         <span class="sbp-card-date"><?php echo esc_html(get_the_date('M d, Y')); ?></span>
                     </div>
                 <?php endwhile; ?>
@@ -207,7 +210,7 @@ if (!function_exists('covernews_front_page_main_section_1')) :
                     <!-- TradingView Widget BEGIN -->
 <div class="tradingview-widget-container hr-tv-quotes">
   <div class="tradingview-widget-container__widget"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js" async>
+  <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js">
   {
   "width": "100%",
   "height": 420,
@@ -300,7 +303,7 @@ if (!function_exists('covernews_front_page_main_section_1')) :
                             <figure class="sbp-list-thumb"><a href="<?php echo esc_url(get_permalink()); ?>"><?php the_post_thumbnail('thumbnail'); ?></a></figure>
                             <div class="sbp-list-content">
                                 <span class="sbp-tag-bordered">PAKISTAN</span>
-                                <h4 class="sbp-list-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h4>
+                                <h3 class="sbp-list-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h3>
                                 <span class="sbp-card-date"><?php echo esc_html(get_the_date('M d, Y')); ?></span>
                             </div>
                         </div>
@@ -333,7 +336,7 @@ $tech_query = new WP_Query([
                             <figure class="sbp-list-thumb"><a href="<?php echo esc_url(get_permalink()); ?>"><?php the_post_thumbnail('thumbnail'); ?></a></figure>
                             <div class="sbp-list-content">
                                 <span class="sbp-tag-bordered">TECH</span>
-                                <h4 class="sbp-list-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h4>
+                                <h3 class="sbp-list-title"><a href="<?php echo esc_url(get_permalink()); ?>"><?php echo esc_html(get_the_title()); ?></a></h3>
                                 <span class="sbp-card-date"><?php echo esc_html(get_the_date('M d, Y')); ?></span>
                             </div>
                         </div>
@@ -363,7 +366,7 @@ $tech_query = new WP_Query([
                     </figure>
                     <!-- Tag moved below image, above title -->
                     <span class="sbp-tag-bordered hr-world-tag">GLOBAL</span>
-                    <h4 class="sbp-card-title"><a href="<?php echo esc_url(get_permalink()); ?>" class="hr-world-link"><?php echo esc_html(get_the_title()); ?></a></h4>
+                    <h3 class="sbp-card-title"><a href="<?php echo esc_url(get_permalink()); ?>" class="hr-world-link"><?php echo esc_html(get_the_title()); ?></a></h3>
                     <span class="sbp-card-date hr-world-date"><?php echo esc_html(get_the_date('M d, Y')); ?></span>
                 </div>
             <?php endwhile; endif; wp_reset_postdata(); ?>
@@ -401,7 +404,7 @@ $tech_query = new WP_Query([
                             <?php echo esc_html($author_display); ?>
                         </span>
                     </div>
-                    <h4 class="sbp-card-title"><a href="<?php echo esc_url(get_permalink()); ?>" class="hr-opinion-link"><?php echo esc_html(get_the_title()); ?></a></h4>
+                    <h3 class="sbp-card-title"><a href="<?php echo esc_url(get_permalink()); ?>" class="hr-opinion-link"><?php echo esc_html(get_the_title()); ?></a></h3>
                     <span class="sbp-card-date hr-opinion-date"><?php echo esc_html(get_the_date('M d, Y')); ?></span>
                 </div>
             <?php endwhile; endif; wp_reset_postdata(); ?>

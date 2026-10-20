@@ -193,6 +193,9 @@ add_action( 'admin_post_hr_fill_alt', function () {
         wp_die( 'You are not allowed to do this.', 403 );
     }
     check_admin_referer( 'hr_fill_alt' );
+    if ( ! \HR\Platform\same_origin_request() ) {
+        wp_die( 'You are not allowed to do this.', 403 );
+    }
     $filled = 0;
     $left   = 0;
     foreach ( attachments_missing_alt() as $id ) {

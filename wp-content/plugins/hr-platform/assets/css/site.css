@@ -97,8 +97,8 @@ html .hr-cc.is-closing { animation: hr-cc-out .2s ease-in both; }
 .hr-ty__lede { margin: 0 auto; max-width: 60ch; color: var(--hrp-muted); font-size: clamp(17px, 2vw, 19px); line-height: 1.6; }
 .hr-ty__hint { margin: 12px auto 0; max-width: 60ch; color: var(--hrp-muted); font-size: 16px; }
 .hr-ty__actions { margin: 28px 0 0; }
-.hr-ty__btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 12px 28px; background: var(--hrp-red); color: #fff; font: 700 15px/1.2 var(--hrp-font); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; transition: background-color .2s; }
-.hr-ty__btn:hover, .hr-ty__btn:focus-visible { background: var(--hrp-red-deep); color: #fff; }
+.hr-ty__btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 12px 28px; background: var(--hrp-red-deep); color: #fff; font: 700 15px/1.2 var(--hrp-font); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; transition: background-color .2s; }
+.hr-ty__btn:hover, .hr-ty__btn:focus-visible { background: var(--hr-red-press, #9e0015); color: #fff; }
 .hr-ty__btn .hr-icon { transition: transform .2s var(--hrp-ease); }
 .hr-ty__btn:hover .hr-icon { transform: translateX(3px); }
 

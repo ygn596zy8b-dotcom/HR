@@ -27,6 +27,7 @@ add_action( 'wp_enqueue_scripts', 'child_theme_configurator_css', 10 );
 require_once __DIR__ . '/inc/assets.php';
 require_once __DIR__ . '/inc/site.php';
 require_once __DIR__ . '/inc/schema.php';
+require_once __DIR__ . '/inc/perf.php';
 
 
 // ==============================================================================

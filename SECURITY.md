@@ -1,59 +1,65 @@
-# Security
+# Security — Headline Recorder
 
-Post-quantum migration across transport, server and application layers. The aim is that traffic captured today
-("harvest now, decrypt later") stays unreadable to a future quantum computer, and that every published article can be
-proven unaltered.
+Scope: the `headlinerec-child` theme, the `hr-platform` plugin, the `hr-hardening` and `hr-sentry` mu-plugins,
+`security/pq` (signing and sealing) and `infra/`. Audited by MSBJ on 2026-10-20. Deploy steps: `docs/DEPLOY.md`.
 
 ## Cryptography by layer
 
-| Layer | What | Algorithms | Where |
+| Layer | What protects it | Algorithms | Honest limits |
 |---|---|---|---|
-| Transport (readers, sources) | TLS 1.3 only, hybrid PQ key exchange, downgrade-resistant | SecP384r1MLKEM1024 (ML-KEM-1024), X25519MLKEM768; AES-256-GCM | `infra/nginx/tls-pq.conf` |
-| Server admin | SSH, PQ key exchange only, keys only (FIDO2 preferred) | mlkem768x25519-sha256, sntrup761x25519; AES-256-GCM | `infra/ssh/99-hardening.conf` |
-| DNS | DNSSEC, CAA lock to one CA account, signing-key pin | ECDSA P-256 / Ed25519 | `infra/dns/DNSSEC.md` |
-| Browser | HSTS preload, strict CSP, no framing, no referrer leaks, COOP | — | `infra/nginx/security-headers.conf` |
-| Published content | Every article and the feed are signed; anyone can verify | **ML-DSA-87** + Ed448 (both required), SHA-512 | `security/pq` |
-| Source / op-ed submissions | Encrypted in the sender's browser; the server only stores ciphertext | **ML-KEM-1024** + P-384 hybrid KEM → **AES-256-GCM** | `security/pq` |
+| Reader ↔ site (TLS) | Cloudflare edge (`infra/cloudflare`), or nginx on a VPS (`infra/nginx/tls-pq.conf`) | TLS 1.3, hybrid **X25519MLKEM768**; nginx prefers SecP384r1MLKEM1024; AES-256-GCM | Browsers offer only the ML-KEM-768 hybrid. Certificates stay ECDSA (no public PQ certificates yet). The Cloudflare → origin hop is PQ only if the host's OpenSSL is ≥ 3.5. |
+| Browser | HSTS preload, CSP, `X-Frame-Options`, COOP, Permissions-Policy, `nosniff` (`hr-hardening.php:256`, `.htaccess`) | — | `script-src` keeps `'unsafe-inline'` (WordPress core, plugins, TradingView and Analytics print inline scripts), so CSP is the second line of defence; output escaping is the first. |
+| Server admin | SSH config for a VPS (`infra/ssh`) | mlkem768x25519-sha256, sntrup761x25519 | On the current cPanel host SSH is the host's; OpenSSH has no ML-KEM-1024 option. |
+| DNS | DNSSEC + CAA (`infra/dns`) | ECDSA P-256 | Integrity only; no PQ DNSSEC algorithm exists. |
+| Passwords | `hr-hardening.php:23` | **Argon2id** (19 MiB, t=2, p=1); breached-password check (HIBP k-anonymity) | Needs PHP built with Argon2 (else bcrypt). Older bcrypt/phpass hashes upgrade at the user's next sign-in. HIBP fails open if unreachable. |
+| Sessions | WordPress auth cookies + server-side session tokens | HMAC-SHA256 keyed by the 8 `wp-config.php` salts; tokens stored as SHA-256 | No JWT anywhere. Anyone holding `wp-config.php` can forge cookies — keep it 0440 and rotate salts after any leak. |
+| Two-step sign-in | `accounts/totp.php`, `accounts/passkeys.php` | TOTP (RFC 6238); secret at rest XSalsa20-Poly1305 with an HKDF-SHA256 key from the salts; recovery codes HMAC-SHA256; passkeys WebAuthn (user verification required) | Classical algorithms (no PQ WebAuthn exists). TOTP secrets are only as safe as `wp-config.php`. |
+| Published articles and feeds | `security/pq`, `includes/signing` | **ML-DSA-87 + Ed448**, both required, over SHA-512 | The server cannot verify ML-DSA in PHP: on upload it checks the binding (SHA-512 of the current canonical bytes, URL, key ID); readers and partners verify the signatures. The signing key never touches the server. |
+| Reader submissions | `security/pq`, `includes/submissions` | **ML-KEM-1024 + P-384** hybrid KEM → **AES-256-GCM**, sealed in the writer's browser | Title, type, section, word count, email and short profile stay plaintext so editors can triage and reply. The server trusts the browser's word count; the editors' tool recounts after opening. |
+| Logs and monitoring | `core/helpers.php:126`, `mu-plugins/hr-sentry.php` | IP stored as a truncated HMAC-SHA256 | Sentry receives errors after scrubbing (below); the browser Sentry key is public by design and only reaches Sentry through our DSN-locked tunnel. |
 
-Honest limits (as of October 2026):
-- Browsers negotiate **X25519MLKEM768**; none offer the ML-KEM-1024 hybrid yet. The server prefers ML-KEM-1024 for clients that do.
-- TLS **certificates** stay classical (ECDSA P-384): public CAs do not issue PQ certificates yet. This does not weaken
-  harvest-now-decrypt-later protection, which comes from the key exchange.
-- OpenSSH's strongest PQ key exchange is ML-KEM-768-based; there is no ML-KEM-1024 option.
-- No PQ DNSSEC algorithm exists yet. DNSSEC is integrity-only, so recorded DNS traffic gains nothing from future decryption.
+## Audit checklist (2026-10-20)
 
-## Signed content: how verification works
+Verdicts: **PASS** — met, with evidence. **FIXED** — a gap found in this audit and closed. **OWNER** — an action on the live site.
 
-Each signature is a small JSON file. Its `protected` header (type, address, SHA-512 of the exact bytes, time, key ID) is
-signed by **both** ML-DSA-87 (FIPS 204, category 5) and Ed448 (RFC 8032); both must verify. Changing one byte of the
-content, the date, or the address fails verification.
+| # | Item | Verdict | Evidence |
+|---|---|---|---|
+| 1 | SQL injection | PASS | Every `$wpdb` query with input uses `prepare()` or `insert/update/delete` with formats. The only unprepared queries are constant strings (`signing/display.php:99`, `monitoring/module.php:216`). Check: `grep -rn '$wpdb->' … \| grep -v prepare`. |
+| 2 | XSS | PASS | Output escaped (`esc_*`, `wp_kses_post`); every JSON island uses `JSON_HEX_TAG` (`accounts/ui.php:200`, `submissions/submit.php:56`, …). No `innerHTML`/`insertAdjacentHTML`/`eval`/`new Function` in any source or built JS (grep: comments only). `/signed/*` served with `sandbox` CSP (`signing/routes.php:32`). Raw HTML in posts for administrators only (`hr-hardening.php:143`). Limit: `'unsafe-inline'`, see above. |
+| 3 | CSRF | PASS + FIXED | Account forms: nonce + same-origin + guest form token (`accounts/helpers.php:246`). REST: cookie auth without `X-WP-Nonce` is anonymous (test: `POST /hr/v1/reads/start` with a session cookie, no nonce → 401). Foreign-Origin POST to `/account/settings/` changed nothing. **Fixed:** the alt-text bulk action lacked the Origin check (`site/alt-text.php`). |
+| 4 | File uploads | PASS + FIXED | Reader files only travel inside the sealed envelope: shape, key ID and size checked before JSON parsing (`submissions/rest.php:55`, 16 MB cap at `:118`); stored under a random name outside the web root with realpath containment (`submissions/storage.php:12,52`). The editors' browser checks magic bytes (`seal.mjs:19,36`), re-encodes the headshot to an 800 px JPEG before it reaches the media library (`submission-open.mjs:92`) and offers attachments as `application/octet-stream` downloads only (`:148`). Staff uploads use core's MIME allowlist; PHP in uploads is refused by `.htaccess`. **Fixed:** the `.htaccess` deny rule pointed at `wp-content/hr-sealed/` instead of `wp-content/uploads/hr-sealed/`. |
+| 5 | Broken object-level authorization | PASS | `wp eval-file wp-content/plugins/hr-platform/tests/authz-test.php` → 12/12; a wider probe → 24/24. Envelope/draft refused for another reader, the submitting reader, an author, the signer and guests (`submissions/rest.php:22`); another user's passkey cannot be renamed or deleted (`user_id` in the `WHERE`, `accounts/passkeys.php:115,129`); withdraw checks `post_author` (`submissions/account.php:79`); reads and streaks are keyed by the session user. |
+| 6 | Rate limiting | PASS | Sign-in 20/15 min per IP + 10/15 min per username on every path (`hr-hardening.php:186`; test: 11th wrong attempt → "Too many sign-in attempts"); register, verify-resend, forgot, reset, TOTP (10/15 min), passkeys; submit 1/min + 5/day per user + 20/day per IP behind a MySQL `GET_LOCK` (`submissions/rest.php:143`); reads 60/min + 150/day; Sentry tunnel 60/min per IP; canonical 300/5 min; signer 600/h. Limit: other buckets are transient fixed windows (a burst of parallel requests can pass a few extra). Behind Cloudflare set `HR_TRUSTED_PROXY_HEADER`/`HR_TRUSTED_PROXIES` or all readers share Cloudflare's IPs. |
+| 7 | JWT secrets | PASS (none used) | No JWT library or code (grep, `composer.lock`). Sessions are WordPress server-side tokens; cookies are HMAC'd with the 8 salts from `wp-config.php` (all 64 chars, none default; rotated 2026-10-19). |
+| 8 | API secrets server-side only | PASS / OWNER | Key-pattern grep of all built JS and rendered HTML (home, article, podcast, login, register, verify, markets): 0 hits. `ANTHROPIC_API_KEY` is read only in `podcast/ai.php` (server). **Owner:** Code Snippet #8 still holds the old, rotated SBP key — delete it (`docs/DEPLOY.md` §4). |
+| 9 | Password hashing | PASS | New user created with `wp user create` → hash prefix `$argon2id$v=19`. 5 legacy `$wp$` (bcrypt) hashes upgrade at next sign-in. |
+| 10 | MFA | PASS + FIXED | TOTP + recovery codes + passkeys. Staff (anyone who can edit posts) are enforced by default outside local development (`accounts/admin.php:20`): wp-admin is gated until they enrol, and `/wp/v2/` writes are refused (`:50`). **Fixed (high):** REST routes match case-insensitively, so `/WP/V2/POSTS` skipped the staff-MFA gate and `POST /WP/V2/USERS/ME` let a hijacked session change the account's email and password; both checks now compare the lowercased route (`:54,77`). The test above failed 3/12 on the old code. |
+| 11 | CORS | PASS | `Origin: https://evil.example` → no `Access-Control-Allow-Origin` on `/wp-json/`, `hr/v1/*` or `admin-ajax.php` (curl). Same origin only gets credentialed CORS (`hr-hardening.php:157`). Public signatures and the keyset send `*` without credentials. |
+| 12 | Auth tokens in browser storage | PASS | Grep of all JS: storage holds only the sticky-CTA dismissal (sessionStorage), podcast playback position (localStorage) and the Sentry SDK's trace ID. The REST nonce lives in memory; auth cookies are `HttpOnly`; sign-out sends `Clear-Site-Data` (`hr-hardening.php:84`). |
+| 13 | Permissions enforced server-side | PASS + FIXED | Every `hr/v1` route has a real `permission_callback`; the only public write is the DSN-locked Sentry tunnel. **Fixed:** signer endpoints accepted the signer account's browser session too; they now require an application password (`signing/rest.php:66`; test: signer session → 403, application password → 200, wrong password → 401). |
+| 14 | Row-level security (equivalent) | PASS (documented) | MariaDB has no RLS. Every per-user query is scoped by the session user (`user_id = %d` in `streaks/store.php`, `accounts/passkeys.php`; `post_author` for submissions). Least-privilege DB account, localhost only, no `*.*`/`FILE`/`SUPER`: `docs/DEPLOY.md` §3. |
+| 15 | Inbound webhooks and upload channels | PASS | (a) Signer uploads `POST /hr/v1/signing/{signatures,feeds}`: application password of role `hr_signer` (the only role allowed one, `hr-hardening.php:150`; an administrator's application password → 401) + binding checks: SHA-512 equals the current canonical bytes, URL equals the post's path, key ID is in the keyset, feeds must be well-formed RSS (`signing/rest.php:320,375`). (b) Reader submissions: signed-in, verified email, REST nonce, rate limits. (c) Reads: signed-in + nonce + per-read token. (d) Sentry tunnel: unauthenticated by design, accepts only envelopes for our own DSN, same Origin, 60/min, size cap, forwards to the configured host only (`monitoring/module.php:154`). (e) Unsubscribe one-click POST: per-user HMAC token. (f) Contact Form 7 + honeypot, Mailchimp form: third-party plugins. XML-RPC refused (403) and pingbacks closed. No other inbound webhooks exist. |
+| 16 | SSRF | PASS | Three outbound call sites, none with a request-supplied host: HIBP fixed host (`accounts/passwords.php:46`); Sentry tunnel to the DSN from `wp-config.php`, `redirection => 0` (`monitoring/module.php:186`); Anthropic SDK default base URL (override honoured only when the environment is `local`, `podcast/ai.php:122`). URLs given to the signer API are resolved by database lookup, never fetched. |
+| 17 | Exposed source maps | PASS + FIXED | `build.mjs` builds without source maps; no `.map` files and no `sourceMappingURL` in any shipped JS. `.htaccess` refuses `*.map`; **added** `*.secret.json` there and `.map` + `uploads/hr-sealed/` to the nginx example. |
+| 18 | Default credentials | PASS | No `admin`/`administrator`/`test` logins (SQL check); `deploy/wp-config.sample.php` has only `CHANGE_ME` placeholders; application passwords only for `hr_signer`. Procedure in `docs/DEPLOY.md` §5. |
+| 19 | Sensitive data in logs | PASS | `log_security()` takes IDs and codes only (grep of every call); IP is an HMAC hash. Scan of `debug.log` (1,070 security lines): 0 email addresses, 0 raw IPs. Sentry: `send_default_pii` off, cookies/auth headers dropped, emails and `?token=` style values masked, stack-frame variables stripped (`hr-sentry.php:13,63,285`). |
+| 20 | Vulnerable dependencies | PASS / OWNER | `npm audit`: 0 (root) and 0 (`security/pq`); `composer audit`: 0 advisories (20 locked packages). **Owner:** wordpress.org is unreachable from the audit sandbox, so plugin updates must be checked on the live site; delete the inactive plugins and theme listed in `docs/DEPLOY.md` §4 (Duplicator, All-in-One WP Migration, Headers Security Advanced, Easy Login WooCommerce, IndexNow, unused Site Kit/WP Mail SMTP, NewSquare). |
+| 21 | Earlier theme fixes | PASS | Guest-author save rules: `wp eval-file wp-content/themes/headlinerec-child/tests/guest-author-save-test.php` → 8/8 (authors cannot create terms or overwrite shared profiles, off-site avatars dropped). Theme output escaping grep: no unescaped meta/query output. |
 
-- **Readers:** `/verify/` on the site (works offline in the browser; nothing is uploaded). Article pages link to
-  `/verify/?sig=/signed/<slug>.sig.json`. Readers can paste a copy they were sent to see if it was changed.
-- **Partners / syndication:** pin the key ID published in DNS (`_pqsig` TXT, DNSSEC-signed), then
-  `pq verify <file>.sig.json --keys pqsig-keys.json --pin <kid>` (exit code 0 = verified).
-- **Public keys:** `/.well-known/pqsig-keys.json`. Rotation: append the new key. Compromise: set `"revoked": "<date>"`
-  on the old key; everything it signed then fails verification and is re-signed with the new key.
+Also fixed in `infra/nginx/site.conf.example`: `proxy_cookie_flags` no longer downgrades the wp-admin cookie to
+`SameSite=Lax` or hides the JavaScript hint cookies; rate-limit locations match the real routes; body limit fits a
+16 MB sealed submission.
 
-## Running the tools (`security/pq`)
+## Verifying signed content
 
-```sh
-cd security/pq && npm ci --ignore-scripts && npm test
-
-node cli.mjs keygen sign signing          # signing.secret.json (0600, keep OFF the web server) + signing.public.json
-node cli.mjs keygen seal submissions      # editors' decryption key + public key for the submission form
-node cli.mjs sign feed.xml --key signing.secret.json --type feed --url /feed.xml
-node cli.mjs sign article.json --key signing.secret.json --type article --url /2026/10/slug/ --attach
-node cli.mjs verify feed.xml.sig.json --file feed.xml --keys signing.public.json
-node cli.mjs open submission.sealed.json --key submissions.secret.json
-npm run build                             # rebuilds verify/verify.js after changing pq.mjs or verify.src.mjs
-```
-
-Article payload (what `--attach` signs): UTF-8 JSON `{ "url", "title", "author", "published", "modified", "html" }`.
-
-Secret keys never go in git (`.gitignore` blocks `*.secret.json`) or the web root (nginx also refuses to serve them).
-Best practice is signing in CI or on an editor's machine, not on the public web server.
+- Readers: `/verify/` (runs in the browser; nothing is uploaded). Each article links to `/verify/?sig=/signed/<id>.sig.json`.
+- Partners: pin the key ID from `/.well-known/pqsig-keys.json` (also in DNS `_pqsig`, DNSSEC-signed), then
+  `node security/pq/cli.mjs verify <file>.sig.json --keys pqsig-keys.json --pin <kid>` (exit code 0 = verified).
+- Key rotation: append the new key. Compromise: mark the old key `"revoked"`; everything it signed then fails.
+- Tests: `cd security/pq && npm ci --ignore-scripts && npm test`. Secret keys (`*.secret.json`) never go in git or on the server.
 
 ## Reporting a vulnerability
 
-Email security@ (address to be set once the domain is confirmed). Please do not open public issues for vulnerabilities.
+Email **contact@headlinerecorder.com** (also in `/.well-known/security.txt`) with the affected URL, steps to reproduce
+and what an attacker gains. Please do not open public issues, access other people's data, or run load tests against
+the live site, and give us a reasonable time to fix the problem before you disclose it.

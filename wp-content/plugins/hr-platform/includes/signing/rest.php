@@ -64,7 +64,8 @@ add_action( 'rest_api_init', function () {
 } );
 
 function can_sign(): bool {
-    return current_user_can( CAP );
+    // Application password only: a browser session (cookie + nonce) of the signer account cannot upload signatures.
+    return current_user_can( CAP ) && null !== rest_get_authenticated_app_password();
 }
 
 function not_found(): \WP_Error {

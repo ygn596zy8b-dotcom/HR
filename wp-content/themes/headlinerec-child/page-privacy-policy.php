@@ -145,6 +145,7 @@ html { scroll-behavior: smooth; }
 .hr-sb-link:last-child { border-bottom: none; }
 .hr-priv-master .hr-sb-link:hover { color: #0A0A0A; }
 
+.hr-sb-key-points .hr-sb-title { color: #FF001C; } /* red on near-black needs the bright red */
 .hr-sb-key-points { background: #0A0A0A; color: #FFFFFF; padding: 24px; margin-top: 32px; }
 .hr-sb-key-points ul { margin: 0; padding-left: 16px; font-size: 16px; color: #B4B4BB; line-height: 1.6; }
 .hr-sb-key-points li { margin-bottom: 10px; }

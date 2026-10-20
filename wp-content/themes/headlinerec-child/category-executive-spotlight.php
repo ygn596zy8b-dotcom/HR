@@ -298,6 +298,7 @@ get_header();
     gap: 20px;
     margin-top: 24px;
 }
+@media (min-width: 901px) { .es-main > .es-label { color: #8E8E93; } } /* overlaps the dark hero here: 6:1 */
 .es-coming-item {
     border: 1px solid #E5E7EB;
     padding: 36px 28px;
@@ -313,13 +314,13 @@ get_header();
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 2px;
-    color: #9CA3AF;
+    color: #6B7280;
     text-transform: uppercase;
     margin-bottom: 10px;
 }
 .es-coming-text {
     font-size: 14px;
-    color: #D1D5DB;
+    color: #6B7280;
     line-height: 1.6;
     margin: 0;
 }
@@ -453,7 +454,7 @@ get_header();
                     <?php endif; ?>
                     <div class="es-coming-tag">Interview Archive</div>
                     <h3 style="font-size: 16px; font-weight: 700; color: #0A0A0A; margin: 0 0 10px; line-height: 1.4;"><?php echo esc_html(get_the_title()); ?></h3>
-                    <div style="font-size: 11px; color: #9CA3AF;"><?php echo get_the_date('F j, Y'); ?></div>
+                    <div style="font-size: 11px; color: #6B7280;"><?php echo get_the_date('F j, Y'); ?></div>
                 </a>
                 <?php 
                     endwhile; 

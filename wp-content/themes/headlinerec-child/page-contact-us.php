@@ -319,10 +319,10 @@ get_header();
                 <div style="margin-bottom: 0;">
                     <div class="hr-sb-heading" style="margin-bottom: 16px;">Follow us</div>
                     <div class="hr-social-flex">
-                        <a href="https://www.linkedin.com/company/headlinerecorder/" class="hr-social-icon">in</a>
-                        <a href="https://x.com/headlinerecoder" class="hr-social-icon">𝕏</a>
-                        <a href="https://www.facebook.com/profile.php?id=61573634501379" class="hr-social-icon">fb</a>
-                        <a href="https://www.instagram.com/headlinerecorder/" class="hr-social-icon">ig</a>
+                        <a href="https://www.linkedin.com/company/headlinerecorder/" class="hr-social-icon" aria-label="Headline Recorder on LinkedIn" rel="noopener" data-abbr="in"></a>
+                        <a href="https://x.com/headlinerecoder" class="hr-social-icon" aria-label="Headline Recorder on X" rel="noopener" data-abbr="𝕏"></a>
+                        <a href="https://www.facebook.com/profile.php?id=61573634501379" class="hr-social-icon" aria-label="Headline Recorder on Facebook" rel="noopener" data-abbr="fb"></a>
+                        <a href="https://www.instagram.com/headlinerecorder/" class="hr-social-icon" aria-label="Headline Recorder on Instagram" rel="noopener" data-abbr="ig"></a>
                     </div>
                 </div>
 

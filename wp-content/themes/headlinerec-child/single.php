@@ -131,9 +131,9 @@ while (have_posts()) : the_post();
 ?>
 
 <?php // HR SEO: NewsArticle + author schema (E-E-A-T), see inc/schema.php
-hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author_link, 'description' => $author_bio), 'hr'); ?>
+hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author_link, 'description' => $author_bio, 'same_as' => !empty($is_guest) ? array($guest_linkedin, $guest_twitter, $guest_facebook) : array()), 'hr'); ?>
 
-<div class="hr-single-wrapper">
+<main class="hr-single-wrapper">
 
     <!-- BREADCRUMB -->
     <div class="hr-breadcrumb">
@@ -181,6 +181,10 @@ hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author
                 </div>
                   <div class="hr-meta-divider"></div>
                          <time class="hr-meta-date" datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html($post_date); ?></time>
+                     <?php if ( get_post_modified_time( 'U', true ) - get_post_time( 'U', true ) > DAY_IN_SECONDS ) : // visible freshness, matches dateModified ?>
+                        <div class="hr-meta-divider"></div>
+                     <span class="hr-meta-readtime hr-meta-updated">Updated <time datetime="<?php echo esc_attr( get_the_modified_date( 'c' ) ); ?>"><?php echo esc_html( get_the_modified_date( 'M j, Y' ) ); ?></time></span>
+                     <?php endif; ?>
                         <div class="hr-meta-divider"></div>
                      <span class="hr-meta-readtime"><?php echo (int) $reading_minutes; ?> min read</span>
                      <?php do_action( 'hr_single_after_byline', get_the_ID() ); ?>
@@ -188,19 +192,19 @@ hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author
                     <?php if (isset($is_guest) && $is_guest) : ?>
                         <!-- Guest Author Social Profiles -->
                         <?php if (!empty($guest_linkedin)) : ?>
-                            <a href="<?php echo esc_url($guest_linkedin); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on LinkedIn">in</a>
+                            <a href="<?php echo esc_url($guest_linkedin); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on LinkedIn" data-abbr="in"></a>
                         <?php endif; ?>
                         <?php if (!empty($guest_twitter)) : ?>
-                            <a href="<?php echo esc_url($guest_twitter); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on X">𝕏</a>
+                            <a href="<?php echo esc_url($guest_twitter); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on X" data-abbr="𝕏"></a>
                         <?php endif; ?>
                         <?php if (!empty($guest_facebook)) : ?>
-                            <a href="<?php echo esc_url($guest_facebook); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on Facebook">fb</a>
+                            <a href="<?php echo esc_url($guest_facebook); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on Facebook" data-abbr="fb"></a>
                         <?php endif; ?>
                     <?php else : ?>
                         <!-- Default Article Share Buttons -->
-                        <a href="<?php echo esc_url(add_query_arg('url', rawurlencode($permalink), 'https://www.linkedin.com/sharing/share-offsite/')); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="Share on LinkedIn">in</a>
-                        <a href="<?php echo esc_url(add_query_arg(array('url' => rawurlencode($permalink), 'text' => rawurlencode(html_entity_decode(wp_strip_all_tags($post_title), ENT_QUOTES | ENT_HTML5, 'UTF-8'))), 'https://twitter.com/intent/tweet')); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="Share on X">𝕏</a>
-                        <a href="<?php echo esc_url(add_query_arg('u', rawurlencode($permalink), 'https://www.facebook.com/sharer/sharer.php')); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="Share on Facebook">fb</a>
+                        <a href="<?php echo esc_url(add_query_arg('url', rawurlencode($permalink), 'https://www.linkedin.com/sharing/share-offsite/')); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="Share on LinkedIn" data-abbr="in"></a>
+                        <a href="<?php echo esc_url(add_query_arg(array('url' => rawurlencode($permalink), 'text' => rawurlencode(html_entity_decode(wp_strip_all_tags($post_title), ENT_QUOTES | ENT_HTML5, 'UTF-8'))), 'https://twitter.com/intent/tweet')); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="Share on X" data-abbr="𝕏"></a>
+                        <a href="<?php echo esc_url(add_query_arg('u', rawurlencode($permalink), 'https://www.facebook.com/sharer/sharer.php')); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="Share on Facebook" data-abbr="fb"></a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -210,7 +214,7 @@ hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author
             <!-- Hero image -->
             <?php if ( has_post_thumbnail() ) : ?>
             <div class="hr-hero-image-wrap">
-                <?php the_post_thumbnail('full', array('data-no-lazy' => '1', 'class' => 'skip-lazy attachment-full size-full wp-post-image', 'loading' => 'eager', 'fetchpriority' => 'high')); ?>
+                <?php the_post_thumbnail('full', array('data-no-lazy' => '1', 'class' => 'skip-lazy attachment-full size-full wp-post-image', 'loading' => 'eager', 'fetchpriority' => 'high', 'sizes' => '(max-width: 1024px) 100vw, 700px')); // shown at most ~700px wide beside the sidebar ?>
                 <?php
                 $caption = get_post_field('post_excerpt', get_post_thumbnail_id($post_id));
                 if ($caption) : ?>
@@ -287,9 +291,9 @@ hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author
         
         <?php if (isset($is_guest) && $is_guest && (!empty($guest_linkedin) || !empty($guest_twitter) || !empty($guest_facebook))) : ?>
         <div class="hr-author-socials">
-            <?php if (!empty($guest_linkedin)) : ?><a href="<?php echo esc_url($guest_linkedin); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on LinkedIn">in</a><?php endif; ?>
-            <?php if (!empty($guest_twitter)) : ?><a href="<?php echo esc_url($guest_twitter); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on X">𝕏</a><?php endif; ?>
-            <?php if (!empty($guest_facebook)) : ?><a href="<?php echo esc_url($guest_facebook); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on Facebook">fb</a><?php endif; ?>
+            <?php if (!empty($guest_linkedin)) : ?><a href="<?php echo esc_url($guest_linkedin); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on LinkedIn" data-abbr="in"></a><?php endif; ?>
+            <?php if (!empty($guest_twitter)) : ?><a href="<?php echo esc_url($guest_twitter); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on X" data-abbr="𝕏"></a><?php endif; ?>
+            <?php if (!empty($guest_facebook)) : ?><a href="<?php echo esc_url($guest_facebook); ?>" target="_blank" rel="noopener" class="hr-share-btn" aria-label="<?php echo esc_attr($author_name); ?> on Facebook" data-abbr="fb"></a><?php endif; ?>
               </div>
             <?php endif; ?>
              </div>
@@ -369,7 +373,7 @@ hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author
                     foreach ($macro as $m) : ?>
                     <div class="hr-macro-item">
                         <div class="hr-macro-item-label"><?php echo esc_html($m[0]); ?></div>
-                        <div class="hr-macro-item-val"><?php echo esc_html($m[1]); ?></div>
+                        <div class="hr-macro-item-val"><?php echo esc_html( preg_replace( '/(\d)([A-Za-z]{2,})/', '$1 $2', $m[1] ) ); // "3,631.04 USD (M)" ?></div>
                         <div class="hr-macro-item-sub"><?php echo esc_html($m[2]); ?></div>
                     </div>
                     <?php endforeach; ?>
@@ -426,7 +430,7 @@ hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author
 
     
 
-</div><!-- .hr-single-wrapper -->
+</main><!-- .hr-single-wrapper -->
 
 <?php
 endwhile;

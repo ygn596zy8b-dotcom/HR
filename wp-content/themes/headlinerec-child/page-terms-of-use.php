@@ -106,6 +106,7 @@ html { scroll-behavior: smooth; }
 .hr-sb-link:last-child { border-bottom: none; }
 .hr-term-master .hr-sb-link:hover { color: #0A0A0A; }
 
+.hr-sb-notice .hr-sb-title { color: #FF001C; } /* red on near-black needs the bright red */
 .hr-sb-notice { background: #0A0A0A; color: #FFFFFF; padding: 24px; margin-top: 32px; }
 .hr-sb-notice p { font-size: 16px; color: #B4B4BB; line-height: 1.6; margin: 0; }
 .hr-term-master .hr-sb-notice a { color: #FFFFFF; }

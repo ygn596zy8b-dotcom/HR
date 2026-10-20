@@ -75,9 +75,30 @@ if (!reduce) {
   });
 }
 
-// TradingView panels: skeleton in CSS until the iframe arrives; after 8 s say so (the widget may still load later).
-document.querySelectorAll('.tradingview-widget-container').forEach((box) => {
-  if (box.querySelector('iframe')) return;
+// TradingView panels ship inert (<script type="text/plain" data-hr-tv>) and start once the page has loaded and the
+// panel is near the viewport, so the widgets (~1 MB) never compete with the first paint. Skeleton in CSS until the
+// iframe arrives; 8 s after starting, say so (the widget may still load later).
+const TV_SRC = /^https:\/\/s3\.tradingview\.com\/external-embedding\/embed-widget-[a-z-]+\.js$/;
+const tvBoxes = [...document.querySelectorAll('.tradingview-widget-container')].filter((box) => !box.querySelector('iframe'));
+if (tvBoxes.length) {
+  const io = new IntersectionObserver((entries) => entries.forEach((entry) => {
+    if (!entry.isIntersecting) return;
+    io.unobserve(entry.target);
+    startTv(entry.target);
+  }), { rootMargin: '400px 0px' });
+  const watch = () => (window.requestIdleCallback || setTimeout)(() => tvBoxes.forEach((box) => io.observe(box)));
+  if (document.readyState === 'complete') watch(); else addEventListener('load', watch, { once: true });
+}
+
+function startTv(box) {
+  const inert = box.querySelector('script[data-hr-tv]');
+  if (inert && TV_SRC.test(inert.dataset.hrTv)) {
+    const live = document.createElement('script');
+    live.src = inert.dataset.hrTv;
+    live.async = true;
+    live.text = inert.text; // the widget reads its JSON config from its own <script>
+    inert.replaceWith(live);
+  }
   let note;
   const timer = setTimeout(() => {
     box.classList.add('is-unavailable');
@@ -96,6 +117,21 @@ document.querySelectorAll('.tradingview-widget-container').forEach((box) => {
     mo.disconnect();
   });
   mo.observe(box, { childList: true, subtree: true });
+}
+
+// YouTube facades (inc/perf.php): the privacy-enhanced player replaces the poster when the reader presses play.
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.hr-yt__btn');
+  const id = btn?.dataset.hrYt;
+  if (!id || !/^[\w-]{11}$/.test(id)) return;
+  const frame = document.createElement('iframe');
+  frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`;
+  frame.title = btn.dataset.hrTitle || 'YouTube video';
+  frame.allow = 'autoplay; encrypted-media; picture-in-picture; web-share';
+  frame.allowFullscreen = true;
+  frame.referrerPolicy = 'strict-origin-when-cross-origin';
+  btn.replaceWith(frame);
+  frame.focus();
 });
 
 // Forms: busy state while a newsletter / contact form submits; the footer email field gets a name.

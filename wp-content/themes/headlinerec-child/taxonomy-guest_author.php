@@ -151,7 +151,7 @@ if (count($name_parts) >= 2) {
 }
 .hr-card-date {
     font-size: 11px;
-    color: #9CA3AF;
+    color: #6B7280;
 }
 .hr-card-title {
     font-size: 20px;

@@ -168,9 +168,9 @@ while (have_posts()) : the_post();
 
             <!-- Main Market Overview -->
             <div class="hr-module-box">
-                <div class="tradingview-widget-container" style="width: 100%;">
+                <div class="tradingview-widget-container" style="width: 100%; min-height: 500px;">
                     <div class="tradingview-widget-container__widget"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
+                    <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js">
                     {
                     "colorTheme": "light", "dateRange": "1M", "showChart": true, "locale": "en", "isTransparent": true, "showSymbolLogo": false, "showFloatingTooltip": false, "width": "100%", "height": "500",
                     "tabs": [
@@ -275,9 +275,9 @@ while (have_posts()) : the_post();
             <!-- Economic Calendar -->
             <div>
                 <div class="hr-sb-label"><span>Economic Calendar</span></div>
-                <div class="tradingview-widget-container">
+                <div class="tradingview-widget-container" style="min-height: 350px;">
                     <div class="tradingview-widget-container__widget"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+                    <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-events.js">
                     {
                     "colorTheme": "light", "isTransparent": true, "width": "100%", "height": "350", "locale": "en", "importanceFilter": "-1,0,1", "countryFilter": "pk"
                     }
@@ -288,9 +288,9 @@ while (have_posts()) : the_post();
             <!-- PSX Top Movers -->
             <div>
                 <div class="hr-sb-label"><span>PSX Top Movers</span></div>
-                <div class="tradingview-widget-container">
+                <div class="tradingview-widget-container" style="min-height: 400px;">
                     <div class="tradingview-widget-container__widget"></div>
-                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js" async>
+                    <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js">
                     {
                     "colorTheme": "light", "dateRange": "12M", "exchange": "KARACHI", "showChart": true, "locale": "en", "largeChartUrl": "", "isTransparent": true, "showSymbolLogo": false, "showFloatingTooltip": false, "width": "100%", "height": "400"
                     }

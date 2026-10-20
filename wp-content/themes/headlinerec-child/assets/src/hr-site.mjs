@@ -90,12 +90,13 @@ function hamburger() {
   const icon = el('span', { class: 'hamburger' });
   icon.append(svg);
   btn.replaceChildren(icon);
+  // The parent theme also puts aria-expanded/aria-controls on its wrapper <span>, where ARIA does not allow them.
   const group = btn.closest('.toggle-menu');
+  if (group && group !== btn) ['aria-expanded', 'aria-controls'].forEach((a) => group.removeAttribute(a));
   btn.addEventListener('click', () => {
     const open = btn.getAttribute('aria-expanded') !== 'true';
     btn.classList.toggle('is-open', open);
     btn.setAttribute('aria-expanded', String(open));
-    if (group && group !== btn) group.setAttribute('aria-expanded', String(open));
   });
   // role="button" on a link: Space must activate it too.
   btn.addEventListener('keydown', (e) => {

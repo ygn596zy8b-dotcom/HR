@@ -41,11 +41,11 @@
             </div>
             <p class="hr-footer-desc">Pakistan’s premier intelligence layer for business executives, capital markets, and macro decision-makers. Delivering rigorous journalism and independent market analysis.</p>
             <div class="hr-social-boxes">
-                <a href="https://www.instagram.com/headlinerecorder/" class="hr-social-box" aria-label="Headline Recorder on Instagram" rel="noopener">ig</a>
-                <a href="https://www.facebook.com/profile.php?id=61573634501379" class="hr-social-box" aria-label="Headline Recorder on Facebook" rel="noopener">fb</a>
-                <a href="https://x.com/headlinerecoder" class="hr-social-box" aria-label="Headline Recorder on X" rel="noopener">x</a>
-                <a href="https://www.linkedin.com/company/headlinerecorder/" class="hr-social-box" aria-label="Headline Recorder on LinkedIn" rel="noopener">in</a>
-                <a href="https://www.youtube.com/@headlinerecorder" class="hr-social-box" aria-label="Headline Recorder on YouTube" rel="noopener">yt</a>
+                <a href="https://www.instagram.com/headlinerecorder/" class="hr-social-box" aria-label="Headline Recorder on Instagram" rel="noopener" data-abbr="ig"></a>
+                <a href="https://www.facebook.com/profile.php?id=61573634501379" class="hr-social-box" aria-label="Headline Recorder on Facebook" rel="noopener" data-abbr="fb"></a>
+                <a href="https://x.com/headlinerecoder" class="hr-social-box" aria-label="Headline Recorder on X" rel="noopener" data-abbr="x"></a>
+                <a href="https://www.linkedin.com/company/headlinerecorder/" class="hr-social-box" aria-label="Headline Recorder on LinkedIn" rel="noopener" data-abbr="in"></a>
+                <a href="https://www.youtube.com/@headlinerecorder" class="hr-social-box" aria-label="Headline Recorder on YouTube" rel="noopener" data-abbr="yt"></a>
             </div>
         </div>
 
@@ -101,11 +101,11 @@
             </div>
             <div class="hr-footer-trust"><?php do_action( 'hr_footer_trust' ); ?></div>
             <div class="hr-bottom-socials">
-                <a href="https://www.instagram.com/headlinerecorder/" aria-label="Headline Recorder on Instagram" rel="noopener">ig</a>
-                <a href="https://www.facebook.com/profile.php?id=61573634501379" aria-label="Headline Recorder on Facebook" rel="noopener">fb</a>
-                <a href="https://x.com/headlinerecoder" aria-label="Headline Recorder on X" rel="noopener">x</a>
-                <a href="https://www.linkedin.com/company/headlinerecorder/" aria-label="Headline Recorder on LinkedIn" rel="noopener">in</a>
-                <a href="https://www.youtube.com/@headlinerecorder" aria-label="Headline Recorder on YouTube" rel="noopener">yt</a>
+                <a href="https://www.instagram.com/headlinerecorder/" aria-label="Headline Recorder on Instagram" rel="noopener" data-abbr="ig"></a>
+                <a href="https://www.facebook.com/profile.php?id=61573634501379" aria-label="Headline Recorder on Facebook" rel="noopener" data-abbr="fb"></a>
+                <a href="https://x.com/headlinerecoder" aria-label="Headline Recorder on X" rel="noopener" data-abbr="x"></a>
+                <a href="https://www.linkedin.com/company/headlinerecorder/" aria-label="Headline Recorder on LinkedIn" rel="noopener" data-abbr="in"></a>
+                <a href="https://www.youtube.com/@headlinerecorder" aria-label="Headline Recorder on YouTube" rel="noopener" data-abbr="yt"></a>
             </div>
         </div>
     </div>
@@ -115,7 +115,6 @@
 </div><!-- Closes #page -->
 
 <a id="scroll-up" class="secondary-color" href="#top" aria-label="<?php esc_attr_e('Scroll to top', 'covernews'); ?>">
-  <i class="fa fa-angle-up" aria-hidden="true"></i>
 </a>
 
 <?php wp_footer(); ?>
