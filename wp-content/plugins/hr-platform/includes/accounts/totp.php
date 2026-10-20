@@ -238,7 +238,7 @@ function totp_disable( int $uid ): void {
 add_action( 'login_form', function () {
     ?>
     <p class="hr-otp-field">
-        <label for="hr_otp">Authentication code</label>
+        <label for="hr_otp">Two-step code <span style="font-weight:400">(leave empty if you have not set it up)</span></label>
         <input type="text" name="hr_otp" id="hr_otp" class="input" value="" size="20" maxlength="20" inputmode="numeric" autocomplete="one-time-code" spellcheck="false" autocapitalize="off">
         <span class="description" style="display:block;margin:-8px 0 16px;font-size:12px;color:#646970">Only if two-step verification is on. A recovery code works too.</span>
     </p>
@@ -273,7 +273,7 @@ add_filter( 'login_errors', function ( $error ) {
     global $errors;
     $codes = is_wp_error( $errors ) ? $errors->get_error_codes() : array();
     if ( array_intersect( $codes, array( 'invalid_username', 'invalid_email', 'incorrect_password', 'hr_otp_invalid' ) ) ) {
-        return '<strong>Error:</strong> The sign-in details are incorrect. If two-step verification is on, include your authentication code.';
+        return '<strong>Error:</strong> The username/email or password is incorrect.';
     }
     return $error;
 }, 20 );

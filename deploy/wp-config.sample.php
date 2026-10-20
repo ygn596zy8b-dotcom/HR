@@ -57,8 +57,9 @@ define( 'WP_AUTO_UPDATE_CORE', 'minor' );
 // Encrypted reader submissions are stored here, outside the web root.
 define( 'HR_PRIVATE_DIR', '/home/esofkogo/hr-private' );
 
-// Staff (anyone who can edit posts) must use a passkey or two-step code. Set to false only in an emergency.
-define( 'HR_ENFORCE_STAFF_MFA', true );
+// Optional: once every editor/author has added a passkey or two-step code, require it for wp-admin (admins are
+// never redirected, they only see a reminder).
+// define( 'HR_ENFORCE_STAFF_MFA', true );
 
 // Behind Cloudflare: trust CF-Connecting-IP only from Cloudflare ranges (see infra/cloudflare/README.md).
 // define( 'HR_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );

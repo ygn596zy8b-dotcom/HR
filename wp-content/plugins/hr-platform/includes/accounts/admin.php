@@ -13,16 +13,24 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Must this staff account enrol a passkey or two-step verification before using wp-admin?
- * define( 'HR_ENFORCE_STAFF_MFA', false ) in wp-config.php switches it off. Without the constant it is on, except on
- * local development copies (WP_ENVIRONMENT_TYPE 'local'), where it is opt-in through the filter so shared test
- * databases keep working: add_filter( 'hr_enforce_staff_mfa', '__return_true' ).
+ * Opt-in: define( 'HR_ENFORCE_STAFF_MFA', true ) in wp-config.php once every staff member has set one up.
+ * Administrators are never redirected (so the site owner can't be locked out); they get a reminder instead.
  */
 function staff_mfa_enforced( ?\WP_User $user = null ): bool {
-    if ( defined( 'HR_ENFORCE_STAFF_MFA' ) ) {
-        return false !== HR_ENFORCE_STAFF_MFA;
+    if ( $user && user_can( $user, 'manage_options' ) ) {
+        return false;
     }
-    return (bool) apply_filters( 'hr_enforce_staff_mfa', 'local' !== wp_get_environment_type(), $user );
+    $on = defined( 'HR_ENFORCE_STAFF_MFA' ) && true === HR_ENFORCE_STAFF_MFA;
+    return (bool) apply_filters( 'hr_enforce_staff_mfa', $on, $user );
 }
+
+add_action( 'admin_notices', function () {
+    $user = wp_get_current_user();
+    if ( ! is_staff( $user ) || has_mfa( (int) $user->ID ) ) {
+        return;
+    }
+    printf( '<div class="notice notice-warning"><p><strong>Protect your account:</strong> add a passkey or two-step verification in <a href="%s">your account security settings</a>.</p></div>', esc_url( account_url( 'settings' ) . '#security' ) );
+} );
 
 add_action( 'admin_init', function () {
     if ( wp_doing_ajax() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) || ! is_user_logged_in() ) {
