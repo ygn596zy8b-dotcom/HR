@@ -30,9 +30,10 @@ add_action( 'admin_init', function () {
     }
     global $pagenow;
     $user = wp_get_current_user();
-    if ( ! is_staff( $user ) ) {
+    // Readers have nothing to do in wp-admin. define( 'HR_READERS_IN_ADMIN', true ) in wp-config.php turns this off.
+    if ( ! is_staff( $user ) && ! ( defined( 'HR_READERS_IN_ADMIN' ) && HR_READERS_IN_ADMIN ) ) {
         if ( 'admin-post.php' !== $pagenow ) {
-            wp_safe_redirect( 'profile.php' === $pagenow ? account_url( 'settings' ) : account_url() );
+            wp_safe_redirect( add_query_arg( 'notice', 'reader-admin', 'profile.php' === $pagenow ? account_url( 'settings' ) : account_url() ) );
             exit;
         }
         return;

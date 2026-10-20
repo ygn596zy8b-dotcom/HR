@@ -53,6 +53,9 @@ if ( ! defined( 'ABSPATH' ) ) exit;
             </ul>
         </nav>
         <main class="hra-app__main" id="hra-main">
+            <?php if ( isset( $_GET['notice'] ) && 'reader-admin' === $_GET['notice'] ) : ?>
+                <div class="hrp-alert hrp-alert--warn" role="status"><p>The WordPress dashboard is only for site staff. This account is a reader account, so you were brought to your account page. Staff: sign out and sign in with your editor or administrator account.</p></div>
+            <?php endif; ?>
             <?php if ( 'overview' !== $active ) : ?>
                 <h1 class="hra-page-title"><?php echo esc_html( $title ); ?></h1>
             <?php endif; ?>
