@@ -274,6 +274,7 @@ function hr_send_security_headers( bool $front_end ): void {
     }
     do_action( 'hr_security_headers', $front_end );
 }
-add_action( 'send_headers', static fn() => hr_send_security_headers( true ) );
+// wp-admin list screens (edit.php) also run wp() and fire send_headers: keep the admin policy there.
+add_action( 'send_headers', static fn() => hr_send_security_headers( ! is_admin() ) );
 add_action( 'admin_init', static fn() => hr_send_security_headers( false ) );
 add_action( 'login_init', static fn() => hr_send_security_headers( true ) );

@@ -319,3 +319,11 @@ function privacy_erase( string $email, int $page = 1 ): array {
     }
     return array( 'items_removed' => true, 'items_retained' => false, 'messages' => array( 'Passkeys, two-step verification and known devices were removed.' ), 'done' => true );
 }
+
+// Readers who sign in through wp-login.php go to their account, not to a bounce through wp-admin.
+add_filter( 'login_redirect', function ( $redirect, $requested, $user ) {
+    if ( $user instanceof \WP_User && ! is_staff( $user ) && ( '' === $requested || str_contains( (string) $redirect, '/wp-admin' ) ) ) {
+        return account_url();
+    }
+    return $redirect;
+}, 20, 3 );
