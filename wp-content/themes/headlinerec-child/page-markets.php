@@ -109,13 +109,18 @@ while (have_posts()) : the_post();
 .hr-spotlight-link { font-size: 10px; font-weight: 700; color: #C0001A; letter-spacing: 1px; text-transform: uppercase; text-decoration: none; border-bottom: 1px solid #C0001A; padding-bottom: 1px; }
 
 @media (max-width: 1024px) {
-    .hr-page-grid { grid-template-columns: 1fr; gap: 48px; padding: 24px 32px 60px; }
+    .hr-page-grid { grid-template-columns: minmax(0, 1fr); gap: 48px; padding: 24px 32px 60px; }
     .hr-sidebar { position: static; }
 }
 @media (max-width: 768px) {
     .hr-page-grid { padding: 20px 24px 48px; }
     .hr-desk-title { font-size: 26px; }
     .hr-module-box { padding: 15px; }
+}
+/* Small phones: sector heatmap as two columns (inline grid styles need !important to override) */
+@media (max-width: 480px) {
+    .hr-heatmap { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-template-rows: none !important; grid-auto-rows: 110px; }
+    .hr-heatmap > div:first-child { grid-row: auto !important; grid-column: 1 / -1; }
 }
 </style>
 
@@ -194,7 +199,7 @@ while (have_posts()) : the_post();
     </div>
 
     <!-- Grid -->
-    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 130px 130px; gap: 6px; font-family: -apple-system, sans-serif;">
+    <div class="hr-heatmap" style="display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 130px 130px; gap: 6px; font-family: -apple-system, sans-serif;">
         
         <!-- Commercial Banks -->
         <div style="background: #059669; grid-row: 1 / 3; padding: 16px; border-radius: 4px; color: white; display: flex; flex-direction: column; justify-content: space-between;">

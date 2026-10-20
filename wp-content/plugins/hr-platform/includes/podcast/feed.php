@@ -74,9 +74,8 @@ add_action( 'rss2_head', function () {
     printf( "\t<itunes:summary>%s</itunes:summary>\n", esc_html( (string) setting( 'podcast_description' ) ) );
     echo "\t<itunes:type>episodic</itunes:type>\n";
     printf( "\t<itunes:explicit>%s</itunes:explicit>\n", setting( 'podcast_explicit' ) ? 'true' : 'false' );
-    if ( $email ) {
-        printf( "\t<itunes:owner><itunes:name>%s</itunes:name><itunes:email>%s</itunes:email></itunes:owner>\n", esc_html( $author ), esc_html( $email ) );
-    }
+    // The email is public in the feed, so it is only included when an owner address has been set on purpose.
+    printf( "\t<itunes:owner><itunes:name>%s</itunes:name>%s</itunes:owner>\n", esc_html( $author ), $email ? '<itunes:email>' . esc_html( $email ) . '</itunes:email>' : '' );
     if ( $image ) {
         printf( "\t<itunes:image href=\"%s\"/>\n", esc_url( $image ) );
     }

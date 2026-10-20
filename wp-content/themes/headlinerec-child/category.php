@@ -38,7 +38,7 @@ if ( have_posts() ) {
     }
     rewind_posts(); // CRUCIAL: Resets the loop so the visual grid below still loads
 }
-echo '<script type="application/ld+json">' . json_encode( $schema_data, JSON_UNESCAPED_SLASHES ) . '</script>';
+echo '<script type="application/ld+json">' . wp_json_encode( $schema_data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP ) . '</script>';
 // ==========================================
 ?>
 
@@ -201,17 +201,17 @@ div[class*="bottom-latest"],
                 <div class="hr-section-label no-border"><span>Featured Story</span></div>
                 <div class="hr-cat-featured">
                     <div class="hr-feat-img">
-                        <a href="<?php the_permalink(); ?>">
+                        <a href="<?php echo esc_url(get_permalink()); ?>">
                             <?php if (has_post_thumbnail()) { the_post_thumbnail('large'); } ?>
                         </a>
                     </div>
                     <div class="hr-feat-content">
                         <span class="hr-feat-cat"><?php echo esc_html($cat_name); ?></span>
-                        <a href="<?php the_permalink(); ?>" class="hr-feat-title"><?php the_title(); ?></a>
+                        <a href="<?php echo esc_url(get_permalink()); ?>" class="hr-feat-title"><?php echo esc_html(get_the_title()); ?></a>
                         <p class="hr-feat-excerpt"><?php echo wp_trim_words(get_the_excerpt(), 20, '...'); ?></p>
                         <div class="hr-feat-meta">
                             <span class="hr-feat-date"><?php echo get_the_date('F j, Y'); ?></span>
-                            <a href="<?php the_permalink(); ?>" class="hr-feat-read">Read Article →</a>
+                            <a href="<?php echo esc_url(get_permalink()); ?>" class="hr-feat-read">Read Article →</a>
                         </div>
                     </div>
                 </div>
@@ -221,12 +221,12 @@ div[class*="bottom-latest"],
                     <div class="hr-section-label"><span>Latest from <?php echo esc_html($cat_name); ?></span></div>
                     <div class="hr-latest-grid">
                         <?php while (have_posts()) : the_post(); ?>
-                            <a href="<?php the_permalink(); ?>" class="hr-grid-card">
+                            <a href="<?php echo esc_url(get_permalink()); ?>" class="hr-grid-card">
                                 <div class="hr-grid-img">
                                     <span class="hr-grid-badge"><?php echo esc_html($cat_name); ?></span>
                                     <?php if (has_post_thumbnail()) { the_post_thumbnail('medium_large'); } ?>
                                 </div>
-                                <h3 class="hr-grid-title"><?php the_title(); ?></h3>
+                                <h3 class="hr-grid-title"><?php echo esc_html(get_the_title()); ?></h3>
                                 <span class="hr-grid-date"><?php echo get_the_date('F j, Y'); ?></span>
                             </a>
                         <?php endwhile; ?>
@@ -280,9 +280,9 @@ div[class*="bottom-latest"],
                         $unit = (isset($sbp_data[$k]['unit'])) ? $sbp_data[$k]['unit'] : '';
                         
                         echo '<div class="hr-macro-item" style="background: #0A0A0C; padding: 20px;">';
-                        echo '<span style="font-size:10px; color:#666; letter-spacing:1px; display:block; margin-bottom:4px; text-transform:uppercase;">' . $meta['label'] . '</span>';
-                        echo '<div style="font-size:16px; font-weight:800; color:#fff; margin-bottom:2px;">' . $val . ' <span style="font-size:10px; color:#666;">' . $unit . '</span></div>';
-                        echo '<span style="font-size:9px; color:#444;">' . $meta['sub'] . '</span>';
+                        echo '<span style="font-size:10px; color:#666; letter-spacing:1px; display:block; margin-bottom:4px; text-transform:uppercase;">' . esc_html($meta['label']) . '</span>';
+                        echo '<div style="font-size:16px; font-weight:800; color:#fff; margin-bottom:2px;">' . esc_html($val) . ' <span style="font-size:10px; color:#666;">' . esc_html($unit) . '</span></div>';
+                        echo '<span style="font-size:9px; color:#444;">' . esc_html($meta['sub']) . '</span>';
                         echo '</div>';
                     }
                     ?>
@@ -308,7 +308,7 @@ div[class*="bottom-latest"],
                     ));
                     if ($trending_query->have_posts()) : while ($trending_query->have_posts()) : $trending_query->the_post();
                     ?>
-                        <a href="<?php the_permalink(); ?>" class="hr-trending-item">
+                        <a href="<?php echo esc_url(get_permalink()); ?>" class="hr-trending-item">
                             <div class="hr-trending-img">
                                 <?php if (has_post_thumbnail()) { the_post_thumbnail('thumbnail'); } ?>
                             </div>

@@ -377,16 +377,15 @@ get_header();
         if ($featured_q->have_posts()) :
             while ($featured_q->have_posts()) : $featured_q->the_post();
                 $featured_post_id = get_the_ID();
-                $img     = get_the_post_thumbnail_url($featured_post_id, 'large');
-                $img     = $img ? esc_url($img) : 'https://via.placeholder.com/300x300/111111/C0001A?text=HR';
+                $img     = hr_post_image($featured_post_id, 'large', array('loading' => 'eager', 'fetchpriority' => 'high'));
                 $quote   = get_post_meta($featured_post_id, 'es_pull_quote', true);
                 if (!$quote) $quote = wp_trim_words(get_the_excerpt(), 22, '...');
                 $exec_name  = get_post_meta($featured_post_id, '_hr_exec_name', true);
                 $exec_title = get_post_meta($featured_post_id, '_hr_exec_title', true);
         ?>
-        <a href="<?php the_permalink(); ?>" class="es-featured-card">
+        <a href="<?php echo esc_url(get_permalink()); ?>" class="es-featured-card">
             <div class="es-card-left">
-    <img src="<?php echo $img; ?>" alt="<?php the_title_attribute(); ?>">
+    <?php echo $img; // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_url/esc_attr ?>
     <?php if ($exec_name) : ?>
         <h3 style="font-size: 18px; font-weight: 700; color: #ffffff; margin: 16px 0 4px; position: relative; z-index: 1;"><?php echo esc_html($exec_name); ?></h3>
     <?php endif; ?>
@@ -397,7 +396,7 @@ get_header();
 </div>
             <div class="es-card-right">
                 <div class="es-card-meta">Featured Executive</div>
-                <h2 class="es-card-title"><?php the_title(); ?></h2>
+                <h2 class="es-card-title"><?php echo esc_html(get_the_title()); ?></h2>
                 <blockquote class="es-card-quote"><?php echo esc_html($quote); ?></blockquote>
                 <div class="es-card-footer">
                     <span class="es-card-date"><?php echo get_the_date('F j, Y'); ?></span>
@@ -443,17 +442,17 @@ get_header();
                 if ($archive_q->have_posts()) :
                     while ($archive_q->have_posts()) : $archive_q->the_post();
                         $rendered_count++;
-                        $archive_img = get_the_post_thumbnail_url(get_the_ID(), 'medium');
+                        $archive_img = hr_post_image(get_the_ID(), 'medium', array('style' => 'width:100%; height:100%; object-fit:cover; display:block;'));
                 ?>
                 <!-- Reusing the coming-item styling for the real archive cards to keep the grid perfect -->
-                <a href="<?php the_permalink(); ?>" class="es-coming-item" style="display:block; text-decoration:none; padding: 24px; transition: transform 0.2s;">
+                <a href="<?php echo esc_url(get_permalink()); ?>" class="es-coming-item" style="display:block; text-decoration:none; padding: 24px; transition: transform 0.2s;">
                     <?php if ($archive_img) : ?>
                     <div style="height: 140px; background: #111; margin-bottom: 16px; overflow: hidden; border-radius: 4px;">
-                        <img src="<?php echo esc_url($archive_img); ?>" style="width:100%; height:100%; object-fit:cover; display:block;" alt="<?php the_title_attribute(); ?>">
+                        <?php echo $archive_img; // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_url/esc_attr ?>
                     </div>
                     <?php endif; ?>
                     <div class="es-coming-tag">Interview Archive</div>
-                    <h3 style="font-size: 16px; font-weight: 700; color: #0A0A0A; margin: 0 0 10px; line-height: 1.4;"><?php the_title(); ?></h3>
+                    <h3 style="font-size: 16px; font-weight: 700; color: #0A0A0A; margin: 0 0 10px; line-height: 1.4;"><?php echo esc_html(get_the_title()); ?></h3>
                     <div style="font-size: 11px; color: #9CA3AF;"><?php echo get_the_date('F j, Y'); ?></div>
                 </a>
                 <?php 

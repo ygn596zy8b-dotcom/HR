@@ -24,6 +24,8 @@
 /* Each copy is at least as wide as the band, so a short list never leaves a gap at the end of the loop. */
 .hr-clients--marquee .hr-clients__list { flex-wrap: nowrap; justify-content: space-around; min-width: 100vw; min-width: 100cqw; padding-inline: calc(var(--hr-clients-gap) / 2); }
 .hr-clients__viewport:hover .hr-clients__track, .hr-clients__viewport:focus-within .hr-clients__track, .hr-clients.is-paused .hr-clients__track { animation-play-state: paused; }
+/* Keyboard focus: stop sliding so the browser can scroll the focused logo fully into view (clients.js resets the scroll). */
+.hr-clients__viewport:has(:focus-visible) .hr-clients__track { animation: none; }
 @keyframes hr-clients-scroll { to { transform: translate3d(-50%, 0, 0); } }
 
 @media (prefers-reduced-motion: reduce) {

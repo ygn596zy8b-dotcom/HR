@@ -315,6 +315,7 @@ function init(form) {
     }
     setAttachment(message ? null : { name: safeName(file.name), type: DOCS[ext].type, size: file.size, bytes });
     setError(f.attachment, message);
+    if (message) attachRemove.hidden = false; // the attachment is optional: let the writer clear a rejected file
   });
   attachRemove.addEventListener('click', () => {
     setAttachment(null);

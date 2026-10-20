@@ -65,13 +65,14 @@ add_filter( 'wpseo_schema_organization', function ( $data ) {
 }, 20 );
 
 /**
- * Executive Spotlight interviews use their own template, which prints no JSON-LD, while the theme turns Yoast's graph
- * off on every single post (single.php prints a hand-built NewsArticle instead). Turn Yoast's graph back on for
- * those interviews only. Filterable so the theme can take over once it prints its own.
+ * The theme turns Yoast's graph off on every is_single() page (single.php prints a hand-built NewsArticle instead).
+ * Executive Spotlight interviews and podcast episodes print no article JSON-LD, so turn Yoast's graph (WebPage,
+ * Organization, breadcrumbs) back on for them; the PodcastEpisode below points at its Organization @id.
+ * Filterable so the theme can take over once it prints its own.
  */
 add_filter( 'wpseo_json_ld_output', function ( $data ) {
-    if ( false === $data && is_singular( 'post' ) && in_category( 'executive-spotlight', get_queried_object_id() )
-        && apply_filters( 'hr_site_yoast_graph_on_spotlight', true ) ) {
+    $own = is_singular( 'hr_episode' ) || ( is_singular( 'post' ) && in_category( 'executive-spotlight', get_queried_object_id() ) );
+    if ( false === $data && $own && apply_filters( 'hr_site_yoast_graph_on_spotlight', true ) ) {
         return array( '_deprecated' => '' );
     }
     return $data;

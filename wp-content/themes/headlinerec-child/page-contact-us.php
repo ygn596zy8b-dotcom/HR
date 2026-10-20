@@ -103,7 +103,7 @@ get_header();
 
 /* --- QUICK ACCESS GRID --- */
 .hr-qa-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 80px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 24px; margin-bottom: 80px;
 }
 .hr-qa-card {
     border: 1px solid #E5E7EB; padding: 32px 24px; cursor: pointer; transition: all 0.2s ease; background: #FFFFFF;
@@ -204,7 +204,7 @@ get_header();
     max-width: 1200px; margin: 0 auto;
 }
 .hr-faq-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 32px;
 }
 .hr-faq-item h3 {
     font-size: 15px; font-weight: 700; color: #0A0A0A; margin: 0 0 12px 0;

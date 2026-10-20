@@ -134,9 +134,14 @@ get_header();
 
 /* Responsive */
 @media (max-width: 900px) {
-    .hr-contrib-grid { grid-template-columns: 1fr; }
+    .hr-contrib-grid { grid-template-columns: minmax(0, 1fr); }
+    .hr-contrib-card, .hr-contrib-info { min-width: 0; }
+    .hr-contrib-info { overflow-wrap: anywhere; }
     .hr-contrib-wrapper { padding: 40px 24px 80px; }
     .hr-contrib-header h1 { font-size: 32px; }
+}
+@media (max-width: 480px) {
+    .hr-contrib-card { flex-direction: column; gap: 16px; padding: 24px 20px; }
 }
 </style>
 
@@ -168,7 +173,7 @@ get_header();
         ?>
             <a href="<?php echo esc_url($term_link); ?>" class="hr-contrib-card">
                 <?php if (!empty($avatar)) : ?>
-                    <img src="<?php echo esc_url($avatar); ?>" alt="<?php echo esc_attr($term->name); ?>" class="hr-contrib-avatar">
+                    <img src="<?php echo esc_url($avatar); ?>" alt="<?php echo esc_attr($term->name); ?>" class="hr-contrib-avatar" width="90" height="90" loading="lazy" decoding="async">
                 <?php else : ?>
                     <div class="hr-contrib-avatar-placeholder">
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>

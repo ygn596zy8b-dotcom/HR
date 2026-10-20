@@ -198,3 +198,22 @@ add_action( 'admin_enqueue_scripts', function ( string $hook ) {
         wp_enqueue_script( 'hr-submission-open', asset_url( 'js/submission-open.js' ), array(), asset_ver( 'js/submission-open.js' ), array( 'in_footer' => true, 'strategy' => 'defer' ) );
     }
 } );
+
+// The edit screen holds the editors' secret key and decrypted text in memory, so other plugins' and
+// themes' scripts (which also throw here: no block editor on this screen) are not loaded on our screens.
+add_action( 'admin_enqueue_scripts', function () {
+    $screen = get_current_screen();
+    if ( ! $screen || CPT !== $screen->post_type ) {
+        return;
+    }
+    $ours    = HR_PLATFORM_URL;
+    $foreign = array( content_url( '/plugins/' ), content_url( '/themes/' ) );
+    foreach ( wp_scripts()->queue as $handle ) {
+        $src = (string) ( wp_scripts()->registered[ $handle ]->src ?? '' );
+        foreach ( $foreign as $prefix ) {
+            if ( str_starts_with( $src, $prefix ) && ! str_starts_with( $src, $ours ) ) {
+                wp_dequeue_script( $handle );
+            }
+        }
+    }
+}, PHP_INT_MAX );

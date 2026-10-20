@@ -218,9 +218,16 @@ function current_url(): string {
     return home_url( user_trailingslashit( '/' . ltrim( $path, '/' ) ) );
 }
 
-// Posts without any image: branded card instead of the generic fallback.
+// Posts without any image: branded card instead of the generic fallback. The podcast archive uses the show cover.
 add_filter( 'wpseo_add_opengraph_additional_images', function ( $container ) {
-    if ( ! is_object( $container ) || ! method_exists( $container, 'has_images' ) || $container->has_images() || ! is_singular( card_post_types() ) ) {
+    if ( ! is_object( $container ) || ! method_exists( $container, 'has_images' ) || $container->has_images() ) {
+        return $container;
+    }
+    if ( is_podcast_archive() && podcast_info()['image'] && method_exists( $container, 'add_image_by_id' ) ) {
+        $container->add_image_by_id( podcast_info()['image'] );
+        return $container;
+    }
+    if ( ! is_singular( card_post_types() ) ) {
         return $container;
     }
     $post = get_queried_object();

@@ -128,7 +128,7 @@ function init(root) {
 
     const badge = el('span', { class: `hrs-admin-badge ${inRange ? 'is-ok' : 'is-warn'}`, text: inRange ? 'Within limit' : `Outside ${fmtNum(min)}–${fmtNum(max)}` });
     const meta = el('p', { class: 'hrs-admin__meta' },
-      `${sub.type === 'oped' ? 'Op-ed' : 'Article'} · ${str(sub.category_name)} · ${fmtNum(words)} words (counted here) `, badge);
+      `${cfg.type === 'oped' ? 'Op-ed' : 'Article'} · ${str(sub.category_name)} · ${fmtNum(words)} words (counted here) `, badge);
 
     const body = el('div', { class: 'hrs-admin__body' }, ...str(sub.body).split(/\n\s*\n/).filter((p) => p.trim()).map((p) => el('p', { text: p.trim() })));
 
@@ -158,7 +158,7 @@ function init(root) {
     const actions = el('div', { class: 'hrs-admin__actions' });
     if (cfg.canDraft) {
       const go = el('button', { type: 'button', class: 'button button-primary' }, 'Create draft post from this');
-      const note = el('p', { class: 'description', text: sub.type === 'oped' ? 'Creates a draft in Opinion with the writer as guest author.' : 'Creates a draft in the chosen section with the writer as guest author.' });
+      const note = el('p', { class: 'description', text: cfg.type === 'oped' ? 'Creates a draft in Opinion with the writer as guest author.' : 'Creates a draft in the chosen section with the writer as guest author.' });
       go.addEventListener('click', () => createDraft(sub, headshotBytes, go, actions));
       actions.append(go, note);
     } else {

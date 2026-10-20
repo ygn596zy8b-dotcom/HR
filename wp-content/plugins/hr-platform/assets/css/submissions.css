@@ -119,6 +119,8 @@
 .hrs .hra-notice { margin-bottom: 16px; }
 
 /* ------------------------------------------------------------------ wp-admin box */
+/* wp-admin's .button sets display, which would beat the hidden attribute. */
+.hrs-admin [hidden] { display: none !important; }
 .hrs-admin__facts { margin: 0 0 16px; }
 .hrs-admin__facts th { width: 170px; font-weight: 600; }
 .hrs-admin__facts td { overflow-wrap: anywhere; }

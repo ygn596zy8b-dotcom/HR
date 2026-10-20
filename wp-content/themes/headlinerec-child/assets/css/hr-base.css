@@ -1,0 +1,667 @@
+/* Headline Recorder child theme - base styles (MSBJ).
+   Printed after Customizer Additional CSS (wp_head 999) so the cascade matches the old inline blocks:
+   tap targets -> shortcode -> masthead -> desktop nav. The footer rules are in hr-footer.css, printed by
+   footer.php where its <style> used to be (after any template <style> that restyles the newsletter). */
+
+/* ======================================================================
+   Mobile tap targets (was functions.php wp_head 999)
+   ====================================================================== */
+@media only screen and (max-width: 768px) {
+    .aft-void-menu, 
+    .menu-toggle, 
+    .mobile-menu-toggle, 
+    .header-search-icon, 
+    .offcanvas-menu-toggler {
+        min-width: 48px !important;
+        min-height: 48px !important;
+        width: 48px !important;
+        height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+}
+
+/* ======================================================================
+   [sbp_macro_grid] card hover (was printed by the shortcode)
+   ====================================================================== */
+
+.sbp-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.08) !important;
+    border-top-color: #e3000f !important;
+}
+
+/* ======================================================================
+   Masthead: flat dark header, stacked wordmark, tagline (was wp_footer)
+   ====================================================================== */
+.site-header,
+.wrapper-header,
+header.site-header,
+.ac-banner-main-section,
+.covernews-banner-section {
+    background: #0A0A0A !important;
+    background-image: none !important;
+    background-color: #0A0A0A !important;
+    animation: none !important;
+    -webkit-animation: none !important;
+}
+
+.site-header canvas,
+.wrapper-header canvas,
+header.site-header canvas,
+.ac-banner-main-section canvas {
+    display: none !important;
+}
+
+.site-header::before,
+.site-header::after,
+.wrapper-header::before,
+.wrapper-header::after,
+.ac-banner-main-section::before,
+.ac-banner-main-section::after {
+    background: none !important;
+    background-image: none !important;
+}
+
+@media only screen and (min-width: 769px) {
+
+    .site-header,
+    .wrapper-header,
+    header.site-header,
+    .ac-banner-main-section {
+        min-height: 110px !important;
+    }
+    
+    .masthead-banner.data-bg {
+        padding: 65px 0 !important;
+    }
+
+    .site-branding {
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .site-branding .custom-logo,
+    .site-branding img.custom-logo {
+        height: 64px !important;
+        width: auto !important;
+        max-height: 64px !important;
+    }
+
+    .site-title,
+    .site-title a {
+        margin: 0 !important;
+        padding: 0 !important;
+        text-decoration: none !important;
+        display: block !important;
+        line-height: 1 !important;
+    }
+
+    .hr-stacked-wordmark {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+    }
+
+    .hr-word-top,
+    .hr-word-bottom {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        font-size: 20px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.01em !important;
+        text-transform: uppercase !important;
+        line-height: 1.08 !important;
+        display: block !important;
+    }
+
+    .hr-word-top {
+        color: #ffffff !important;
+        opacity: 0.82 !important;
+    }
+
+    .hr-word-bottom {
+        color: #C8102E !important;
+        opacity: 0.82 !important;
+    }
+
+    #hr-premium-tagline {
+        position: absolute;
+        top: 44%; 
+        transform: translateY(-50%);
+        right: 48px; 
+        text-align: right;
+        pointer-events: none;
+        z-index: 99;
+    }
+
+    #hr-tag-top {
+        color: #C8102E !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        letter-spacing: 4px !important;
+        text-transform: uppercase !important;
+        margin-bottom: 4px !important;
+    }
+
+    #hr-tag-bottom {
+        color: #FFFFFF !important;
+        font-family: Georgia, "Times New Roman", serif !important;
+        font-size: 22px !important;
+        font-weight: 400 !important;
+        font-style: italic !important;
+        letter-spacing: 0.5px !important;
+    }
+
+    .site-description, 
+    .site-branding p, 
+    .custom-logo-link + p,
+    p[class*="description"] {
+        display: none !important;
+    }
+}
+
+@media only screen and (max-width: 768px) {
+    #hr-premium-tagline {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    .masthead-banner.data-bg {
+        padding: 25px 0 !important;
+    }
+
+    .masthead-banner .site-branding,
+    .site-branding {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2px !important;
+    }
+
+    .site-branding .custom-logo,
+    .site-branding img.custom-logo {
+        height: 46px !important;
+        width: auto !important;
+        max-height: 46px !important;
+    }
+
+    .masthead-banner .site-branding .site-title,
+    header#masthead .site-title,
+    .site-title {
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        text-decoration: none !important;
+        line-height: 1 !important;
+        font-size: 16px !important;
+        width: 50px !important;
+        max-width: none !important;
+    }
+
+    .masthead-banner .site-branding .site-title a,
+    header#masthead .site-title a,
+    .site-title a {
+        text-decoration: none !important;
+        display: block !important;
+    }
+
+    .hr-stacked-wordmark {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1px !important;
+    }
+
+    .hr-stacked-wordmark .hr-word-top,
+    .hr-stacked-wordmark .hr-word-bottom,
+    .hr-word-top,
+    .hr-word-bottom {
+        display: block !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        font-size: 13px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.01em !important;
+        text-transform: uppercase !important;
+        line-height: 1.1 !important;
+    }
+
+    .hr-word-top {
+        color: #ffffff !important;
+        opacity: 0.82 !important;
+    }
+
+    .hr-word-bottom {
+        color: #C8102E !important;
+        opacity: 0.82 !important;
+    }
+
+    .masthead-banner .site-branding .site-description,
+    header#masthead .site-description,
+    .site-description {
+        display: none !important;
+    }
+}
+
+/* ======================================================================
+   Desktop nav + search panel (was wp_footer)
+   ====================================================================== */
+@media only screen and (min-width: 769px) {
+
+    .main-navigation,
+    nav.main-navigation,
+    #site-navigation {
+        background-color: #C0001A !important; 
+        position: relative !important;
+        z-index: 100;
+        width: 100% !important;
+        display: block !important;
+        border: none !important;
+        text-align: center !important; 
+        overflow: hidden !important; 
+    }
+    
+    .main-navigation > div:not(#hr-action-group):not(#hr-navbar-search),
+    .menu-primary-container {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
+    }
+
+    .main-navigation ul.nav-menu,
+    .main-navigation ul.menu,
+    #site-navigation ul {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        width: max-content !important; 
+    }
+
+    .main-navigation ul > li {
+        float: none !important;
+        display: inline-block !important;
+    }
+
+    .main-navigation ul.nav-menu > li > a,
+    .main-navigation ul.menu > li > a,
+    #site-navigation ul > li > a {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        padding: 16px 20px !important;
+        position: relative !important;
+        text-transform: capitalize !important;
+        transition: color 0.2s ease, background 0.2s ease !important;
+    }
+
+    #hr-action-group {
+        position: absolute !important;
+        right: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        display: flex !important;
+        align-items: stretch !important;
+        background: transparent !important; 
+        width: auto !important;
+        z-index: 101 !important;
+        border-left: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+
+    #hr-action-group #hr-search-trigger {
+        background: transparent !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        font: inherit !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #fff !important;
+        text-decoration: none !important;
+        transition: background 0.2s ease !important;
+        height: 100% !important;
+        padding: 0 24px !important;
+        cursor: pointer;
+    }
+
+    #hr-action-group #hr-search-trigger:hover {
+        background: rgba(0, 0, 0, 0.15) !important; 
+    }
+    
+    .header-search-wrapper, .search-icon { display: none !important; }
+
+    #hr-navbar-search {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background-color: #141414 !important;
+        z-index: 105 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-100%);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+
+    #hr-navbar-search.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    #hr-navbar-search form {
+        width: 100% !important;
+        max-width: 800px !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 0 24px !important;
+        margin: 0 !important;
+    }
+
+    #hr-navbar-search input[type="text"] {
+        flex-grow: 1 !important;
+        background: transparent !important;
+        border: none !important;
+        color: #fff !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        outline: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+
+    #hr-navbar-search input[type="text"]::placeholder {
+        color: rgba(255, 255, 255, 0.4) !important;
+        font-weight: 400 !important;
+    }
+
+    .hr-inline-search-close {
+        background: none !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        font-size: 28px !important;
+        font-weight: 300 !important;
+        cursor: pointer !important;
+        line-height: 1 !important;
+        padding-left: 20px !important;
+        transition: color 0.2s ease !important;
+        font-family: -apple-system, sans-serif !important;
+    }
+
+    .hr-inline-search-close:hover {
+        color: #fff !important;
+    }
+}
+
+@media only screen and (max-width: 768px) {
+    #hr-action-group, #hr-navbar-search { display: none !important; }
+}
+
+/* ======================================================================
+   Design tokens (contract with the hr-platform plugin; same values as its fallbacks)
+   ====================================================================== */
+:root {
+    --hr-red: #ff001c;
+    --hr-red-deep: #c0001a;
+    --hr-black: #050505;
+    --hr-surface: #111112;
+    --hr-line-dark: #1a1a1e;
+    --hr-ink: #111111;
+    --hr-paper: #ffffff;
+    --hr-paper-2: #f2f2f7;
+    --hr-line: #e5e5ea;
+    --hr-muted: #5f5f66;
+    --hr-muted-dark: #a1a1a8;
+    --hr-ok: #00875a;
+    --hr-warn: #b45309;
+    --hr-font-sans: "Source Sans 3", "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --hr-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* ======================================================================
+   Accessibility: keyboard focus on the mobile menu toggle (was force-removed)
+   ====================================================================== */
+.main-navigation .toggle-menu a.aft-void-menu { -webkit-tap-highlight-color: transparent; }
+.main-navigation .toggle-menu a.aft-void-menu:focus:not(:focus-visible) { outline: none !important; box-shadow: none !important; }
+.main-navigation .toggle-menu a.aft-void-menu:focus-visible,
+#hr-action-group #hr-search-trigger:focus-visible,
+.hr-inline-search-close:focus-visible {
+    outline: 2px solid #fff !important;
+    outline-offset: -4px;
+    box-shadow: none !important;
+}
+
+/* Mobile menu icon (was inline styles on a <label>) */
+.toggle-menu .hamburger { margin-bottom: 5px; /* Bootstrap's label margin, kept from the old <label> */ cursor: pointer; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.toggle-menu .hamburger svg { height: 48em; transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1); }
+.toggle-menu .hamburger .line { fill: none; stroke: #ffffff; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
+.toggle-menu .hamburger .line-top-bottom { stroke-dasharray: 12 63; }
+.toggle-menu .is-open .hamburger svg { transform: rotate(-45deg); }
+.toggle-menu .is-open .hamburger .line-top-bottom { stroke-dasharray: 20 300; stroke-dashoffset: -32.42; }
+
+
+/* ======================================================================
+   TradingView ticker tape at the top of <body> (was Code Snippet #7, inline styles)
+   ====================================================================== */
+.hr-ticker-tape {
+    width: 100%;
+    background: #ffffff;
+    border-bottom: 1px solid #eeeeee;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+.hr-ticker-tape__widget { width: 100%; }
+
+/* ======================================================================
+   Home sections: former inline style attributes (hook-front-page-main-banner-section-1.php)
+   ====================================================================== */
+body #page .hr-exec-person { text-align: center; margin-top: 0; }
+body #page .hr-exec-person-name { font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: 0.3px; }
+body #page .hr-exec-person-title { font-size: 12px; font-weight: 500; color: #9CA3AF; margin-top: 4px; }
+body #page .sbp-exec-badge-text.hr-exec-badge-text { margin-top: 8px; }
+body #page .hr-flush { padding: 0; }
+body #page .sbp-native-tv-mask { position: relative !important; overflow: hidden !important; height: 340px !important; width: 100%; }
+body #page .hr-tv-quotes,
+body #page .hr-tv-quotes .tradingview-widget-container__widget { width: 100%; height: 420px; }
+body #page section.sbp-world-news-section { padding-top: 20px !important; }
+body #page .sbp-tag-bordered.hr-world-tag { margin-top: 15px; margin-bottom: 10px; }
+body #page .sbp-world-card .sbp-card-title a.hr-world-link { color: #ffffff !important; }
+body #page .sbp-world-card .sbp-card-date.hr-world-date { color: #666666 !important; }
+body #page .hr-opinion-section { border-top: 10px solid #050505; }
+body #page .sbp-section-header.hr-opinion-header { border-bottom: 2px solid #111111; padding-bottom: 12px; margin-bottom: 35px; display: flex; justify-content: space-between; align-items: center; padding-left: 0; }
+body #page .sbp-section-title.hr-opinion-title { color: #111111; font-size: 14px; letter-spacing: 2px; font-weight: 800; margin: 0; }
+body #page .sbp-red-line.hr-opinion-dash { color: #ff001c; margin-right: 10px; }
+body #page .sbp-view-all.hr-opinion-more { color: #ff001c; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; text-decoration: none; }
+body #page .sbp-briefing-thumb.hr-opinion-thumb { margin-bottom: 18px; }
+body #page .sbp-opinion-author.hr-opinion-author { margin-bottom: 10px; }
+body #page .hr-opinion-author-name { font-size: 12px; font-weight: 800; color: #ff001c; text-transform: uppercase; letter-spacing: 1px; }
+body #page .sbp-card-title a.hr-opinion-link { font-size: 17px; line-height: 1.4; font-weight: 700; color: #111111; }
+body #page .sbp-card-date.hr-opinion-date { color: #888888; font-size: 11px; }
+
+/* ======================================================================
+   Calls to action: home hero (bottom of "Latest News") and sticky mobile bar.
+   "Join free" becomes "My reading streak" when <html> has .hr-li (plugin, until its session check) or
+   .hr-signed-in (hr-site.js, from the same hint cookie, kept unless the session check says signed out).
+   ====================================================================== */
+.hr-cta-streak,
+html:is(.hr-li, .hr-signed-in) .hr-cta-join { display: none !important; }
+html:is(.hr-li, .hr-signed-in) .hr-cta-streak { display: inline-flex !important; }
+
+body #page .hr-cta-hero {
+    margin-top: 8px;
+    padding-top: 24px;
+    border-top: 1px solid #1a1a1e;
+}
+body #page .hr-cta-hero-title { margin: 0 0 6px; color: #ffffff; font-size: 16px; font-weight: 700; line-height: 1.35; }
+body #page .hr-cta-hero-text { margin: 0 0 16px; color: #a1a1a8; font-size: 14px; line-height: 1.5; }
+body #page .hr-cta-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+body #page .hr-cta-action,
+.hr-mobile-cta a.hr-mobile-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    line-height: 1.2;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+body #page .hr-cta-action--primary,
+.hr-mobile-cta a.hr-mobile-cta-btn--primary { background: #ff001c; border-color: #ff001c; color: #ffffff; }
+body #page .hr-cta-action--primary:hover,
+.hr-mobile-cta a.hr-mobile-cta-btn--primary:hover { background: #c0001a; border-color: #c0001a; color: #ffffff; }
+body #page .hr-cta-action--ghost,
+.hr-mobile-cta a.hr-mobile-cta-btn--ghost { background: transparent; border-color: rgba(255, 255, 255, 0.35); color: #ffffff; }
+body #page .hr-cta-action--ghost:hover,
+.hr-mobile-cta a.hr-mobile-cta-btn--ghost:hover { border-color: #ffffff; color: #ffffff; }
+body #page .hr-cta-action:focus-visible,
+.hr-mobile-cta a.hr-mobile-cta-btn:focus-visible,
+.hr-mobile-cta-close:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+
+/* Sticky mobile bar (shown by hr-site.js; never above the cookie banner) */
+.hr-mobile-cta { display: none; }
+@media (max-width: 768px) {
+    html:has(#hr-mobile-cta) { scroll-padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+    .hr-mobile-cta {
+        position: fixed;
+        z-index: 9990;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+        background: #050505;
+        border-top: 2px solid #ff001c;
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+        transform: translateY(110%);
+        visibility: hidden;
+        transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    }
+    .hr-mobile-cta.is-visible { transform: none; visibility: visible; transition: transform 0.25s ease; }
+    html.hr-consent-pending .hr-mobile-cta,
+    html:has(.hr-cc.is-open) .hr-mobile-cta { display: none; }
+    .hr-mobile-cta a.hr-mobile-cta-btn { flex: 1 1 0; min-width: 0; padding: 0 10px; }
+    .hr-mobile-cta-close {
+        flex: 0 0 44px;
+        height: 44px;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        background: transparent;
+        color: #ffffff;
+        font-size: 26px;
+        line-height: 1;
+        cursor: pointer;
+    }
+}
+
+/* ======================================================================
+   404 page
+   ====================================================================== */
+.hr-404 { padding: 0 0 64px; }
+.hr-404-hero {
+    background: #050505;
+    color: #ffffff;
+    padding: clamp(40px, 8vw, 88px) clamp(20px, 6vw, 72px);
+    margin: 24px 0 48px;
+    border-top: 4px solid #ff001c;
+}
+.hr-404-code { margin: 0; font-size: clamp(88px, 22vw, 180px); font-weight: 800; line-height: 0.9; letter-spacing: -0.04em; color: #ffffff; }
+.hr-404-code span { color: #ff001c; }
+.hr-404-title { margin: 20px 0 10px; color: #ffffff; font-size: clamp(26px, 4vw, 40px); font-weight: 800; line-height: 1.15; }
+.hr-404-text { margin: 0 0 28px; max-width: 60ch; color: #a1a1a8; font-size: 17px; line-height: 1.6; }
+.hr-404-search { max-width: 640px; }
+.hr-404-label { display: block; margin-bottom: 8px; color: #ffffff; font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
+.hr-404-field { display: flex; gap: 0; }
+.hr-404-field input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 1px solid #3a3a40;
+    border-right: 0;
+    border-radius: 0;
+    background: #111112;
+    color: #ffffff;
+    font-size: 16px;
+}
+.hr-404-field input:focus-visible { outline: 2px solid #ff001c; outline-offset: 0; }
+.hr-404-field button {
+    flex: 0 0 auto;
+    min-height: 48px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 0;
+    background: #ff001c;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.hr-404-field button:hover { background: #c0001a; }
+.hr-404-field button:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+.hr-404-links { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 0; }
+.hr-404-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 48px; }
+.hr-404-heading { margin: 0 0 20px; padding-bottom: 12px; border-bottom: 2px solid #111111; color: #111111; font-size: 14px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
+.hr-404-heading::before { content: "\2014\00a0"; color: #ff001c; }
+.hr-404-stories { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 28px 24px; margin: 0; padding: 0; list-style: none; }
+.hr-404-story a { display: block; color: #111111; text-decoration: none; }
+.hr-404-story img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; margin-bottom: 12px; background: #f2f2f7; }
+.hr-404-story-cat { display: block; margin-bottom: 6px; color: #c0001a; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.hr-404-story-title { display: block; font-size: 17px; font-weight: 700; line-height: 1.4; }
+.hr-404-story a:hover .hr-404-story-title { color: #c0001a; }
+.hr-404-story time { display: block; margin-top: 6px; color: #6b6b6b; font-size: 13px; }
+.hr-404-cats { margin: 0; padding: 0; list-style: none; }
+.hr-404-cats a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 48px;
+    border-bottom: 1px solid #e5e5ea;
+    color: #111111;
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+}
+.hr-404-cats a:hover { color: #c0001a; }
+.hr-404-cats .count { color: #6b6b6b; font-size: 13px; font-weight: 600; }
+.hr-404 a:focus-visible { outline: 2px solid #ff001c; outline-offset: 2px; }
+@media (max-width: 900px) {
+    .hr-404-grid { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+}
+
+/* ======================================================================
+   Reduced motion: no transitions on theme-owned controls
+   ====================================================================== */
+@media (prefers-reduced-motion: reduce) {
+    .toggle-menu .hamburger svg,
+    .hr-mobile-cta,
+    .hr-mobile-cta.is-visible,
+    #hr-navbar-search,
+    .sbp-card:hover { transition: none !important; }
+    .sbp-card:hover { transform: none; }
+}

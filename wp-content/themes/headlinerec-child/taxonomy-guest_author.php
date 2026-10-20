@@ -219,7 +219,7 @@ if (count($name_parts) >= 2) {
     <!-- 1. AUTHOR PROFILE HEADER -->
     <div class="hr-author-header">
         <?php if ($author_avatar): ?>
-            <img src="<?php echo esc_url($author_avatar); ?>" alt="<?php echo esc_attr($author_name); ?>" class="hr-author-header-img">
+            <img src="<?php echo esc_url($author_avatar); ?>" alt="<?php echo esc_attr($author_name); ?>" class="hr-author-header-img" width="120" height="120" decoding="async">
         <?php else: ?>
             <div class="hr-author-header-initials" style="background: #F3F4F6; display: flex; align-items: center; justify-content: center;">
                 <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -239,9 +239,9 @@ if (count($name_parts) >= 2) {
     <div class="hr-archive-grid">
         <?php if (have_posts()) : while (have_posts()) : the_post(); ?>
             
-            <a href="<?php the_permalink(); ?>" class="hr-card">
+            <a href="<?php echo esc_url(get_permalink()); ?>" class="hr-card">
                 <?php if (has_post_thumbnail()) : ?>
-                    <img src="<?php echo get_the_post_thumbnail_url(get_the_ID(), 'medium_large'); ?>" class="hr-card-thumb" alt="<?php the_title_attribute(); ?>">
+                    <?php echo hr_post_image(get_the_ID(), 'medium_large', array('class' => 'hr-card-thumb')); // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_url/esc_attr ?>
                 <?php else: ?>
                     <div class="hr-card-placeholder">No Image</div>
                 <?php endif; ?>
@@ -252,7 +252,7 @@ if (count($name_parts) >= 2) {
                     <span class="hr-card-date"><?php echo get_the_date('M d, Y'); ?></span>
                 </div>
                 
-                <h3 class="hr-card-title"><?php the_title(); ?></h3>
+                <h3 class="hr-card-title"><?php echo esc_html(get_the_title()); ?></h3>
                 <p class="hr-card-excerpt"><?php echo wp_trim_words(get_the_excerpt(), 22, '...'); ?></p>
             </a>
 

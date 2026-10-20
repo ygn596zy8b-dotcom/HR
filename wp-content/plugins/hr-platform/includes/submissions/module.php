@@ -194,9 +194,11 @@ function get_submission( int $id ): ?\WP_Post {
 // ---------------------------------------------------------------------------------------------------------------
 
 function user_submissions( int $uid, string $email = '' ): array {
-    $ids = $uid > 0 ? get_posts( array( 'post_type' => CPT, 'post_status' => 'any', 'author' => $uid, 'numberposts' => -1, 'fields' => 'ids' ) ) : array();
+    // 'any' alone skips the bin, and a binned submission still holds the writer's sealed headshot and details.
+    $query = array( 'post_type' => CPT, 'post_status' => array( 'any', 'trash' ), 'numberposts' => -1, 'fields' => 'ids' );
+    $ids   = $uid > 0 ? get_posts( $query + array( 'author' => $uid ) ) : array();
     if ( '' !== $email ) {
-        $ids = array_merge( $ids, get_posts( array( 'post_type' => CPT, 'post_status' => 'any', 'numberposts' => -1, 'fields' => 'ids', 'meta_key' => '_hr_sub_email', 'meta_value' => $email ) ) );
+        $ids = array_merge( $ids, get_posts( $query + array( 'meta_key' => '_hr_sub_email', 'meta_value' => $email ) ) );
     }
     return array_values( array_unique( array_map( 'intval', $ids ) ) );
 }

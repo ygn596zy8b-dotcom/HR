@@ -45,7 +45,7 @@ add_filter( 'manage_' . CPT . '_posts_columns', function ( array $cols ): array 
 
 add_action( 'manage_' . CPT . '_posts_custom_column', function ( string $col, int $post_id ) {
     if ( 'hr_logo' === $col ) {
-        echo get_the_post_thumbnail( $post_id, 'thumbnail', array( 'style' => 'height:40px;width:auto;max-width:120px;object-fit:contain' ) ) ?: '—';
+        echo get_the_post_thumbnail( $post_id, 'medium', array( 'style' => 'height:40px;width:auto;max-width:120px;object-fit:contain' ) ) ?: '—';
     } elseif ( 'menu_order' === $col ) {
         echo (int) get_post_field( 'menu_order', $post_id );
     }

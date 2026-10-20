@@ -357,11 +357,11 @@ html { scroll-behavior: smooth; }
                         <div class="hr-alert hr-alert-green">
                             <p class="hr-alert-title">End-to-end encrypted</p>
                             <p class="hr-alert-text">
-                                Your piece and the details you add to it are encrypted in your browser before they are sent, using post-quantum ML-KEM-1024 (combined with P-384) and AES-256-GCM. Only our editors can decrypt them, in their own browsers, with a key that is kept off our web server. The headline, the type and the category stay unencrypted, together with your account and the date, so editors can manage the queue.
+                                Your piece and the details you add to it are encrypted in your browser before they are sent, using post-quantum ML-KEM-1024 (combined with P-384) and AES-256-GCM. Only our editors can decrypt them, in their own browsers, with a key that is kept off our web server. The headline, type, category, word count, whether a file is attached and the contact email you give stay unencrypted, together with your account and the date, so editors can manage the queue and reply to you. If you tick “Remember my name, title and intro”, those three details are kept unencrypted with your account until you untick it or delete the account.
                             </p>
                         </div>
                         <p class="hr-priv-text" style="margin: 16px 0 0;">
-                            Editors receive an email notice when a new piece arrives (without its contents). We keep submissions for as long as we need them to review your piece and keep an editorial record. If we do not publish a piece, you can ask us to delete it at any time. If we publish it, it becomes a public article with your byline, headshot and intro.
+                            Editors receive an email notice when a new piece arrives (without its contents). We keep submissions for as long as we need them to review your piece and keep an editorial record. If we do not publish a piece, you can ask us to delete it at any time; deleting your account deletes all of your unpublished submissions. If we publish it, it becomes a public article with your byline, headshot and intro.
                         </p>
                     </div>
                 </div>

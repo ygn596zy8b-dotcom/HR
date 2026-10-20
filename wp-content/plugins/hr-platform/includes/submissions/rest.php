@@ -116,10 +116,13 @@ function validate_submission( array $d, array $key ) {
 // Size cap before WordPress parses the JSON body (that happens before the route's callbacks run). Routes match
 // case-insensitively, so /HR/V1/Submissions reaches rest_submit too and must hit this cap.
 add_filter( 'rest_pre_dispatch', function ( $result, $server, \WP_REST_Request $request ) {
-    if ( null === $result && 0 === strcasecmp( untrailingslashit( $request->get_route() ), '/hr/v1/submissions' ) && 'POST' === $request->get_method()
-        && ( (int) $request->get_header( 'content_length' ) > MAX_BODY || strlen( $request->get_body() ) > MAX_BODY ) ) {
+    if ( null !== $result || 'POST' !== $request->get_method() || 0 !== strcasecmp( untrailingslashit( $request->get_route() ), '/hr/v1/submissions' ) ) {
+        return $result;
+    }
+    if ( (int) $request->get_header( 'content_length' ) > MAX_BODY || strlen( $request->get_body() ) > MAX_BODY ) {
         return fail( 'too_large', 'This submission is too large. Keep the attachment under 8 MB.', 413 );
     }
+    wp_raise_memory_limit( 'hr_submissions' ); // a full-size request peaks near 60 MB once the JSON is parsed
     return $result;
 }, 10, 3 );
 
@@ -133,13 +136,18 @@ function rest_submit( \WP_REST_Request $request ) {
     if ( ! current_user_can( 'edit_posts' ) && ! Accounts\is_verified( $uid ) ) {
         return fail( 'unverified', 'Confirm your email address before submitting.', 403 );
     }
-    if ( ! rate_limit( 'submission_minute', (string) $uid, 1, MINUTE_IN_SECONDS ) ) {
+    // rate_limit() reads then writes a transient, so parallel requests could all pass it: one check at a time per
+    // user (a MySQL named lock, released below or when the connection closes). NULL means no lock support: go on.
+    global $wpdb;
+    $lock = $wpdb->prefix . 'hr_submission_' . $uid; // lock names are server-wide
+    if ( '0' === $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) ) || ! rate_limit( 'submission_minute', (string) $uid, 1, MINUTE_IN_SECONDS ) ) {
         return fail( 'rate_limited', 'Please wait a minute before submitting again.', 429 );
     }
-    if ( ! rate_limit( 'submission_day', (string) $uid, 5, DAY_IN_SECONDS ) || ! rate_limit( 'submission_ip', ip_hash(), 20, DAY_IN_SECONDS ) ) {
+    $within = rate_limit( 'submission_day', (string) $uid, 5, DAY_IN_SECONDS ) && rate_limit( 'submission_ip', ip_hash(), 20, DAY_IN_SECONDS );
+    $wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+    if ( ! $within ) {
         return fail( 'rate_limited', 'You have reached today\'s limit for submissions. Please try again tomorrow.', 429 );
     }
-    wp_raise_memory_limit( 'hr_submissions' );
     $data = $request->get_json_params();
     $f    = validate_submission( is_array( $data ) ? $data : array(), $key );
     if ( is_wp_error( $f ) ) {
