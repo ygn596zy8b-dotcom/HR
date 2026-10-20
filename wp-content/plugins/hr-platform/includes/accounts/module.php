@@ -108,7 +108,7 @@ add_action( 'init', function () {
 add_filter( 'hr_settings_schema', function ( array $schema ) {
     $schema['accounts'] = array(
         'title'       => 'Reader accounts',
-        'description' => 'Sign-in, passkeys and two-step verification for readers and staff. Staff (anyone who can edit posts) must use a passkey or two-step verification to open wp-admin unless <code>HR_ENFORCE_STAFF_MFA</code> is set to <code>false</code> in wp-config.php.',
+        'description' => 'Sign-in, passkeys and two-step verification for readers and staff. Staff are reminded to add a passkey or two-step verification; requiring it for editors and authors is opt-in with <code>define( \'HR_ENFORCE_STAFF_MFA\', true );</code> in wp-config.php. Administrators are never locked out.',
         'fields'      => array(
             'accounts_hibp'               => array(
                 'label'       => 'Reject breached passwords',
