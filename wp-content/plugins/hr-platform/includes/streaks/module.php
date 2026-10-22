@@ -1,7 +1,8 @@
 <?php
 /**
- * Streaks — Duolingo-style daily reading habit: read tracking, streaks, freezes, XP, badges, the /dashboard/ page
- * and opt-in reminder emails.
+ * Streaks: a Duolingo-style daily reading habit. Read tracking, streaks, freezes, XP, badges, the /dashboard/ page
+ * (with the first sign-in tutorial, see tour.php), the floating streak widget on every page (widget.php) and opt-in
+ * reminder emails.
  *
  * How a read counts: single posts print a sentinel after the article body (hr_single_after_content). streak.js
  * (same cached file for everyone) does nothing for guests; for signed-in readers it starts a read
@@ -9,12 +10,14 @@
  * (POST hr/v1/reads/complete; see rest.php). Each article counts once per reader, ever.
  *
  * Contracts:
- *   Filter 'hr_streak_min_seconds' ( int $seconds, int $post_id ) — local copies only (WP_ENVIRONMENT_TYPE local).
- *   Browser: document 'hr:streak' event (detail = streak view) after each counted read; the account chip listens.
+ *   Filter 'hr_streak_min_seconds' ( int $seconds, int $post_id ): local copies only (WP_ENVIRONMENT_TYPE local).
+ *   Browser: document 'hr:streak' event (detail = streak view) after each counted read; the account chip and the
+ *   floating widget listen. window.HR.streakWidget = { visible(), notify( text, short ), celebrate() } (widget).
  *   Streak view shape: { current, best, today, goal, met_today, at_risk, freezes, xp, level, next_level_xp },
- *   also added to the hr_session payload as 'streak'.
+ *   also added to the hr_session payload as 'streak', plus 'streak_ui' = { max_freezes, tour } (widget.php).
  *   Helpers (HR\Platform\Streaks): summary( $uid ): array (view), refresh( $uid ), erase( $uid ), dashboard_url(),
- *   dashboard_page() — renders /dashboard/ (called by the theme's page-dashboard.php; see dashboard.php).
+ *   dashboard_page(): renders /dashboard/ (called by the theme's page-dashboard.php; see dashboard.php).
+ *   Filter 'hr_login_default_redirect' (accounts): a reader's first sign-in lands on /dashboard/ (tour.php).
  *   Cron: 'hr_streak_reminders' daily at 19:00 site time (monitored as 'streak-reminders'); see reminders.php.
  *   Route: /reading/unsubscribe/?u=<id>&t=<token> (reminder unsubscribe; GET confirms, POST unsubscribes).
  * Storage: table {prefix}hr_reads; user meta listed in META_KEYS (includes the old theme dashboard's keys).
@@ -29,10 +32,10 @@ const META_KEYS  = array(
     '_hr_streak_count', '_hr_longest_streak', '_hr_total_articles_read', '_hr_streak_freezes', '_hr_today_read_posts',
     '_hr_earned_badges', '_hr_badge_dates', '_hr_last_read_date', '_hr_reading_history', '_hr_last_goal_date',
     '_hr_daily_goal', '_hr_goal_changed_on', '_hr_xp', '_hr_opeds_read', '_hr_freeze_used', '_hr_streak_reminders',
-    '_hr_reminder_sent', '_hr_streak_v',
+    '_hr_reminder_sent', '_hr_streak_v', '_hr_streak_tour',
 );
 
-foreach ( array( 'engine', 'store', 'rest', 'dashboard', 'reminders' ) as $hr_streaks_file ) {
+foreach ( array( 'engine', 'store', 'rest', 'dashboard', 'reminders', 'tour', 'widget' ) as $hr_streaks_file ) {
     require_once __DIR__ . "/{$hr_streaks_file}.php";
 }
 unset( $hr_streaks_file );

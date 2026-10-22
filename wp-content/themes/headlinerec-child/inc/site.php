@@ -51,8 +51,17 @@ function hr_ticker_tape() {
     if ( hr_is_sensitive_page() ) {
         return;
     }
+    // Until the tape has loaded (and for good if it cannot), the strip shows the latest SBP figures at the same height.
+    $placeholder = hr_tv_placeholder( array(
+        'variant' => 'tape',
+        'loading' => 'Live market ticker loads here',
+        'error'   => 'The live market ticker is unavailable right now.',
+        'off'     => 'The live market ticker is switched off in your cookie settings.',
+        'figures' => hr_sbp_figures( array( 'policy_rate', 'inflation', 'kibor', 'pkr_usd', 'remittances' ) ),
+    ) );
     ?>
-<div class="hr-ticker-tape">
+<div class="hr-ticker-tape hr-tv hr-tv--tape" data-hr-tv-state="idle">
+  <?php echo $placeholder; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in hr_tv_placeholder() ?>
   <div class="tradingview-widget-container hr-ticker-tape__widget">
     <div class="tradingview-widget-container__widget"></div>
     <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js">
@@ -124,7 +133,7 @@ function hr_mobile_cta() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Home: the parent's widget section after "Opinion" renders only empty widget areas — drop it so no gap remains.
+// Home: the parent's widget section after "Opinion" renders only empty widget areas. Drop it so no gap remains.
 // ---------------------------------------------------------------------------------------------------------------
 
 add_action( 'wp', static function () {
@@ -154,4 +163,55 @@ function hr_post_image( int $post_id, string $size, array $attr = array() ): str
         $html .= sprintf( ' %s="%s"', esc_attr( $name ), esc_attr( $value ) );
     }
     return $html . '>';
+}
+
+/**
+ * Featured image for a card or list item, through wp_get_attachment_image() (srcset from the size's family,
+ * width/height so nothing shifts), or the branded placeholder when the post has none.
+ *
+ * @param string $sizes Rendered width for the browser's srcset choice, e.g. "(min-width: 769px) 120px, 112px".
+ * @param array  $attr  Extra attributes. Lazy + async by default; pass 'loading' => 'eager' for the first screen
+ *                      (the parent theme forces lazy on every attachment image, so the requested value is restored).
+ */
+function hr_card_image( int $post_id, string $size, string $sizes, array $attr = array() ): string {
+    $id = (int) get_post_thumbnail_id( $post_id );
+    if ( $id && wp_attachment_is_image( $id ) ) {
+        $alt  = trim( (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) );
+        $attr = array_merge(
+            array(
+                'alt'      => '' !== $alt ? $alt : wp_strip_all_tags( get_the_title( $post_id ) ),
+                'sizes'    => $sizes,
+                'loading'  => 'lazy',
+                'decoding' => 'async',
+            ),
+            $attr
+        );
+        $loading = $attr['loading'];
+        $keep    = static function ( $a ) use ( $loading ) {
+            $a['loading'] = $loading;
+            return $a;
+        };
+        add_filter( 'wp_get_attachment_image_attributes', $keep, 99 );
+        $html = wp_get_attachment_image( $id, $size, false, $attr );
+        remove_filter( 'wp_get_attachment_image_attributes', $keep, 99 );
+        if ( $html ) {
+            return $html;
+        }
+    }
+    return hr_card_image_fallback();
+}
+
+/** Placeholder for a post without a featured image: the HR mark on the site's near-black, same box as the image. */
+function hr_card_image_fallback(): string {
+    return '<span class="hr-img-fallback" aria-hidden="true"><span class="hr-img-fallback__mark">H<span>R</span></span></span>';
+}
+
+/** First category of a post that is not the "Editor's Picks" flag, or ''. */
+function hr_primary_category_name( int $post_id ): string {
+    foreach ( get_the_category( $post_id ) as $cat ) {
+        if ( "editor's picks" !== strtolower( html_entity_decode( $cat->name, ENT_QUOTES ) ) ) {
+            return $cat->name;
+        }
+    }
+    return '';
 }

@@ -199,7 +199,7 @@ function handle_resend( \WP_User $user ): void {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// /account/verify/?u=&t=[&a=email] — GET shows a button (link scanners only GET), POST confirms.
+// /account/verify/?u=&t=[&a=email]: GET shows a button (link scanners only GET), POST confirms.
 // ---------------------------------------------------------------------------------------------------------------
 
 function route_verify(): void {
@@ -279,7 +279,7 @@ function route_verify(): void {
     }
     complete_login( $user, false, 'email-link' );
     flash( 'welcome' );
-    redirect( account_url() );
+    redirect( default_login_redirect( $user ) );
 }
 
 function render_verify_state( string $state, string $kind, array $vars ): void {

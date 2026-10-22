@@ -92,7 +92,7 @@ function unsubscribe_url( int $uid ): string {
 function send_reminder( \WP_User $user, array $view ): bool {
     $left    = max( 1, $view['goal'] - $view['today'] );
     $reads   = suggestions( (int) $user->ID, 3 );
-    $subject = sprintf( 'Your %d-day streak ends at midnight — here are %d quick reads', $view['current'], count( $reads ) );
+    $subject = sprintf( 1 === count( $reads ) ? 'Your %d-day streak ends at midnight: %d quick read to keep it' : 'Your %d-day streak ends at midnight: %d quick reads to keep it', $view['current'], count( $reads ) );
     if ( ! $reads ) {
         $subject = sprintf( 'Your %d-day streak ends at midnight', $view['current'] );
     }

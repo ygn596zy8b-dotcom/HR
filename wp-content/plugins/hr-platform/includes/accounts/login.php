@@ -30,6 +30,15 @@ function complete_login( \WP_User $user, bool $remember, string $method ): void 
     log_security( 'login', array( 'uid' => (int) $user->ID, 'method' => $method ) );
 }
 
+/**
+ * Where a sign-in lands when no return URL was asked for: the account overview, or what the filter
+ * 'hr_login_default_redirect' ( string $url, WP_User $user ) returns (streaks sends a first sign-in to its tutorial).
+ * Always same-site. Our sign-in paths call it either just before or just after complete_login().
+ */
+function default_login_redirect( \WP_User $user ): string {
+    return safe_redirect_target( (string) apply_filters( 'hr_login_default_redirect', account_url(), $user ), account_url() );
+}
+
 // The hardening mu-plugin throttles sign-ins on 'authenticate' at priority 1, but WordPress's own password check
 // (priority 20) discards an earlier WP_Error and authenticates anyway. Carry the throttle verdict past it, for every
 // sign-in path (our forms and wp-login.php).
@@ -108,7 +117,7 @@ function route_login(): void {
             if ( ! $errors ) {
                 $result = attempt_password_login( $log, $pwd );
                 if ( $result instanceof \WP_User ) {
-                    $redirect = requested_redirect() ?: account_url();
+                    $redirect = requested_redirect() ?: default_login_redirect( $result );
                     if ( needs_second_factor( $result ) ) {
                         start_second_factor( $result, $remember, $redirect );
                     }
@@ -313,7 +322,7 @@ function passkey_challenge_for( int $uid, array $state ): string {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// /account/logout/ — GET asks, POST (nonce) signs out. A link alone can never sign anyone out.
+// /account/logout/: GET asks, POST (nonce) signs out. A link alone can never sign anyone out.
 // ---------------------------------------------------------------------------------------------------------------
 
 function route_logout(): void {

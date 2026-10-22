@@ -6,7 +6,7 @@
  * @var WP_User $user  @var array $view  @var string $today  @var array $week  @var array $heat
  * @var int $heat_reads  @var int $heat_days  @var int $heat_goals  @var int $xp_pct  @var array $badges  @var int $total
  * @var array $reads  @var WP_Post[] $suggestions  @var bool $goal_locked  @var bool $reminders  @var bool $verified
- * @var string $saved  @var string $nonce
+ * @var string $saved  @var string $nonce  @var array $steps (tour_steps())  @var bool $tour_auto (open the tutorial on load)
  */
 
 use function HR\Platform\icon;
@@ -17,6 +17,9 @@ use function HR\Platform\Streaks\dashboard_url;
 use const HR\Platform\Streaks\BADGES;
 use const HR\Platform\Streaks\GOALS;
 use const HR\Platform\Streaks\MAX_FREEZES;
+use const HR\Platform\Streaks\XP_ARTICLE;
+use const HR\Platform\Streaks\XP_OPED;
+use const HR\Platform\Streaks\XP_GOAL;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -29,7 +32,7 @@ $hrs_date  = static fn( string $d, string $f = 'j M Y' ) => wp_date( $f, strtoti
 $hrs_plural = static fn( int $n, string $one, string $many ) => sprintf( 1 === $n ? $one : $many, number_format_i18n( $n ) );
 
 if ( $view['met_today'] ) {
-    $hrs_banner = array( 'done', 'check', sprintf( "Today's goal is met. Your %s is safe — come back tomorrow to keep it going.", number_format_i18n( $hrs_cur ) . '-day streak' ) );
+    $hrs_banner = array( 'done', 'check', sprintf( "Today's goal is met. Your %s is safe. Come back tomorrow to keep it going.", number_format_i18n( $hrs_cur ) . '-day streak' ) );
 } elseif ( $view['at_risk'] ) {
     $hrs_banner = array( 'risk', 'clock', sprintf( 'Read %s before midnight to keep your %s-day streak.', $hrs_plural( $hrs_left, '%s more article', '%s more articles' ), number_format_i18n( $hrs_cur ) ) );
 } elseif ( $view['best'] > 0 ) {
@@ -85,6 +88,9 @@ $hrs_saved = array(
             <?php echo icon( $hrs_banner[1] ); // phpcs:ignore -- static SVG ?>
             <span><?php echo esc_html( $hrs_banner[2] ); ?></span>
         </p>
+        <p class="hrs-how-link">
+            <a href="#hrs-how" data-hrs-tour-open><?php echo icon( 'sparkles' ); // phpcs:ignore -- static SVG ?><span>How streaks work</span></a>
+        </p>
     </section>
 
     <section class="hrs-section hrs-week" aria-labelledby="hrs-week-title">
@@ -123,7 +129,7 @@ $hrs_saved = array(
                 <div class="hrs-bar" role="progressbar" aria-label="Progress to the next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?php echo (int) $xp_pct; ?>">
                     <span style="--hrs-pct:<?php echo (int) $xp_pct; ?>%"></span>
                 </div>
-                <p class="hrs-meta"><?php echo esc_html( sprintf( '%s XP to level %s. Each article is worth 10 XP, an op-ed 15, and meeting your daily goal 20 more.', number_format_i18n( $view['next_level_xp'] - $view['xp'] ), number_format_i18n( $view['level'] + 1 ) ) ); ?></p>
+                <p class="hrs-meta"><?php echo esc_html( sprintf( '%s XP to level %s. Each article is worth %d XP, an op-ed %d, and meeting your daily goal %d more.', number_format_i18n( $view['next_level_xp'] - $view['xp'] ), number_format_i18n( $view['level'] + 1 ), XP_ARTICLE, XP_OPED, XP_GOAL ) ); ?></p>
             </section>
 
             <section class="hrs-section" aria-labelledby="hrs-next-title">
@@ -134,14 +140,14 @@ $hrs_saved = array(
                             $hrs_oped = 'oped' === kind_of( $hrs_post );
                             ?>
                             <li class="hrs-next__item<?php echo $hrs_oped ? ' is-oped' : ''; ?>">
-                                <span class="hrs-next__kind"><?php echo esc_html( $hrs_oped ? 'Op-ed · 15 XP' : 'Article · 10 XP' ); ?></span>
+                                <span class="hrs-next__kind"><?php echo esc_html( $hrs_oped ? 'Op-ed · ' . XP_OPED . ' XP' : 'Article · ' . XP_ARTICLE . ' XP' ); ?></span>
                                 <a class="hrs-next__title" href="<?php echo esc_url( get_permalink( $hrs_post ) ); ?>"><?php echo esc_html( html_entity_decode( get_the_title( $hrs_post ), ENT_QUOTES, 'UTF-8' ) ); ?></a>
                                 <span class="hrs-meta"><?php echo esc_html( minutes( $hrs_post ) . ' min read' ); ?></span>
                             </li>
                         <?php endforeach; ?>
                     </ul>
                 <?php else : ?>
-                    <p class="hrs-empty">You have read everything we have published. Impressive — check back soon.</p>
+                    <p class="hrs-empty">You have read everything we have published. Check back soon for new stories.</p>
                 <?php endif; ?>
             </section>
 
@@ -265,4 +271,30 @@ $hrs_saved = array(
             </section>
         </div>
     </div>
+
+    <?php /* The tutorial: static cards (work without JavaScript); streak-dashboard.js turns them into a step-through dialog. */ ?>
+    <section class="hrs-section hrs-how" id="hrs-how" aria-labelledby="hrs-how-title" tabindex="-1"
+        data-hrs-tour="<?php echo $tour_auto && '' === $saved ? 'auto' : ''; ?>"
+        data-hrs-nonce="<?php echo esc_attr( wp_create_nonce( $nonce ) ); ?>"
+        data-hrs-action="<?php echo esc_url( dashboard_url() ); ?>">
+        <div class="hrs-head">
+            <h2 class="hrs-h2" id="hrs-how-title">How streaks work</h2>
+            <button type="button" class="hrp-btn hrp-btn--ghost hrs-how__tour" data-hrs-tour-open hidden>Take the tour</button>
+        </div>
+        <ol class="hrs-how__steps" role="list">
+            <?php foreach ( $steps as $hrs_i => $hrs_step ) : ?>
+                <li class="hrs-how__step" data-hrs-step data-icon="<?php echo esc_attr( $hrs_step['icon'] ); ?>">
+                    <span class="hrs-how__top" aria-hidden="true">
+                        <span class="hrs-how__icon"><?php echo icon( $hrs_step['icon'] ); // phpcs:ignore -- static SVG ?></span>
+                        <span class="hrs-how__num"><?php echo esc_html( sprintf( '%02d', $hrs_i + 1 ) ); ?></span>
+                    </span>
+                    <h3 class="hrs-how__title"><?php echo esc_html( $hrs_step['title'] ); ?></h3>
+                    <p class="hrs-how__text"><?php echo esc_html( $hrs_step['text'] ); ?></p>
+                    <?php if ( '' !== $hrs_step['detail'] ) : ?>
+                        <p class="hrs-how__detail"><?php echo esc_html( $hrs_step['detail'] ); ?></p>
+                    <?php endif; ?>
+                </li>
+            <?php endforeach; ?>
+        </ol>
+    </section>
 </div>

@@ -391,7 +391,7 @@ function rest_login_verify( \WP_REST_Request $request ) {
         return generic_passkey_error();
     }
     $remember = ! empty( $body['remember'] );
-    $redirect = safe_redirect_target( is_string( $body['redirect_to'] ?? null ) ? $body['redirect_to'] : '', account_url() );
+    $redirect = safe_redirect_target( is_string( $body['redirect_to'] ?? null ) ? $body['redirect_to'] : '', default_login_redirect( $user ) );
     complete_login( $user, $remember, 'passkey' );
     return rest_ensure_response( array( 'ok' => true, 'redirect' => esc_url_raw( $redirect ) ) );
 }

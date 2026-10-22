@@ -1,6 +1,6 @@
 <?php
 /**
- * /reading/unsubscribe/ — turn off streak reminder emails. Theme override: headlinerec-child/hr/streaks/unsubscribe.php
+ * /reading/unsubscribe/: turn off streak reminder emails. Theme override: headlinerec-child/hr/streaks/unsubscribe.php
  *
  * @var string $state confirm | done | invalid | busy
  */

@@ -2,7 +2,8 @@
 /**
  * Streaks: the /dashboard/ page (WordPress page 5289; the theme's page-dashboard.php calls dashboard_page()).
  * Preferences (daily goal, reminder emails) are plain POST forms back to the page: nonce + same origin, then a
- * redirect with ?saved=<code> so a reload never re-submits.
+ * redirect with ?saved=<code> so a reload never re-submits. The tutorial's "Got it" / "Don't show again" post the same
+ * way (hr_action=tour) from streak-dashboard.js, asking for JSON instead of the redirect.
  */
 
 namespace HR\Platform\Streaks;
@@ -29,7 +30,12 @@ function dashboard_page(): void {
     }
     $uid = get_current_user_id();
     if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
-        wp_safe_redirect( add_query_arg( 'saved', save_prefs( $uid ), dashboard_url() ) . '#hrs-prefs', 303 );
+        $code = save_prefs( $uid );
+        if ( str_contains( (string) ( $_SERVER['HTTP_ACCEPT'] ?? '' ), 'application/json' ) ) {
+            $ok = ! in_array( $code, array( 'expired', 'busy', 'invalid', 'goal-locked' ), true );
+            wp_send_json( array( 'ok' => $ok, 'code' => $code ), $ok ? 200 : 400 );
+        }
+        wp_safe_redirect( 'tour' === $code ? dashboard_url() : add_query_arg( 'saved', $code, dashboard_url() ) . '#hrs-prefs', 303 );
         exit;
     }
     set_page_title( 'Reading streak' );
@@ -57,6 +63,10 @@ function save_prefs( int $uid ): string {
             return 'invalid';
         }
         return set_goal( $uid, $goal ) ? 'goal' : 'goal-locked';
+    }
+    if ( 'tour' === $action ) {
+        tour_done( $uid );
+        return 'tour';
     }
     if ( 'reminders' === $action ) {
         update_user_meta( $uid, '_hr_streak_reminders', empty( $_POST['reminders'] ) ? '0' : '1' );
@@ -131,6 +141,8 @@ function dashboard_data( int $uid ): array {
         'verified'    => ! function_exists( 'HR\Platform\Accounts\is_verified' ) || \HR\Platform\Accounts\is_verified( $uid ),
         'saved'       => isset( $_GET['saved'] ) ? sanitize_key( wp_unslash( $_GET['saved'] ) ) : '',
         'nonce'       => PREFS_NONCE,
+        'steps'       => tour_steps( $goal ),
+        'tour_auto'   => tour_pending( $uid ),
     );
 }
 
@@ -149,7 +161,7 @@ function suggestions( int $uid, int $limit ): array {
 
 /** Rough reading time in minutes, for suggestion cards and reminder emails. */
 function minutes( \WP_Post $post ): int {
-    return max( 1, (int) round( word_count( $post ) / 238 ) );
+    return max( 1, (int) round( word_count( $post ) / READ_WPM ) );
 }
 
 /** The filled two-tone flame (same shapes as streak.mjs). Grey and still when there is no streak. */

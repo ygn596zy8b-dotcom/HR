@@ -18,6 +18,8 @@ const XP_ARTICLE   = 10;
 const XP_OPED      = 15;
 const XP_GOAL      = 20;
 const XP_LONG      = 5;
+const LONG_STREAK  = 7; // goal days earn XP_LONG on top of XP_GOAL once the streak is longer than this
+const FREEZE_EVERY = 7; // a freeze is earned each time the streak reaches a multiple of this (up to MAX_FREEZES held)
 
 /** slug => [title, how to earn]. Order = display order and the priority of the badge a celebration names. */
 const BADGES = array(
@@ -108,7 +110,7 @@ function compute( array $s, string $today, int $today_count, int $goal ): array 
         $events['new_best'] = $s['best'] > 0;
         $s['best']          = $s['current'];
     }
-    if ( 0 === $s['current'] % 7 && $s['freezes'] < MAX_FREEZES ) {
+    if ( 0 === $s['current'] % FREEZE_EVERY && $s['freezes'] < MAX_FREEZES ) {
         $s['freezes']++;
         $events['freeze_earned'] = true;
     }
@@ -116,7 +118,7 @@ function compute( array $s, string $today, int $today_count, int $goal ): array 
         $events['milestone'] = $s['current'];
     }
     $events['weekend'] = '7' === gmdate( 'N', strtotime( $today . ' 00:00:00 UTC' ) ) && $last === shift_date( $today, -1 );
-    $events['xp']      = XP_GOAL + ( $s['current'] > 7 ? XP_LONG : 0 );
+    $events['xp']      = XP_GOAL + ( $s['current'] > LONG_STREAK ? XP_LONG : 0 );
     $s['xp']          += $events['xp'];
     return array( $s, $events );
 }

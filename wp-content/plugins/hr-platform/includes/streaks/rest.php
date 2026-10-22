@@ -21,13 +21,19 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 const MAX_AGE = 12 * HOUR_IN_SECONDS;
 
+// Minimum reading time (min_seconds()). The dashboard tutorial quotes these numbers, so change them only here.
+const READ_WPM         = 238; // words a minute, an average adult reader
+const READ_SHARE       = 0.3; // share of the full reading time that must pass
+const READ_MIN_SECONDS = 20;
+const READ_MAX_SECONDS = 120;
+
 function word_count( \WP_Post $post ): int {
     return str_word_count( wp_strip_all_tags( strip_shortcodes( $post->post_content ) ) );
 }
 
 /** About 30% of the time an average reader (238 wpm) needs, between 20 seconds and 2 minutes. */
 function min_seconds( \WP_Post $post ): int {
-    $seconds = (int) max( 20, min( 120, round( word_count( $post ) / 238 * 60 * 0.3 ) ) );
+    $seconds = (int) max( READ_MIN_SECONDS, min( READ_MAX_SECONDS, round( word_count( $post ) / READ_WPM * 60 * READ_SHARE ) ) );
     if ( 'local' === wp_get_environment_type() ) {
         // Local copies only: lets end-to-end tests skip the wait.
         $seconds = max( 0, (int) apply_filters( 'hr_streak_min_seconds', $seconds, $post->ID ) );
@@ -108,7 +114,7 @@ function rest_complete( \WP_REST_Request $request ) {
         return rest_error( 'expired', 'This read has expired. Reload the page to count it.', 400 );
     }
     if ( $elapsed < min_seconds( $post ) - 2 ) {
-        return rest_error( 'too_fast', 'Keep reading — this article has not been open long enough to count.', 400 );
+        return rest_error( 'too_fast', 'Keep reading: this article has not been open long enough to count yet.', 400 );
     }
 
     $now     = time();

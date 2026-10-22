@@ -21,3 +21,4 @@ foreach ( array( 'settings', 'seo', 'og-card', 'icons', 'alt-text', 'schema', 'c
     require_once __DIR__ . "/{$hr_site_part}.php";
 }
 unset( $hr_site_part );
+require_once __DIR__ . '/typography.php'; // house style: no em dashes (on save, on display, Tools > Remove em dashes)
