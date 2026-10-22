@@ -51,7 +51,7 @@ function cli_sign( array $args, array $assoc ): void {
         \WP_CLI::error( $key->get_error_message() . ' Set it up in Settings > Content signing.' );
     }
     $pending = queue_candidate_ids( 0, 0, true );
-    \WP_CLI::log( sprintf( 'Key %s. %d article(s) pending.', group_hex( $key['kid'], 4 ), $pending ) );
+    \WP_CLI::log( sprintf( 'Key %s, %d article(s) pending.', group_hex( $key['kid'], 4 ), $pending ) );
 
     $token = acquire_lock( 600 );
     if ( '' === $token ) {

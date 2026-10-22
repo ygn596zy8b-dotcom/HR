@@ -134,7 +134,7 @@ function dashboard_data( int $uid ): array {
         'xp_pct'      => (int) floor( 100 * ( $view['xp'] - $floor ) / max( 1, $view['next_level_xp'] - $floor ) ),
         'badges'      => $state['badges'],
         'total'       => (int) get_user_meta( $uid, '_hr_total_articles_read', true ),
-        'reads'       => reads( $uid, 20 ),
+        'reads'       => reads( $uid, 10 ),
         'suggestions' => suggestions( $uid, 3 ),
         'goal_locked' => get_user_meta( $uid, '_hr_goal_changed_on', true ) === $today,
         'reminders'   => '1' === get_user_meta( $uid, '_hr_streak_reminders', true ),

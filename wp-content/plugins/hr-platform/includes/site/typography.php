@@ -465,6 +465,9 @@ function emdash_rewrite( string $flat, array $parts, ?array &$changes ): string 
                 'clause'      => array( emdash_clause_punct( $tok['right'] ), ' ' ),
                 default       => array( '', '' ), // drop, none, trail
             };
+            if ( preg_match( '/\p{Arabic}[^\p{L}\p{N}]*$/u', $tok['left'] ) ) {
+                $punct = strtr( $punct, array( ',' => "\u{060C}", ';' => "\u{061B}" ) ); // Urdu comma and semicolon
+            }
             [ $from, $to, $new ] = array( $tok['l0'], $tok['r1'], emdash_emit( $tok['ph'], $parts, $punct, $after ) );
         }
         if ( null !== $changes ) {
@@ -523,17 +526,17 @@ function emdash_classify( array $tok ): string {
         return 'join'; // Pakistan-China, Karachi-Lahore
     }
     $closing_quote = static fn( string $q, string $then ): bool => in_array( $q, array( '"', "'" ), true ) && ( '' === $then || 1 === preg_match( '/^[\s\p{P}]$/u', $then ) );
-    if ( preg_match( '/^[,.;:!?)\]}\x{2026}\x{201D}\x{2019}]$/u', $next ) || $closing_quote( $next, $after ) ) {
+    if ( preg_match( '/^[,.;:!?)\]}\x{2026}\x{201D}\x{2019}\x{060C}\x{061B}\x{061F}\x{06D4}]$/u', $next ) || $closing_quote( $next, $after ) ) {
         return 'drop';
     }
-    if ( preg_match( '/^[,;:]$/u', $prev ) ) {
+    if ( preg_match( '/^[,;:\x{060C}\x{061B}]$/u', $prev ) ) {
         return 'space';
     }
     $opening_quote = in_array( $prev, array( '"', "'" ), true ) && ( '' === $before || ' ' === $before );
     if ( preg_match( '/^[(\[{\x{201C}\x{2018}\x{00AB}]$/u', $prev ) || $opening_quote ) {
         return 'none';
     }
-    $ends_sentence = preg_match( '/[.!?\x{2026}]["\'\x{201D}\x{2019})]*$/u', emdash_without_abbreviations( $left ) );
+    $ends_sentence = preg_match( '/[.!?\x{2026}\x{061F}\x{06D4}]["\'\x{201D}\x{2019})]*$/u', emdash_without_abbreviations( $left ) );
     if ( $ends_sentence && ! preg_match( '/^\p{Ll}/u', $right ) ) {
         return 'hyphen'; // "...he said. - APP", a closing quote followed by the speaker's name
     }
@@ -574,7 +577,7 @@ function emdash_clause_punct( string $right ): string {
 
 /** True when the text holds a full stop, question or exclamation mark that ends a sentence (not "U.S." or "Dr."). */
 function emdash_has_sentence_end( string $text ): bool {
-    return 1 === preg_match( '/[.!?\x{2026}]["\'\x{201D}\x{2019})\]]*(?:\s|$)/u', emdash_without_abbreviations( $text ) );
+    return 1 === preg_match( '/[.!?\x{2026}\x{061F}\x{06D4}]["\'\x{201D}\x{2019})\]]*(?:\s|$)/u', emdash_without_abbreviations( $text ) );
 }
 
 /** The text with the full stops of abbreviations and initials removed. */
@@ -1051,7 +1054,7 @@ add_action( 'wp_ajax_hr_emdash_apply', function () {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_send_json_error( array( 'message' => 'You are not allowed to do this.' ), 403 );
     }
-    if ( ! check_ajax_referer( 'hr_emdash_apply', 'nonce', false ) || ! same_origin_request() ) {
+    if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! check_ajax_referer( 'hr_emdash_apply', 'nonce', false ) || ! same_origin_request() ) {
         wp_send_json_error( array( 'message' => 'This page has expired. Reload it and try again.' ), 403 );
     }
     $after = isset( $_POST['after'] ) ? absint( wp_unslash( $_POST['after'] ) ) : 0;

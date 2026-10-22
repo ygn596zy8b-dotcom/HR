@@ -11,9 +11,13 @@ mkdir -p "$T/bundled/mu-plugins"
 rsync -a -L --exclude 'assets/src' --exclude 'tests' --exclude 'node_modules' wp-content/plugins/hr-platform/ "$T/bundled/hr-platform/"
 [ -f "$T/bundled/hr-platform/vendor/autoload.php" ] || { echo "vendor missing: run composer install --no-dev in wp-content/plugins/hr-platform"; exit 1; }
 cp wp-content/mu-plugins/*.php "$T/bundled/mu-plugins/"
+# Web-root files, dotfiles included: robots.txt, .well-known/, and .user.ini (PHP settings the installer merges).
 rsync -a deploy/webroot/ "$T/bundled/webroot/"
+[ -f "$T/bundled/webroot/.user.ini" ] || { echo "deploy/webroot/.user.ini missing"; exit 1; }
 cp infra/litespeed/htaccess-hardening.conf deploy/wp-config.sample.php "$T/bundled/"
 find "$T" \( -name '*.secret.json' -o -name '.git' -o -name '*.map' \) -prune -exec rm -rf {} +
+# Never ship tests or unbundled sources.
+if find "$T" \( -type d \( -name tests -o -path '*/assets/src' \) \) | grep -q .; then echo "tests/ or assets/src leaked into the bundle"; exit 1; fi
 rm -f headline-recorder-theme.zip
 (cd "$STAGE" && zip -qr "$OLDPWD/headline-recorder-theme.zip" headlinerec-child)
 ls -lh headline-recorder-theme.zip

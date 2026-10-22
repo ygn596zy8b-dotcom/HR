@@ -92,6 +92,12 @@ $html_cases = array(
     array( '">" inside an attribute', '<p><span data-x="1 > 0{D}2">A{D}b</span></p>', '<p><span data-x="1 > 0{D}2">A, b</span></p>' ),
     array( 'literal "<" is text', '<p>If x < y{D}then z.</p>', '<p>If x < y, then z.</p>' ),
     array( 'no dash: unchanged', '<p>Plain text, no dash.</p>', '<p>Plain text, no dash.</p>' ),
+    // Urdu (right to left): the Urdu comma and semicolon, and the Urdu full stop ends a sentence.
+    array( 'Urdu paired aside', '<p dir="rtl">پاکستان کی معیشت {D} جو مشکل میں ہے {D} بہتر ہو رہی ہے۔</p>', '<p dir="rtl">پاکستان کی معیشت، جو مشکل میں ہے، بہتر ہو رہی ہے۔</p>' ),
+    array( 'Urdu single dash', 'وزیر خزانہ نے کہا{D}معیشت مستحکم ہے', 'وزیر خزانہ نے کہا، معیشت مستحکم ہے' ),
+    array( 'Urdu sentence end is not an aside', 'شرح سود {D} برقرار ہے۔ بینک {D} منافع', 'شرح سود، برقرار ہے۔ بینک، منافع' ),
+    array( 'Latin before Urdu: colon', '<p>PSX {D} پاکستان اسٹاک ایکسچینج</p>', '<p>PSX: پاکستان اسٹاک ایکسچینج</p>' ),
+    array( 'escaped entity text kept', 'A &amp; B {mdash} c &amp;mdash; d', 'A &amp; B, c &amp;mdash; d' ),
     array( 'en dash is not an em dash', '<p>The 5' . "\u{2013}" . '7% band.</p>', '<p>The 5' . "\u{2013}" . '7% band.</p>' ),
 );
 

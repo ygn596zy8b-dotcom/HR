@@ -618,7 +618,7 @@ body #page .hr-biz-item-body { min-width: 0; }
 body #page .hr-biz-item .sbp-story-cat { display: block; margin-bottom: 6px; font-size: 11px !important; }
 @media (max-width: 768px) {
     body #page .hr-biz-item { grid-template-columns: 104px minmax(0, 1fr); column-gap: 14px; }
-    body #page .sbp-biz-list { padding-left: 15px !important; padding-right: 15px !important; margin-top: 24px; }
+    body #page .sbp-biz-list { padding-left: 7.5px !important; padding-right: 7.5px !important; margin-top: 24px; }
 }
 
 /* 9d. Executive Spotlight on the home page: a larger portrait, head kept in frame */

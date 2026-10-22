@@ -12,6 +12,8 @@ function setText(sel, value) {
   document.querySelectorAll(`[data-hr-sig="${sel}"]`).forEach((el) => { el.textContent = fmt(value); });
 }
 
+const FEED_NAMES = { feed: 'Site feed', podcast: 'Podcast feed' };
+
 const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
 if (root) {
@@ -115,7 +117,7 @@ if (root) {
         }
         if (data.done) {
           const feeds = Object.entries(data.feeds || {})
-            .map(([key, status]) => `${key} feed: ${status === 'stored' ? 'signed' : status}`).join('; ');
+            .map(([key, status]) => `${FEED_NAMES[key] || key}: ${status === 'stored' ? 'signed again' : status}`).join('; ');
           say(`Done. ${fmt(signed)} signed${failed ? `, ${fmt(failed)} could not be signed (listed below)` : ''}. ${fmt(data.signedAll)} of ${fmt(data.public)} articles are now signed.${feeds ? ` ${feeds}.` : ''}`);
           break;
         }
