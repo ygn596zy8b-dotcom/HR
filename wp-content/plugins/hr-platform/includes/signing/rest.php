@@ -7,8 +7,10 @@
  *   POST /signing/signatures                 signer: upload article signatures
  *   POST /signing/feeds                      signer: upload a signed feed snapshot
  *
- * Signer endpoints need the hr_sign_content capability (role hr_signer, authenticated with an application password,
- * which the hardening mu-plugin allows for that role only).
+ * The site signs on its own (signer.php). These signer endpoints stay as the offline alternative
+ * (security/pq/wp-sign.mjs): they need the hr_sign_content capability (role hr_signer, authenticated with an
+ * application password, which the hardening mu-plugin allows for that role only). Uploads and the server's own
+ * signatures go through the same two store functions below, and both are verified in PHP before anything is stored.
  */
 
 namespace HR\Platform\Signing;
@@ -133,8 +135,11 @@ add_filter( 'rest_pre_serve_request', function ( $served, $result, $request ) {
 // Queue
 // ---------------------------------------------------------------------------------------------------------------
 
-/** IDs of public posts that have no signature, a stale one, or one from a revoked/removed key. Newest first. */
-function queue_candidate_ids( int $limit, int $offset, bool $count = false ) {
+/**
+ * IDs of public posts that have no signature, a stale one, or one from a revoked/removed key. Newest first.
+ * $before = array( post_date_gmt, ID ) continues after that post in the same order (a cursor that skips failures).
+ */
+function queue_candidate_ids( int $limit, int $offset, bool $count = false, ?array $before = null ) {
     global $wpdb;
     $kids = valid_kids();
     $args = array( META_SHA, META_STALE, META_KID );
@@ -151,6 +156,12 @@ function queue_candidate_ids( int $limit, int $offset, bool $count = false ) {
         LEFT JOIN {$wpdb->postmeta} k ON k.post_id = p.ID AND k.meta_key = %s
         WHERE p.post_type = 'post' AND p.post_status = 'publish' AND p.post_password = ''
           AND ( h.meta_id IS NULL OR s.meta_value = '1' OR k.meta_id IS NULL{$kid_clause} )";
+    if ( $before && ! $count ) {
+        $from  .= ' AND ( p.post_date_gmt < %s OR ( p.post_date_gmt = %s AND p.ID < %d ) )';
+        $args[] = (string) $before[0];
+        $args[] = (string) $before[0];
+        $args[] = (int) $before[1];
+    }
     if ( $count ) {
         return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT p.ID) {$from}", $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL
     }
@@ -253,13 +264,12 @@ function rest_queue( \WP_REST_Request $request ) {
 // ---------------------------------------------------------------------------------------------------------------
 
 /**
- * Shape check of an uploaded signature document and decode of its protected header.
+ * Shape check of a signature document and decode of its protected header.
  * Returns [header, doc] or a short status string ('invalid', 'bad_key').
  *
- * PHP has no ML-DSA implementation, so the server cannot check the signatures themselves. It checks everything that
- * binds an upload to this exact article (key ID, type, address, SHA-512 of the current canonical bytes, attached
- * payload); readers and partners verify the cryptography with the published keyset, so a forged or mismatched
- * signature is never shown as valid.
+ * This only checks the shape. The store functions below then check everything that binds a signature to this exact
+ * article or feed (key ID, type, address, SHA-512 of the current bytes, attached payload) and verify both signatures
+ * with the PHP verifier (crypto.php), so nothing unverified is ever stored or served.
  */
 function parse_signature( $sig, bool $attached ) {
     $fields = $attached ? array( 'protected', 'mldsa87', 'ed448', 'payload' ) : array( 'protected', 'mldsa87', 'ed448' );
@@ -304,7 +314,7 @@ function rest_signatures( \WP_REST_Request $request ) {
     $body  = json_body( $request, UPLOAD_MAX_BYTES );
     $items = is_array( $body ) && array_is_list( $body ) ? $body : ( $body['items'] ?? null );
     if ( ! is_array( $items ) || ! array_is_list( $items ) || ! $items || count( $items ) > UPLOAD_MAX_ITEMS ) {
-        return new \WP_Error( 'hr_bad_request', 'Expected {"items":[…]} with 1–100 signatures, at most 8 MB.', array( 'status' => 400 ) );
+        return new \WP_Error( 'hr_bad_request', 'Expected {"items":[…]} with 1 to 100 signatures, at most 8 MB.', array( 'status' => 400 ) );
     }
     $results = array();
     $stored  = 0;
@@ -315,6 +325,9 @@ function rest_signatures( \WP_REST_Request $request ) {
             $stored++;
         }
         $results[] = array( 'id' => $id, 'status' => $status );
+        if ( 'bad_signature' === $status ) {
+            log_security( 'pqsig_upload_bad_signature', array( 'post' => $id ) );
+        }
     }
     if ( $stored < count( $items ) ) {
         log_security( 'pqsig_upload_rejected', array( 'stored' => $stored, 'rejected' => count( $items ) - $stored ) );
@@ -322,7 +335,10 @@ function rest_signatures( \WP_REST_Request $request ) {
     return new \WP_REST_Response( array( 'stored' => $stored, 'results' => $results ) );
 }
 
-/** Returns 'stored', 'not_found', 'invalid', 'bad_key' or 'stale'. */
+/**
+ * The one place an article signature is stored, for uploads and for the server's own signer.
+ * Returns 'stored', 'not_found', 'invalid', 'bad_key', 'stale' or 'bad_signature'.
+ */
 function store_article_signature( int $id, $sig ): string {
     $post = $id > 0 ? signable_post( $id ) : null;
     if ( ! $post ) {
@@ -343,6 +359,9 @@ function store_article_signature( int $id, $sig ): string {
     }
     if ( ! hash_equals( $canonical, b64url_decode( $sig['payload'] ) ) ) {
         return 'invalid';
+    }
+    if ( ! verify_document( $sig, $canonical ) ) {
+        return 'bad_signature';
     }
     $doc = wp_json_encode( array(
         'protected' => $sig['protected'],
@@ -395,21 +414,52 @@ function rest_feeds( \WP_REST_Request $request ) {
     if ( '' === $xml || strlen( $xml ) > FEED_MAX_BYTES ) {
         return $bad( 'Feed content missing or too large.' );
     }
-    $parsed = parse_signature( $body['sig'] ?? null, false );
+    $status = store_feed_snapshot( $key, $xml, $body['sig'] ?? null );
+    if ( 'stored' !== $status ) {
+        if ( 'bad_signature' === $status ) {
+            log_security( 'pqsig_feed_bad_signature', array( 'key' => $key ) );
+        }
+        return $bad( FEED_ERRORS[ $status ] ?? 'Malformed signature.' );
+    }
+    return new \WP_REST_Response( array( 'key' => $key, 'status' => 'stored' ) );
+}
+
+const FEED_ERRORS = array(
+    'invalid'       => 'Malformed signature.',
+    'bad_key'       => 'Signed with a key that is not in the configured keyset.',
+    'mismatch'      => 'Signature does not cover this feed.',
+    'not_rss'       => 'Feed is not well-formed RSS.',
+    'older'         => 'Older than the stored snapshot.',
+    'bad_signature' => 'Signature is invalid.',
+    'unknown'       => 'Unknown feed.',
+);
+
+/**
+ * The one place a feed snapshot is stored, for uploads and for the server's own signer.
+ * Returns 'stored' or a key of FEED_ERRORS.
+ */
+function store_feed_snapshot( string $key, string $xml, $sig ): string {
+    if ( ! array_key_exists( $key, feed_sources() ) ) {
+        return 'unknown';
+    }
+    $parsed = parse_signature( $sig, false );
     if ( is_string( $parsed ) ) {
-        return $bad( 'bad_key' === $parsed ? 'Signed with a key that is not in the configured keyset.' : 'Malformed signature.' );
+        return $parsed;
     }
     [ $header, $sig ] = $parsed;
     if ( 'feed' !== $header['type'] || '/signed/' . $key . '.xml' !== $header['url'] || ! hash_equals( hash( 'sha512', $xml ), $header['sha512'] ) ) {
-        return $bad( 'Signature does not cover this feed.' );
+        return 'mismatch';
     }
     if ( ! is_well_formed_feed( $xml ) ) {
-        return $bad( 'Feed is not well-formed RSS.' );
+        return 'not_rss';
     }
     // No rollback: an older snapshot (even a genuinely signed one) must not replace a newer one.
     $current = stored_feed( $key );
     if ( $current && (int) $header['signedAtTs'] < (int) ( $current['at'] ?? 0 ) ) {
-        return $bad( 'Older than the stored snapshot.' );
+        return 'older';
+    }
+    if ( ! verify_document( $sig, $xml ) ) {
+        return 'bad_signature';
     }
     $doc = wp_json_encode( array( 'protected' => $sig['protected'], 'mldsa87' => $sig['mldsa87'], 'ed448' => $sig['ed448'] ), JSON_UNESCAPED_SLASHES );
     update_option( FEED_OPTION . $key, array(
@@ -419,11 +469,11 @@ function rest_feeds( \WP_REST_Request $request ) {
         'kid'    => $header['kid'],
         'at'     => (int) $header['signedAtTs'],
     ), false );
-    // The server cannot check the signature itself, so every replacement of a public file is on the record.
+    // Every replacement of a public file is on the record.
     log_security( 'pqsig_feed_stored', array( 'key' => $key, 'kid' => substr( $header['kid'], 0, 16 ), 'bytes' => strlen( $xml ) ) );
     do_action( 'litespeed_purge_url', home_url( '/signed/' . $key . '.xml' ) );
     do_action( 'litespeed_purge_url', home_url( '/signed/' . $key . '.xml.sig.json' ) );
-    return new \WP_REST_Response( array( 'key' => $key, 'status' => 'stored' ) );
+    return 'stored';
 }
 
 function rest_keyset(): \WP_REST_Response {

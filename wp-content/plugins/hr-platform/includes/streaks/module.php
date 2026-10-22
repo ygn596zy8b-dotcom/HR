@@ -12,7 +12,7 @@
  * Contracts:
  *   Filter 'hr_streak_min_seconds' ( int $seconds, int $post_id ): local copies only (WP_ENVIRONMENT_TYPE local).
  *   Browser: document 'hr:streak' event (detail = streak view) after each counted read; the account chip and the
- *   floating widget listen. window.HR.streakWidget = { visible(), notify( text, short ), celebrate() } (widget).
+ *   floating widget listen. window.HR.streakWidget = { visible(), notify( text ) } (widget).
  *   Streak view shape: { current, best, today, goal, met_today, at_risk, freezes, xp, level, next_level_xp },
  *   also added to the hr_session payload as 'streak', plus 'streak_ui' = { max_freezes, tour } (widget.php).
  *   Helpers (HR\Platform\Streaks): summary( $uid ): array (view), refresh( $uid ), erase( $uid ), dashboard_url(),

@@ -1,10 +1,11 @@
 <?php
 /**
- * Post-quantum content signing: canonical article bytes, the signer's queue/upload API, public signature files,
- * the publisher keyset, the /verify/ page and the "signed" notices.
+ * Post-quantum content signing: canonical article bytes, automatic server-side signing, the signer's queue/upload
+ * API, public signature files, the publisher keyset, the /verify/ page and the "signed" notices.
  *
- * The signing secret key never reaches this server. A signer (GitHub Action or an editor's machine, see
- * security/pq/wp-sign.mjs) pulls the queue, signs locally with ML-DSA-87 + Ed448 and uploads the signatures.
+ * The site signs every article and the feeds itself with ML-DSA-87 + Ed448 (pure PHP, pq/), using a server signing
+ * key that is kept encrypted outside the web root (keystore.php, set up in Settings > Content signing). The REST
+ * queue/upload API stays as the offline alternative (security/pq/wp-sign.mjs). See docs/SIGNING.md.
  */
 
 namespace HR\Platform\Signing;
@@ -28,11 +29,19 @@ const MLDSA87_SIG_BYTES = 4627;
 const ED448_PK_BYTES    = 57;
 const ED448_SIG_BYTES   = 114;
 
+require_once __DIR__ . '/pq/load.php';
 require_once __DIR__ . '/keyset.php';
 require_once __DIR__ . '/canonical.php';
+require_once __DIR__ . '/crypto.php';
+require_once __DIR__ . '/keystore.php';
 require_once __DIR__ . '/rest.php';
+require_once __DIR__ . '/signer.php';
 require_once __DIR__ . '/routes.php';
 require_once __DIR__ . '/display.php';
+if ( is_admin() || wp_doing_ajax() ) {
+    require_once __DIR__ . '/admin.php';
+}
+require_once __DIR__ . '/cli.php';
 
 function install_role(): void {
     $role = get_role( ROLE );

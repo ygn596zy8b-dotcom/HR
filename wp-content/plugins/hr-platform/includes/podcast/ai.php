@@ -23,6 +23,7 @@ Rules:
 - Write 4 to 6 segments, most important story first; related articles may share a segment.
 - Spoken style: short sentences, numbers written the way a presenter reads them, no lists, headings or markdown inside a script. Separate paragraphs with a blank line.
 - For every segment, list the ids of the articles it is based on in source_ids.
+- Punctuation: never use em dashes. Use commas, colons, full stops or parentheses instead.
 - title: a short episode title naming the main story (no date, at most 80 characters). summary: one or two sentences, at most 300 characters.
 TXT;
 
@@ -236,21 +237,34 @@ function validate_script( $data, array $allowed_ids ): ?array {
         if ( ! is_array( $segment ) || ! is_string( $segment['heading'] ?? null ) || ! is_string( $segment['script'] ?? null ) || ! is_array( $segment['source_ids'] ?? null ) ) {
             return null;
         }
-        $script = trim( wp_strip_all_tags( mb_substr( $segment['script'], 0, 6000 ) ) );
+        $script = no_dashes( trim( wp_strip_all_tags( mb_substr( $segment['script'], 0, 6000 ) ) ) );
         if ( '' === $script ) {
             continue;
         }
         $segments[] = array(
-            'heading'    => sanitize_text_field( mb_substr( $segment['heading'], 0, 160 ) ),
+            'heading'    => no_dashes( sanitize_text_field( mb_substr( $segment['heading'], 0, 160 ) ) ),
             'script'     => $script,
             'source_ids' => array_values( array_intersect( array_unique( array_map( 'intval', array_filter( $segment['source_ids'], 'is_int' ) ) ), $allowed_ids ) ),
         );
     }
-    $title = sanitize_text_field( mb_substr( $data['title'], 0, 120 ) );
+    $title = no_dashes( sanitize_text_field( mb_substr( $data['title'], 0, 120 ) ) );
     if ( ! $segments || '' === $title ) {
         return null;
     }
-    return array( 'title' => $title, 'summary' => sanitize_text_field( mb_substr( $data['summary'], 0, 300 ) ), 'segments' => $segments );
+    return array( 'title' => $title, 'summary' => no_dashes( sanitize_text_field( mb_substr( $data['summary'], 0, 300 ) ) ), 'segments' => $segments );
+}
+
+/** House style has no em dashes: a spaced or closed-up em dash (or its entities) becomes a comma. */
+function no_dashes( string $text ): string {
+    $text = preg_replace( '/\s*(?:\x{2014}|&mdash;|&#8212;|&#x2014;)\s*/iu', ', ', $text );
+    return trim( (string) preg_replace( '/,\s*,/', ',', (string) $text ), " \t\n\r\0\x0B," );
+}
+
+/** "Daily Briefing: October 22, 2026 - SBP holds the policy rate" (site date format, no em dash). */
+function briefing_title( string $story, ?int $timestamp = null ): string {
+    $date  = wp_date( (string) get_option( 'date_format' ) ?: 'j F Y', $timestamp );
+    $story = trim( no_dashes( $story ) );
+    return '' === $story ? sprintf( 'Daily Briefing: %s', $date ) : sprintf( 'Daily Briefing: %s - %s', $date, $story );
 }
 
 function create_draft( array $script, array $articles, int $author ) {
@@ -272,7 +286,7 @@ function create_draft( array $script, array $articles, int $author ) {
         'post_type'    => CPT,
         'post_status'  => 'draft',
         'post_author'  => $author,
-        'post_title'   => sprintf( 'Daily Briefing — %s: %s', wp_date( get_option( 'date_format' ) ), $script['title'] ),
+        'post_title'   => briefing_title( $script['title'] ),
         'post_content' => wp_kses_post( $html ),
         'post_excerpt' => $script['summary'],
     ), true );

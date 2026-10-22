@@ -108,13 +108,23 @@ function hamburger() {
 }
 
 // Sticky mobile CTA: shown after the lead hero, hidden while scrolling down fast, while typing, or once dismissed.
+// While it is on screen, :root --hr-sticky-cta-h holds its height (0px otherwise), so other fixed UI (back to top,
+// the reading-streak widget in the bottom-left corner) can sit above it.
 function mobileCta() {
+  const root = document.documentElement;
+  const setHeight = (px) => {
+    const v = `${Math.round(px)}px`;
+    if (root.style.getPropertyValue('--hr-sticky-cta-h') !== v) root.style.setProperty('--hr-sticky-cta-h', v);
+  };
+  setHeight(0);
   const bar = document.getElementById('hr-mobile-cta');
   if (!bar) return;
   const KEY = 'hr_mcta_dismissed';
   try {
     if (sessionStorage.getItem(KEY)) return bar.remove();
   } catch (e) { /* storage blocked: the bar stays dismissible for this page view */ }
+  // Height only while shown; display:none (desktop, cookie sheet open) measures 0.
+  const sync = () => setHeight(bar.classList.contains('is-visible') ? bar.getBoundingClientRect().height : 0);
   const hero = document.querySelector('.sbp-premium-hero-dark');
   const threshold = () => (hero ? hero.getBoundingClientRect().bottom + window.scrollY : window.innerHeight);
   let lastY = window.scrollY;
@@ -131,6 +141,7 @@ function mobileCta() {
     if (dy > 40) suppressed = true;
     else if (dy < 0) suppressed = false;
     bar.classList.toggle('is-visible', !keyboard && !suppressed && y >= threshold());
+    sync();
   };
   const queue = () => {
     if (!queued) {
@@ -139,7 +150,11 @@ function mobileCta() {
     }
   };
   window.addEventListener('scroll', queue, { passive: true });
+  window.addEventListener('resize', queue, { passive: true });
   window.visualViewport?.addEventListener('resize', queue);
+  if ('ResizeObserver' in window) new ResizeObserver(sync).observe(bar);
+  // The bar is hidden by CSS while the cookie sheet is open or consent is pending (classes on <html>).
+  new MutationObserver(queue).observe(root, { attributes: true, attributeFilter: ['class'] });
   const isField = (t) => t instanceof Element && t.matches('input:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]), textarea, select, [contenteditable]');
   document.addEventListener('focusin', (e) => {
     if (isField(e.target)) {
@@ -158,6 +173,7 @@ function mobileCta() {
       sessionStorage.setItem(KEY, '1');
     } catch (e) { /* ignore */ }
     bar.remove();
+    setHeight(0);
   });
   update();
 }

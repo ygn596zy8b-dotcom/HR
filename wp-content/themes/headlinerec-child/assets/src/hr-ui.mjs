@@ -75,48 +75,93 @@ if (!reduce) {
   });
 }
 
-// TradingView panels ship inert (<script type="text/plain" data-hr-tv>) and start once the page has loaded and the
-// panel is near the viewport, so the widgets (~1 MB) never compete with the first paint. Skeleton in CSS until the
-// iframe arrives; 8 s after starting, say so (the widget may still load later).
+// TradingView panels (inc/markets.php) ship inert (<script type="text/plain" data-hr-tv>) inside a fixed-size .hr-tv
+// frame with a placeholder. Nothing third-party loads with the page: a widget starts once the page has loaded and its
+// frame is within 400px of the viewport, so the ~1 MB of widget code never competes with the first paint. The frame
+// moves through data-hr-tv-state (idle, loading, ready, error, off) and CSS shows the placeholder until "ready", so
+// a blocked or slow widget leaves the latest official figures on screen instead of an empty box.
 const TV_SRC = /^https:\/\/s3\.tradingview\.com\/external-embedding\/embed-widget-[a-z-]+\.js$/;
-const tvBoxes = [...document.querySelectorAll('.tradingview-widget-container')].filter((box) => !box.querySelector('iframe'));
-if (tvBoxes.length) {
+const TV_TIMEOUT = 12000;
+const tvFrames = [...document.querySelectorAll('script[type="text/plain"][data-hr-tv]')]
+  .map((s) => s.closest('.hr-tv') || s.closest('.tradingview-widget-container'))
+  .filter((f, i, all) => f && all.indexOf(f) === i);
+
+const embedsAllowed = () => (window.hrConsent?.get ? window.hrConsent.get().embeds !== false : true);
+
+function tvState(frame, state) {
+  frame.dataset.hrTvState = state;
+  const ph = frame.querySelector('[data-hr-tv-ph]');
+  if (!ph) return;
+  const msg = ph.querySelector('[data-hr-tv-msg]');
+  const text = ph.dataset[`msg${state[0].toUpperCase()}${state.slice(1)}`];
+  if (msg && text && msg.textContent !== text) msg.textContent = text;
+  const load = ph.querySelector('[data-hr-tv-load]');
+  if (load) load.hidden = state !== 'off';
+  ph.toggleAttribute('aria-hidden', state === 'ready');
+  ph.inert = state === 'ready';
+}
+
+function startTv(frame) {
+  if (frame.dataset.hrTvState === 'loading' || frame.dataset.hrTvState === 'ready') return;
+  const inert = frame.querySelector('script[type="text/plain"][data-hr-tv]');
+  if (!inert || !TV_SRC.test(inert.dataset.hrTv)) return;
+  tvState(frame, 'loading');
+  const box = inert.closest('.tradingview-widget-container') || frame;
+  const ready = () => {
+    clearTimeout(timer);
+    mo.disconnect();
+    tvState(frame, 'ready');
+  };
+  const fail = () => {
+    if (frame.dataset.hrTvState === 'loading') tvState(frame, 'error');
+  };
+  // Ready when the widget's iframe has loaded; a late load still wins over the timeout.
+  const watchFrame = (iframe) => {
+    if (iframe.dataset.hrTvWatched) return;
+    iframe.dataset.hrTvWatched = '1';
+    iframe.addEventListener('load', ready, { once: true });
+  };
+  const mo = new MutationObserver(() => box.querySelectorAll('iframe').forEach(watchFrame));
+  mo.observe(box, { childList: true, subtree: true });
+  const timer = setTimeout(fail, TV_TIMEOUT);
+  const live = document.createElement('script');
+  live.src = inert.dataset.hrTv;
+  live.async = true;
+  live.text = inert.text; // the widget reads its JSON config from its own <script>
+  live.addEventListener('error', () => {
+    clearTimeout(timer);
+    fail();
+  });
+  inert.replaceWith(live);
+}
+
+if (tvFrames.length) {
   const io = new IntersectionObserver((entries) => entries.forEach((entry) => {
     if (!entry.isIntersecting) return;
     io.unobserve(entry.target);
     startTv(entry.target);
   }), { rootMargin: '400px 0px' });
-  const watch = () => (window.requestIdleCallback || setTimeout)(() => tvBoxes.forEach((box) => io.observe(box)));
-  if (document.readyState === 'complete') watch(); else addEventListener('load', watch, { once: true });
-}
-
-function startTv(box) {
-  const inert = box.querySelector('script[data-hr-tv]');
-  if (inert && TV_SRC.test(inert.dataset.hrTv)) {
-    const live = document.createElement('script');
-    live.src = inert.dataset.hrTv;
-    live.async = true;
-    live.text = inert.text; // the widget reads its JSON config from its own <script>
-    inert.replaceWith(live);
-  }
-  let note;
-  const timer = setTimeout(() => {
-    box.classList.add('is-unavailable');
-    if (box.classList.contains('hr-ticker-tape__widget')) return;
-    note = document.createElement('p');
-    note.className = 'hr-tv-unavailable';
-    note.setAttribute('role', 'status');
-    note.textContent = 'Live market data is unavailable right now.';
-    box.append(note);
-  }, 8000);
-  const mo = new MutationObserver(() => {
-    if (!box.querySelector('iframe')) return;
-    clearTimeout(timer);
-    box.classList.remove('is-unavailable');
-    note?.remove();
-    mo.disconnect();
+  const watch = (frame) => {
+    if (frame.dataset.hrTvState && frame.dataset.hrTvState !== 'idle' && frame.dataset.hrTvState !== 'off') return;
+    if (embedsAllowed()) {
+      tvState(frame, 'idle');
+      io.observe(frame);
+    } else {
+      tvState(frame, 'off');
+    }
+  };
+  // "Load live data" in the switched-off state: this panel only, this page view only.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-hr-tv-load]');
+    const frame = btn?.closest('.hr-tv');
+    if (frame) startTv(frame);
   });
-  mo.observe(box, { childList: true, subtree: true });
+  // A change in the cookie settings applies at once: switched on, waiting panels start as they come near.
+  document.addEventListener('hr:consent', () => tvFrames.forEach((f) => {
+    if (f.dataset.hrTvState === 'off' && embedsAllowed()) watch(f);
+  }));
+  const begin = () => (window.requestIdleCallback || setTimeout)(() => tvFrames.forEach(watch));
+  if (document.readyState === 'complete') begin(); else addEventListener('load', begin, { once: true });
 }
 
 // YouTube facades (inc/perf.php): the privacy-enhanced player replaces the poster when the reader presses play.

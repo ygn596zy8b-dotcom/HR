@@ -1,6 +1,6 @@
 <?php
 /**
- * Publisher keyset: the public half of the signing key(s), pasted into Settings → Headline Recorder.
+ * Publisher keyset: the public half of the signing key(s), in Settings > Headline Recorder > Content signing.
  */
 
 namespace HR\Platform\Signing;
@@ -12,21 +12,29 @@ use function HR\Platform\setting;
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 add_filter( 'hr_settings_schema', function ( $schema ) {
+    $screen = esc_url( admin_url( 'options-general.php?page=hr-signing' ) );
     $schema['signing'] = array(
         'title'       => 'Content signing',
-        'description' => 'Every published article and the feeds are signed with post-quantum <strong>ML-DSA-87 + Ed448</strong>. '
-            . 'The secret key never goes on this server: a signer (the <code>sign-content</code> GitHub Action, or an editor running '
-            . '<code>security/pq/wp-sign.mjs</code>) signs and uploads the signatures using a user with the <em>Content signer</em> role and an application password.',
+        'description' => 'Every published article and the feeds are signed with post-quantum <strong>ML-DSA-87 + Ed448</strong> on this server, '
+            . 'as soon as they are published or edited. The signing key is kept encrypted outside the web root and is managed in '
+            . '<a href="' . $screen . '">Settings &gt; Content signing</a>, which also has the &ldquo;Sign all pending now&rdquo; button. '
+            . 'The offline signer (<code>security/pq/wp-sign.mjs</code>, run by hand with a <em>Content signer</em> user and an application password) still works as an alternative.',
         'fields'      => array(
+            'pq_autosign' => array(
+                'label'       => 'Automatic signing',
+                'type'        => 'checkbox',
+                'default'     => 1,
+                'description' => 'Sign new and edited articles straight away, and sweep for anything pending every 5 minutes. Needs a server signing key (see Settings &gt; Content signing).',
+            ),
             'pq_keyset' => array(
                 'label'       => 'Public signing keyset',
                 'type'        => 'json',
                 'default'     => '',
                 'validate'    => __NAMESPACE__ . '\\is_valid_keyset',
-                'description' => 'Create a key on an offline or trusted machine: <code>cd security/pq &amp;&amp; node cli.mjs keygen sign signing</code>. '
-                    . 'Paste the contents of <code>signing.public.json</code> here (published at <code>/.well-known/pqsig-keys.json</code>). '
-                    . 'Keep <code>signing.secret.json</code> offline and in the <code>HR_PQ_SIGNING_KEY</code> GitHub secret only. '
-                    . 'To rotate, add the new key to the list; to revoke one, add <code>"revoked": "YYYY-MM-DD"</code> to it and everything it signed is re-signed.',
+                'description' => 'The public keys readers and partners verify against (published at <code>/.well-known/pqsig-keys.json</code>). '
+                    . 'Generating a server key in Settings &gt; Content signing adds its public key here automatically. '
+                    . 'For a key made on an offline machine (<code>cd security/pq &amp;&amp; node cli.mjs keygen sign signing</code>), paste the contents of <code>signing.public.json</code> here. '
+                    . 'To rotate, add the new key to the list; to revoke one, add <code>"revoked": "YYYY-MM-DD"</code> to it and everything it signed is signed again with a current key.',
             ),
         ),
     );
@@ -139,7 +147,7 @@ function kid_is_valid( string $kid ): bool {
     return '' !== $kid && in_array( $kid, valid_kids(), true );
 }
 
-/** "a1b2 c3d4 …" for people comparing key IDs by eye. */
+/** "a1b2 c3d4 ..." for people comparing key IDs by eye. */
 function group_hex( string $hex, int $groups = 0 ): string {
     $parts = str_split( $hex, 4 );
     if ( $groups > 0 && count( $parts ) > $groups ) {

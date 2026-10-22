@@ -465,7 +465,6 @@ header.site-header canvas,
     margin: 0;
     padding: 0;
 }
-.hr-ticker-tape__widget { width: 100%; }
 
 /* ======================================================================
    Home sections: former inline style attributes (hook-front-page-main-banner-section-1.php)
@@ -475,9 +474,6 @@ body #page .hr-exec-person-name { font-size: 17px; font-weight: 700; color: #fff
 body #page .hr-exec-person-title { font-size: 12px; font-weight: 500; color: #9CA3AF; margin-top: 4px; }
 body #page .sbp-exec-badge-text.hr-exec-badge-text { margin-top: 8px; }
 body #page .hr-flush { padding: 0; }
-body #page .sbp-native-tv-mask { position: relative !important; overflow: hidden !important; height: 340px !important; width: 100%; }
-body #page .hr-tv-quotes,
-body #page .hr-tv-quotes .tradingview-widget-container__widget { width: 100%; height: 420px; }
 body #page section.sbp-world-news-section { padding-top: 20px !important; }
 body #page .sbp-tag-bordered.hr-world-tag { margin-top: 15px; margin-bottom: 10px; }
 body #page .sbp-world-card .sbp-card-title a.hr-world-link { color: #ffffff !important; }
@@ -485,7 +481,6 @@ body #page .sbp-world-card .sbp-card-date.hr-world-date { color: #666666 !import
 body #page .hr-opinion-section { border-top: 10px solid #050505; }
 body #page .sbp-section-header.hr-opinion-header { border-bottom: 2px solid #111111; padding-bottom: 12px; margin-bottom: 35px; display: flex; justify-content: space-between; align-items: center; padding-left: 0; }
 body #page .sbp-section-title.hr-opinion-title { color: #111111; font-size: 14px; letter-spacing: 2px; font-weight: 800; margin: 0; }
-body #page .sbp-red-line.hr-opinion-dash { color: #ff001c; margin-right: 10px; }
 body #page .sbp-view-all.hr-opinion-more { color: #ff001c; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; text-decoration: none; }
 body #page .sbp-briefing-thumb.hr-opinion-thumb { margin-bottom: 18px; }
 body #page .sbp-opinion-author.hr-opinion-author { margin-bottom: 10px; }
@@ -627,7 +622,7 @@ body #page .hr-cta-action:focus-visible,
 .hr-404-links { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 0; }
 .hr-404-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 48px; }
 .hr-404-heading { margin: 0 0 20px; padding-bottom: 12px; border-bottom: 2px solid #111111; color: #111111; font-size: 14px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
-.hr-404-heading::before { content: "\2014\00a0"; color: #ff001c; }
+.hr-404-heading::before { content: ""; display: inline-block; width: 18px; height: 2px; margin-right: 10px; background: #ff001c; vertical-align: middle; }
 .hr-404-stories { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 28px 24px; margin: 0; padding: 0; list-style: none; }
 .hr-404-story a { display: block; color: #111111; text-decoration: none; }
 .hr-404-story img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; margin-bottom: 12px; background: #f2f2f7; }

@@ -34,12 +34,13 @@
     <!-- 2. MAIN GRID -->
     <div class="hr-footer-main">
         
-        <!-- Column 1: Brand -->
-        <div class="hr-footer-col">
+        <!-- Column 1: Brand, address, socials -->
+        <div class="hr-footer-col hr-footer-col--brand">
             <div class="hr-footer-logo">
                 <img src="<?php echo esc_url(wp_get_upload_dir()['baseurl'] . '/2026/01/headline_recorder_logo.png'); ?>" alt="Headline Recorder" class="hr-logo-img" width="100" height="100" loading="lazy" decoding="async">
             </div>
             <p class="hr-footer-desc">Pakistan’s premier intelligence layer for business executives, capital markets, and macro decision-makers. Delivering rigorous journalism and independent market analysis.</p>
+            <?php do_action( 'hr_footer_contact' ); // Registered address and newsroom email (hr-platform) ?>
             <div class="hr-social-boxes">
                 <a href="https://www.instagram.com/headlinerecorder/" class="hr-social-box" aria-label="Headline Recorder on Instagram" rel="noopener" data-abbr="ig"></a>
                 <a href="https://www.facebook.com/profile.php?id=61573634501379" class="hr-social-box" aria-label="Headline Recorder on Facebook" rel="noopener" data-abbr="fb"></a>
@@ -50,7 +51,7 @@
         </div>
 
         <!-- Column 2: Dynamic Latest Updates -->
-        <div class="hr-footer-col">
+        <div class="hr-footer-col hr-footer-col--latest">
             <div class="hr-footer-col-title">Latest Updates</div>
             <?php
             // Fetch the 4 most recent posts globally
@@ -76,7 +77,7 @@
         </div>
 
         <!-- Column 3: Company Links -->
-        <div class="hr-footer-col">
+        <div class="hr-footer-col hr-footer-col--company">
             <div class="hr-footer-col-title">Company</div>
             <ul class="hr-company-menu">
                 <li><a href="<?php echo esc_url(home_url('/about-us/')); ?>">About Us</a></li>
@@ -88,7 +89,6 @@
                 <li><a href="<?php echo esc_url(home_url('/pr-media/')); ?>">PR &amp; Media</a></li>
                 <li><a href="<?php echo esc_url(home_url('/editorial-corrections-policy/')); ?>">Editorial &amp; Corrections Policy</a></li>
             </ul>
-            <?php do_action( 'hr_footer_contact' ); // Registered address (hr-platform) ?>
         </div>
 
     </div>

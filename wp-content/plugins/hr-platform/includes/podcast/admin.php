@@ -139,7 +139,7 @@ add_action( 'admin_notices', function () {
     $drafts = get_posts( array( 'post_type' => CPT, 'post_status' => array( 'draft', 'pending' ), 'numberposts' => 3, 'no_found_rows' => true, 'meta_key' => '_hr_ai_generated', 'meta_value' => '1' ) );
     foreach ( $drafts as $draft ) {
         printf(
-            '<div class="notice notice-info"><p><strong>AI draft ready for review:</strong> %s — <a href="%s">Review and edit</a>. It stays unpublished until an editor publishes it.</p></div>',
+            '<div class="notice notice-info"><p><strong>AI draft ready for review:</strong> %s. <a href="%s">Review and edit</a>. It stays unpublished until an editor publishes it.</p></div>',
             esc_html( get_the_title( $draft ) ),
             esc_url( (string) get_edit_post_link( $draft->ID ) )
         );

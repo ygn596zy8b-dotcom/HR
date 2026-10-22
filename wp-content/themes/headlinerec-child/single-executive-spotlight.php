@@ -18,7 +18,7 @@ while (have_posts()) : the_post();
     $permalink    = get_permalink();
     $post_title   = get_the_title();
 
-    // YouTube embed — get first YouTube URL from content
+    // YouTube embed: the first YouTube URL in the content
     $youtube_embed = '';
     preg_match('/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $post_content, $yt_matches);
     if (!empty($yt_matches[1])) {
@@ -67,13 +67,31 @@ while (have_posts()) : the_post();
             <?php endif; ?>
             <div class="esa-exec-info">
                 <p class="esa-exec-name"><?php echo esc_html($author_name); ?></p>
-                <p class="esa-exec-role">Executive Spotlight — Headline Recorder</p>
+                <p class="esa-exec-role">Executive Spotlight, Headline Recorder</p>
             </div>
             <?php do_action( 'hr_single_after_byline', get_the_ID() ); ?>
             <time class="esa-exec-date" datetime="<?php echo esc_attr(get_the_date('c')); ?>"><?php echo esc_html($post_date); ?></time>
         </div>
 
         <?php do_action( 'hr_single_before_content', get_the_ID() ); ?>
+
+        <?php
+        // THE EXECUTIVE: the uploaded portrait, large, with name and designation. Cropped from the top, never the face.
+        $exec_name  = get_post_meta($post_id, '_hr_exec_name', true);
+        $exec_title = get_post_meta($post_id, '_hr_exec_title', true);
+        $portrait   = has_post_thumbnail() ? hr_card_image($post_id, 'large', '(max-width: 820px) calc(100vw - 48px), 740px', array('loading' => 'eager', 'class' => 'esa-portrait-img', 'alt' => $exec_name ? sprintf('%s, %s', $exec_name, $exec_title ?: 'Executive Spotlight') : '')) : '';
+        if ($portrait) : ?>
+        <figure class="esa-portrait<?php echo $exec_name ? '' : ' esa-portrait--plain'; ?>">
+            <div class="esa-portrait-media"><?php echo $portrait; // phpcs:ignore WordPress.Security.EscapeOutput -- built by wp_get_attachment_image() ?></div>
+            <?php if ($exec_name) : ?>
+            <figcaption class="esa-portrait-caption">
+                <span class="esa-portrait-eyebrow">In conversation</span>
+                <span class="esa-portrait-name"><?php echo esc_html($exec_name); ?></span>
+                <?php if ($exec_title) : ?><span class="esa-portrait-title"><?php echo esc_html($exec_title); ?></span><?php endif; ?>
+            </figcaption>
+            <?php endif; ?>
+        </figure>
+        <?php endif; ?>
 
         <!-- VIDEO EMBED (if YouTube URL found in content) -->
         <?php if ($youtube_embed) : ?>

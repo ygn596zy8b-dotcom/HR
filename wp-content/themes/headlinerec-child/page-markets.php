@@ -10,7 +10,7 @@ while (have_posts()) : the_post();
 
 <style>
 /* ================================================
-   HR MARKETS PAGE — CUSTOM TERMINAL UI
+   HR MARKETS PAGE: CUSTOM TERMINAL UI
 ================================================ */
 * { box-sizing: border-box; }
 
@@ -66,6 +66,11 @@ while (have_posts()) : the_post();
     display: inline-block; margin-right: 8px; animation: pulse 2s infinite;
 }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .hr-live-dot { animation: none; } }
+.hr-live-badge-wrap { text-align: right; }
+.hr-live-text { font-size: 12px; font-weight: 600; color: #27272a; letter-spacing: 0.5px; }
+/* No live feed (widget blocked, offline or switched off): the badge says so instead of claiming "Live". */
+.hr-single-wrapper:has(.hr-tv--overview:is([data-hr-tv-state="error"], [data-hr-tv-state="off"])) .hr-live-badge { display: none; }
 
 /* Module Containers */
 .hr-module-box {
@@ -116,6 +121,7 @@ while (have_posts()) : the_post();
     .hr-page-grid { padding: 20px 24px 48px; }
     .hr-desk-title { font-size: 26px; }
     .hr-module-box { padding: 15px; }
+    .hr-live-badge-wrap { text-align: left; }
 }
 /* Small phones: sector heatmap as two columns (inline grid styles need !important to override) */
 @media (max-width: 480px) {
@@ -126,26 +132,7 @@ while (have_posts()) : the_post();
 
 <div class="hr-single-wrapper">
 
-    <!-- 1. FULL WIDTH TICKER TAPE -->
-    <!--<div style="width: 100%; background: #ffffff; border-bottom: 1px solid #f0f0f0;">-->
-    <!--    <div class="tradingview-widget-container">-->
-    <!--        <div class="tradingview-widget-container__widget"></div>-->
-    <!--        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>-->
-    <!--        {-->
-    <!--        "symbols": [-->
-    <!--            { "proName": "FX_IDC:USDPKR", "title": "USD/PKR" },-->
-    <!--            { "proName": "FX_IDC:SARPKR", "title": "SAR/PKR" },-->
-    <!--            { "proName": "FX_IDC:AEDPKR", "title": "AED/PKR" },-->
-    <!--            { "proName": "TVC:UKOIL", "title": "Brent Crude" },-->
-    <!--            { "proName": "TVC:GOLD", "title": "Gold Spot" },-->
-    <!--            { "proName": "FOREXCOM:SPXUSD", "title": "S&P 500" },-->
-    <!--            { "proName": "FOREXCOM:NSXUSD", "title": "Nasdaq 100" }-->
-    <!--        ],-->
-    <!--        "showSymbolLogo": false, "isTransparent": true, "displayMode": "regular", "colorTheme": "light", "locale": "en"-->
-    <!--        }-->
-    <!--        </script>-->
-    <!--    </div>-->
-    <!--</div>-->
+    <!-- The ticker tape is printed site-wide at the top of the page (inc/site.php). -->
 
     <div class="hr-page-grid">
         <!-- ========================================== -->
@@ -158,29 +145,55 @@ while (have_posts()) : the_post();
                     <span class="hr-desk-label">Intelligence Desk</span>
                     <h1 class="hr-desk-title">Macro & Commodities Hub</h1>
                 </div>
-                <div style="text-align: right; min-width: 200px;">
+                <div class="hr-live-badge-wrap">
                     <div class="hr-live-badge">
-                        <span class="hr-live-dot"></span>
-                        <span style="font-size: 12px; font-weight: 600; color: #27272a; letter-spacing: 0.5px;">Live Data Feed Active</span>
+                        <span class="hr-live-dot" aria-hidden="true"></span>
+                        <span class="hr-live-text">Live Data Feed Active</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Main Market Overview -->
-            <div class="hr-module-box">
-                <div class="tradingview-widget-container" style="width: 100%; min-height: 500px;">
-                    <div class="tradingview-widget-container__widget"></div>
-                    <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js">
-                    {
-                    "colorTheme": "light", "dateRange": "1M", "showChart": true, "locale": "en", "isTransparent": true, "showSymbolLogo": false, "showFloatingTooltip": false, "width": "100%", "height": "500",
-                    "tabs": [
-                        { "title": "PKR Corridors", "symbols": [ { "s": "FX_IDC:USDPKR", "d": "USD / PKR Interbank" }, { "s": "FX_IDC:SARPKR", "d": "SAR / PKR (Riyal)" }, { "s": "FX_IDC:AEDPKR", "d": "AED / PKR (Dirham)" }, { "s": "FX_IDC:GBPPKR", "d": "GBP / PKR" }, { "s": "FX_IDC:EURPKR", "d": "EUR / PKR" } ] },
-                        { "title": "Commodities", "symbols": [ { "s": "TVC:UKOIL", "d": "Brent Crude Spot" }, { "s": "TVC:USOIL", "d": "WTI Crude Oil" }, { "s": "TVC:GOLD", "d": "Gold Spot" }, { "s": "TVC:SILVER", "d": "Silver Spot" } ] },
-                        { "title": "Global Indices", "symbols": [ { "s": "FOREXCOM:SPXUSD", "d": "S&P 500 Index" }, { "s": "FOREXCOM:NSXUSD", "d": "Nasdaq 100" } ] }
-                    ]
-                    }
-                    </script>
-                </div>
+            <!-- Main Market Overview (TradingView, started near the viewport by hr-ui.js; inc/markets.php) -->
+            <div class="hr-module-box hr-module-box--tv">
+                <?php
+                echo hr_tv_widget( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in hr_tv_widget()
+                    'market-overview',
+                    array(
+                        'colorTheme' => 'light', 'dateRange' => '1M', 'showChart' => true, 'locale' => 'en', 'isTransparent' => true,
+                        'showSymbolLogo' => false, 'showFloatingTooltip' => false,
+                        'tabs' => array(
+                            array( 'title' => 'PKR Corridors', 'symbols' => array(
+                                array( 's' => 'FX_IDC:USDPKR', 'd' => 'USD / PKR Interbank' ),
+                                array( 's' => 'FX_IDC:SARPKR', 'd' => 'SAR / PKR (Riyal)' ),
+                                array( 's' => 'FX_IDC:AEDPKR', 'd' => 'AED / PKR (Dirham)' ),
+                                array( 's' => 'FX_IDC:GBPPKR', 'd' => 'GBP / PKR' ),
+                                array( 's' => 'FX_IDC:EURPKR', 'd' => 'EUR / PKR' ),
+                            ) ),
+                            array( 'title' => 'Commodities', 'symbols' => array(
+                                array( 's' => 'TVC:UKOIL', 'd' => 'Brent Crude Spot' ),
+                                array( 's' => 'TVC:USOIL', 'd' => 'WTI Crude Oil' ),
+                                array( 's' => 'TVC:GOLD', 'd' => 'Gold Spot' ),
+                                array( 's' => 'TVC:SILVER', 'd' => 'Silver Spot' ),
+                            ) ),
+                            array( 'title' => 'Global Indices', 'symbols' => array(
+                                array( 's' => 'FOREXCOM:SPXUSD', 'd' => 'S&P 500 Index' ),
+                                array( 's' => 'FOREXCOM:NSXUSD', 'd' => 'Nasdaq 100' ),
+                            ) ),
+                        ),
+                    ),
+                    array(
+                        'class'       => 'hr-tv--light hr-tv--overview',
+                        'label'       => 'Market overview: PKR corridors, commodities and global indices',
+                        'placeholder' => array(
+                            'loading' => 'Live market overview loads here',
+                            'error'   => 'The live market overview is unavailable right now. Here are the latest official figures.',
+                            'button'  => 'Load the market overview',
+                            'figures' => hr_sbp_figures( array( 'pkr_usd', 'policy_rate', 'kibor', 'inflation' ) ),
+                            'symbols' => array( 'USD/PKR', 'SAR/PKR', 'AED/PKR', 'GBP/PKR', 'EUR/PKR', 'Brent', 'WTI', 'Gold', 'Silver', 'S&P 500', 'Nasdaq 100' ),
+                        ),
+                    )
+                );
+                ?>
             </div>
 
             <!-- PSX Market Quotes Widget -->
@@ -275,27 +288,43 @@ while (have_posts()) : the_post();
             <!-- Economic Calendar -->
             <div>
                 <div class="hr-sb-label"><span>Economic Calendar</span></div>
-                <div class="tradingview-widget-container" style="min-height: 350px;">
-                    <div class="tradingview-widget-container__widget"></div>
-                    <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-events.js">
-                    {
-                    "colorTheme": "light", "isTransparent": true, "width": "100%", "height": "350", "locale": "en", "importanceFilter": "-1,0,1", "countryFilter": "pk"
-                    }
-                    </script>
-                </div>
+                <?php
+                echo hr_tv_widget( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in hr_tv_widget()
+                    'events',
+                    array( 'colorTheme' => 'light', 'isTransparent' => true, 'locale' => 'en', 'importanceFilter' => '-1,0,1', 'countryFilter' => 'pk' ),
+                    array(
+                        'class'       => 'hr-tv--light hr-tv--events',
+                        'label'       => 'Economic calendar for Pakistan',
+                        'placeholder' => array(
+                            'loading' => 'The economic calendar loads here',
+                            'error'   => 'The economic calendar is unavailable right now.',
+                            'button'  => 'Load the calendar',
+                            'figures' => hr_sbp_figures( array( 'policy_rate', 'inflation' ) ),
+                        ),
+                    )
+                );
+                ?>
             </div>
 
             <!-- PSX Top Movers -->
             <div>
                 <div class="hr-sb-label"><span>PSX Top Movers</span></div>
-                <div class="tradingview-widget-container" style="min-height: 400px;">
-                    <div class="tradingview-widget-container__widget"></div>
-                    <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js">
-                    {
-                    "colorTheme": "light", "dateRange": "12M", "exchange": "KARACHI", "showChart": true, "locale": "en", "largeChartUrl": "", "isTransparent": true, "showSymbolLogo": false, "showFloatingTooltip": false, "width": "100%", "height": "400"
-                    }
-                    </script>
-                </div>
+                <?php
+                echo hr_tv_widget( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in hr_tv_widget()
+                    'hotlists',
+                    array( 'colorTheme' => 'light', 'dateRange' => '12M', 'exchange' => 'KARACHI', 'showChart' => true, 'locale' => 'en', 'largeChartUrl' => '', 'isTransparent' => true, 'showSymbolLogo' => false, 'showFloatingTooltip' => false ),
+                    array(
+                        'class'       => 'hr-tv--light hr-tv--hotlists',
+                        'label'       => 'Pakistan Stock Exchange top movers',
+                        'placeholder' => array(
+                            'loading' => 'PSX top movers load here',
+                            'error'   => 'PSX top movers are unavailable right now.',
+                            'button'  => 'Load PSX movers',
+                            'symbols' => array( 'Top gainers', 'Top losers', 'Most active' ),
+                        ),
+                    )
+                );
+                ?>
             </div>
 
             <!-- Executive Spotlight Promo -->
@@ -311,7 +340,7 @@ while (have_posts()) : the_post();
                 <div class="hr-spotlight-promo">
                     <div class="hr-spotlight-label">Executive Spotlight</div>
                     <p class="hr-spotlight-title"><?php the_title(); ?></p>
-                    <a href="<?php the_permalink(); ?>" class="hr-spotlight-link">Read the Interview →</a>
+                    <a href="<?php the_permalink(); ?>" class="hr-spotlight-link">Read the Interview &rarr;</a>
                 </div>
             </div>
             <?php wp_reset_postdata(); endif; ?>

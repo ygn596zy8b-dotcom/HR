@@ -22,8 +22,9 @@
  *   - before closing punctuation, or after a comma, semicolon, colon or opening bracket: removed;
  *   - two dashes around an aside in one sentence: a pair of commas, or brackets when the aside is a list with its
  *     own commas ("three crops (rice, corn and cotton) will");
- *   - any other dash: ", " before a lowercase word, ": " before a capital letter, a digit, a currency sign or a quote,
- *     and "; " before a new clause led by a pronoun ("not reform; it simply postpones"), to avoid a comma splice.
+ *   - any other dash: ", " before a lowercase word, ": " before a capital letter, a digit, a currency sign, a quote or
+ *     a list ("sectors: housing, exports and SMEs"), and "; " before a new clause led by a pronoun ("not reform; it
+ *     simply postpones"), to avoid a comma splice.
  *
  * Tags, attributes, comments (including block settings), URLs, shortcodes and the contents of code, pre, script,
  * style, textarea, svg and similar elements are never changed. Literal dash characters in this file are written as
@@ -550,6 +551,12 @@ function emdash_clause_punct( string $right ): string {
     $verbs = 'is|are|was|were|has|have|had|will|would|can|could|should|may|might|must|does|do|did|cannot|isn\'t|aren\'t|wasn\'t|doesn\'t|don\'t|won\'t|can\'t';
     if ( preg_match( '/^(?:(?:it|they|we|he|she|you)\s+(?:\p{Ll}+ly\s+)?(?:' . $verbs . ')\b|(?:it|he|she)\s+(?:\p{Ll}+ly\s+)?\p{Ll}+s\b|(?:it|they|we|he|she|you)[\'\x{2019}](?:s|re|ll|ve|d)\b)/u', str_replace( "\u{2019}", "'", $right ) ) ) {
         return ';'; // a second independent clause: a comma here would be a comma splice
+    }
+    // A list of short items: "housing, exports, technology and SMEs", but not an aside that holds one ("including
+    // rice, corn and cotton", "which covers X, Y and Z", "a suite of A, B and C").
+    $lead = 'a|an|the|including|includes|included|such|which|who|whose|where|when|while|though|although|by|from|with|without|for|of|in|on|at|to|as|like|and|or|but|nor|especially|particularly|namely|notably|mainly|mostly|largely|primarily|specifically|plus|even|not|only|also';
+    if ( preg_match( '/^(?!(?:' . $lead . ')\b)\p{Ll}[\p{L}\p{M}-]*(?: [\p{L}\p{M}-]+){0,2}, [^,.;:!?()]{1,30}, [^.;:!?()]*?\b(?:and|or)\b/u', $right ) ) {
+        return ':'; // a list follows ("sectors: housing, exports, technology and SMEs"); a comma would merge it into the sentence
     }
     return ',';
 }

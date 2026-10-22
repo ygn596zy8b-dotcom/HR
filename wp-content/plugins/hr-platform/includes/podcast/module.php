@@ -7,6 +7,7 @@
  *   admin.php  episode meta box, "Generate today's briefing draft" button
  *   feed.php   /podcast/feed/ iTunes + Podcasting 2.0 tags
  *   ai.php     daily briefing drafts via the Claude API (official PHP SDK)
+ *   retention.php  only the newest N published episodes stay on the website (older ones go to the Trash)
  */
 
 namespace HR\Platform\Podcast;
@@ -19,9 +20,9 @@ use function HR\Platform\render;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-const CPT      = 'hr_episode';
-const PER_PAGE = 10;
+const CPT = 'hr_episode';
 
+require_once __DIR__ . '/retention.php';
 require_once __DIR__ . '/admin.php';
 require_once __DIR__ . '/feed.php';
 require_once __DIR__ . '/ai.php';
@@ -110,6 +111,13 @@ add_filter( 'hr_settings_schema', function ( array $schema ): array {
             'podcast_subcategory' => array( 'label' => 'Apple subcategory', 'type' => 'select', 'default' => 'Business News', 'options' => array( '' => '(none)' ) + array_combine( array_merge( ...array_values( APPLE_CATEGORIES ) ), array_merge( ...array_values( APPLE_CATEGORIES ) ) ), 'description' => 'Used only when it belongs to the category above.' ),
             'podcast_language'    => array( 'label' => 'Language', 'type' => 'text', 'default' => 'en' ),
             'podcast_explicit'    => array( 'label' => 'Explicit content', 'type' => 'checkbox', 'default' => 0 ),
+            'podcast_keep'        => array(
+                'label'       => 'Episodes kept on the website',
+                'type'        => 'number',
+                'default'     => KEEP_DEFAULT,
+                'sanitize'    => static fn( $v ) => '' === $v ? '' : max( KEEP_MIN, min( KEEP_MAX, (int) $v ) ),
+                'description' => sprintf( 'Only the newest published episodes stay on <code>/podcast/</code>, in the podcast feed and in the sitemap (%1$d to %2$d, default %3$d). Each time an episode is published, and once a day, older published episodes are moved to the Trash; they can be restored from the Trash for %4$d days, after which WordPress deletes them together with their audio file and cover image (unless another post uses them). Drafts and AI drafts waiting for review are never touched.', KEEP_MIN, KEEP_MAX, KEEP_DEFAULT, (int) ( defined( 'EMPTY_TRASH_DAYS' ) ? EMPTY_TRASH_DAYS : 30 ) ),
+            ),
             'apple_url'           => array( 'label' => 'Apple Podcasts URL', 'type' => 'url' ),
             'spotify_url'         => array( 'label' => 'Spotify URL', 'type' => 'url' ),
             'youtube_url'         => array( 'label' => 'YouTube URL', 'type' => 'url' ),
@@ -175,11 +183,11 @@ const HAS_AUDIO = array(
     array( 'key' => '_hr_audio_url', 'value' => '', 'compare' => '!=' ),
 );
 
-/** The newest published episode, preferring one that can actually be played. */
+/** The newest published episode (with or without audio: without it, readers listen with the device voice). */
 function latest(): ?array {
-    $args  = array( 'post_type' => CPT, 'post_status' => 'publish', 'numberposts' => 1, 'no_found_rows' => true );
-    $posts = get_posts( $args + array( 'meta_query' => HAS_AUDIO ) ) ?: get_posts( $args );
-    return $posts ? episode( $posts[0] ) : null;
+    $ids  = kept_ids();
+    $post = $ids ? get_post( $ids[0] ) : null;
+    return $post instanceof \WP_Post ? episode( $post ) : null;
 }
 
 /** The published episode that lists this article among its related posts, if any. */
@@ -220,9 +228,9 @@ function show_name(): string {
     return '' !== $title ? $title : 'Podcast';
 }
 
-/** Subscribe links that are configured, RSS always first. */
+/** Subscribe links that are configured; the feed (works in every podcast app) always first. */
 function subscribe_links(): array {
-    $links = array( 'rss' => array( 'RSS feed', (string) get_post_type_archive_feed_link( CPT ) ) );
+    $links = array( 'rss' => array( 'Follow in your podcast app', feed_url() ) );
     foreach ( array( 'apple' => 'Apple Podcasts', 'spotify' => 'Spotify', 'youtube' => 'YouTube' ) as $key => $label ) {
         $url = (string) setting( $key . '_url' );
         if ( '' !== $url ) {
@@ -230,6 +238,10 @@ function subscribe_links(): array {
         }
     }
     return $links;
+}
+
+function feed_url(): string {
+    return (string) get_post_type_archive_feed_link( CPT );
 }
 
 function artwork(): string {
@@ -251,9 +263,12 @@ add_filter( 'template_include', function ( $template ) {
     return $template;
 }, 20 );
 
+// /podcast/ lists the kept episodes only, on one page: /podcast/page/2/ is a 404.
 add_action( 'pre_get_posts', function ( \WP_Query $query ) {
     if ( ! is_admin() && $query->is_main_query() && $query->is_post_type_archive( CPT ) && ! $query->is_feed() ) {
-        $query->set( 'posts_per_page', PER_PAGE );
+        $query->set( 'posts_per_page', keep_count() );
+        $query->set( 'post__in', kept_ids() ?: array( 0 ) );
+        $query->set( 'orderby', array( 'date' => 'DESC', 'ID' => 'DESC' ) );
     }
 } );
 

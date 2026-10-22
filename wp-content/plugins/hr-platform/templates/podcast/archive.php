@@ -1,12 +1,14 @@
 <?php
 /**
- * /podcast/: show header, the latest episode with the full player, every episode, pagination.
+ * /podcast/: show header, the newest episode with the full player, then the other recent episodes. Only the newest
+ * N published episodes are on the website (setting podcast_keep), so there is a single page and no pagination.
  * Theme override: headlinerec-child/archive-hr_episode.php (whole page) or hr/podcast/archive.php.
  */
 
 use function HR\Platform\icon;
 use function HR\Platform\render;
 use function HR\Platform\setting;
+use function HR\Platform\Podcast\keep_count;
 use function HR\Platform\Podcast\latest;
 use function HR\Platform\Podcast\minutes;
 use function HR\Platform\Podcast\show_name;
@@ -49,7 +51,7 @@ get_header();
         <div class="hrp-card hrp-card--accent hrp-podcast-empty">
             <?php echo icon( 'mic' ); // phpcs:ignore ?>
             <h2>The first episode of the Headline Recorder Podcast is on its way</h2>
-            <p class="hrp-muted">Subscribe with the RSS feed above and it will arrive in your podcast app as soon as it is published.</p>
+            <p class="hrp-muted">Follow the Podcast in your app with the button above and it will arrive as soon as it is published.</p>
         </div>
     <?php else : ?>
         <section class="hrp-card hrp-card--accent hrp-podcast-featured" aria-labelledby="hrp-featured-title">
@@ -68,7 +70,10 @@ get_header();
 
         <?php if ( $episodes ) : ?>
             <section class="hrp-podcast-list" aria-labelledby="hrp-episodes-title">
-                <h2 class="hrp-podcast-list__title" id="hrp-episodes-title">All episodes</h2>
+                <div class="hrp-podcast-list__head">
+                    <h2 class="hrp-podcast-list__title" id="hrp-episodes-title">Recent episodes</h2>
+                    <p class="hrp-podcast-list__note"><?php echo esc_html( sprintf( 'The latest %d episodes', keep_count() ) ); ?></p>
+                </div>
                 <ol class="hrp-eps" role="list">
                     <?php foreach ( $episodes as $e ) : ?>
                         <li class="hrp-ep">
@@ -98,7 +103,6 @@ get_header();
                 </ol>
             </section>
         <?php endif; ?>
-        <?php the_posts_pagination( array( 'mid_size' => 1, 'prev_text' => 'Newer', 'next_text' => 'Older' ) ); ?>
     <?php endif; ?>
 </div>
 <?php

@@ -52,38 +52,36 @@ function hr_ticker_tape() {
         return;
     }
     // Until the tape has loaded (and for good if it cannot), the strip shows the latest SBP figures at the same height.
-    $placeholder = hr_tv_placeholder( array(
-        'variant' => 'tape',
-        'loading' => 'Live market ticker loads here',
-        'error'   => 'The live market ticker is unavailable right now.',
-        'off'     => 'The live market ticker is switched off in your cookie settings.',
-        'figures' => hr_sbp_figures( array( 'policy_rate', 'inflation', 'kibor', 'pkr_usd', 'remittances' ) ),
-    ) );
-    ?>
-<div class="hr-ticker-tape hr-tv hr-tv--tape" data-hr-tv-state="idle">
-  <?php echo $placeholder; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in hr_tv_placeholder() ?>
-  <div class="tradingview-widget-container hr-ticker-tape__widget">
-    <div class="tradingview-widget-container__widget"></div>
-    <script type="text/plain" data-hr-tv="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js">
-    {
-    "symbols": [
-      { "proName": "FX_IDC:USDPKR", "title": "USD/PKR" },
-      { "proName": "FX_IDC:SARPKR", "title": "SAR/PKR" },
-      { "proName": "FX_IDC:AEDPKR", "title": "AED/PKR" },
-      { "proName": "TVC:UKOIL", "title": "Brent Crude" },
-      { "proName": "TVC:GOLD", "title": "Gold" },
-      { "proName": "FOREXCOM:SPXUSD", "title": "S&P 500" }
-    ],
-    "showSymbolLogo": false,
-    "isTransparent": true,
-    "displayMode": "regular",
-    "colorTheme": "light",
-    "locale": "en"
-  }
-    </script>
-  </div>
-</div>
-    <?php
+    echo hr_tv_widget( // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in hr_tv_widget()
+        'ticker-tape',
+        array(
+            'symbols'        => array(
+                array( 'proName' => 'FX_IDC:USDPKR', 'title' => 'USD/PKR' ),
+                array( 'proName' => 'FX_IDC:SARPKR', 'title' => 'SAR/PKR' ),
+                array( 'proName' => 'FX_IDC:AEDPKR', 'title' => 'AED/PKR' ),
+                array( 'proName' => 'TVC:UKOIL', 'title' => 'Brent Crude' ),
+                array( 'proName' => 'TVC:GOLD', 'title' => 'Gold' ),
+                array( 'proName' => 'FOREXCOM:SPXUSD', 'title' => 'S&P 500' ),
+            ),
+            'showSymbolLogo' => false,
+            'isTransparent'  => true,
+            'displayMode'    => 'regular',
+            'colorTheme'     => 'light',
+            'locale'         => 'en',
+        ),
+        array(
+            'class'       => 'hr-ticker-tape hr-tv--tape',
+            'label'       => 'Market ticker',
+            'autosize'    => false,
+            'placeholder' => array(
+                'variant' => 'tape',
+                'loading' => 'Live market ticker loads here',
+                'error'   => 'The live market ticker is unavailable right now.',
+                'off'     => 'The live market ticker is switched off in your cookie settings.',
+                'figures' => hr_sbp_figures( array( 'policy_rate', 'inflation', 'kibor', 'pkr_usd', 'remittances' ) ),
+            ),
+        )
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -172,6 +170,7 @@ function hr_post_image( int $post_id, string $size, array $attr = array() ): str
  * @param string $sizes Rendered width for the browser's srcset choice, e.g. "(min-width: 769px) 120px, 112px".
  * @param array  $attr  Extra attributes. Lazy + async by default; pass 'loading' => 'eager' for the first screen
  *                      (the parent theme forces lazy on every attachment image, so the requested value is restored).
+ *                      Pass 'alt' => '' when the image sits in a link that repeats the headline link beside it.
  */
 function hr_card_image( int $post_id, string $size, string $sizes, array $attr = array() ): string {
     $id = (int) get_post_thumbnail_id( $post_id );
@@ -186,9 +185,11 @@ function hr_card_image( int $post_id, string $size, string $sizes, array $attr =
             ),
             $attr
         );
-        $loading = $attr['loading'];
-        $keep    = static function ( $a ) use ( $loading ) {
-            $a['loading'] = $loading;
+        // The parent theme rewrites every attachment image's loading and alt (lazy, and the file name when alt is
+        // empty); restore what was asked for. An empty alt is deliberate: the card's headline link names the story.
+        $keep = static function ( $a ) use ( $attr ) {
+            $a['loading'] = $attr['loading'];
+            $a['alt']     = $attr['alt'];
             return $a;
         };
         add_filter( 'wp_get_attachment_image_attributes', $keep, 99 );

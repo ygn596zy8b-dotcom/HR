@@ -50,7 +50,9 @@ add_action( 'wp_login', function ( $login, $user ) {
 
 // Our sign-in paths ask for the default destination either just before or just after wp_login fires.
 add_filter( 'hr_login_default_redirect', function ( $url, $user ) {
-    if ( $user instanceof \WP_User && ( '' === tour_state( (int) $user->ID ) || first_sign_in( (int) $user->ID ) ) ) {
+    // Staff keep their usual destination (they see the tutorial when they open the streaks page).
+    $staff = $user instanceof \WP_User && function_exists( 'HR\Platform\Accounts\is_staff' ) && \HR\Platform\Accounts\is_staff( $user );
+    if ( $user instanceof \WP_User && ! $staff && ( '' === tour_state( (int) $user->ID ) || first_sign_in( (int) $user->ID ) ) ) {
         return dashboard_url();
     }
     return $url;

@@ -3,7 +3,7 @@
  * Printed last in <head> (wp_head 999: after Customizer Additional CSS and hr-base.css). Home rules reuse the
  * "body #page … !important" selectors of Additional CSS so they win by source order; page-template <style>
  * blocks and hr-footer.css print later, so their overrides carry #page / an extra element for specificity.
- * Colours are the site's own: brand reds, near-blacks, white and greys — and tints/shades of them only.
+ * Colours are the site's own: brand reds, near-blacks, white and greys, and tints/shades of them only.
  */
 
 /* ==========================================================================
@@ -22,6 +22,7 @@
     --hr-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --hr-dur-1: 150ms; --hr-dur-2: 250ms; --hr-dur-3: 400ms;
     --hr-ul: var(--hr-red-deep);      /* link underline colour; red on dark surfaces */
+    --hr-sticky-cta-h: 0px;           /* height of the sticky mobile CTA while it is on screen (hr-site.js) */
 }
 body #page :is(.sbp-premium-hero-dark, .sbp-executive-spotlight-section, .sbp-dark-terminal-section, .hr-404-hero) { --hr-ul: var(--hr-red); }
 
@@ -154,7 +155,7 @@ body #page :is(.hr-hero-caption, .hr-body figcaption, .esa-body figcaption) {
 /* ==========================================================================
    5. Components
    ========================================================================== */
-/* 5a. Section headers: red em-dash + label + "view all" */
+/* 5a. Section headers: short red rule + label + "view all" */
 body #page :is(.sbp-section-title, .sbp-sidebar-title) {
     font-weight: 700 !important;
     letter-spacing: 0.16em !important;
@@ -163,7 +164,19 @@ body #page :is(.sbp-section-title, .sbp-sidebar-title) {
 body #page .sbp-light-section .sbp-section-title { color: var(--hr-ink) !important; }
 body #page :is(.sbp-executive-spotlight-section, .sbp-dark-terminal-section) .sbp-section-title,
 body #page .sbp-premium-hero-dark .sbp-sidebar-title { color: #ffffff !important; }
-body #page .sbp-section-title:not(:has(.sbp-red-line))::before { content: "\2014"; color: var(--hr-red); margin-right: 10px; font-weight: 800; }
+/* the rule is drawn, not typed: an empty span.sbp-red-line, or a ::before where a title has none */
+body #page .sbp-red-line,
+body #page .sbp-section-title:not(:has(.sbp-red-line))::before {
+    content: "";
+    display: inline-block;
+    flex: none;
+    width: 18px;
+    height: 2px;
+    margin: 0 12px 0 0 !important;
+    background: var(--hr-red);
+    vertical-align: middle;
+    font-size: 0 !important;
+}
 body #page .sbp-header-split, body #page .sbp-exec-header, body #page .sbp-section-header.hr-opinion-header { flex-wrap: wrap; row-gap: 8px; column-gap: 16px; }
 body #page .sbp-view-all {
     position: relative;
@@ -265,26 +278,11 @@ body #page .sbp-exec-card:is(:hover, :focus-within) { border-color: #2a2a2f !imp
 body #page .sbp-circle-avatar { border-color: var(--hr-red-deep) !important; box-shadow: 0 0 0 6px rgba(255, 0, 28, 0.06), 0 0 40px rgba(255, 0, 28, 0.18) !important; }
 body #page .sbp-exec-quote p { font-family: var(--hr-font-serif) !important; font-size: 17px !important; line-height: 1.55 !important; color: #d1d1d6 !important; }
 
-/* 5g. Markets: hairline tiles, figures, live dot, TradingView placeholder */
+/* 5g. Markets: hairline tiles, figures (layout and TradingView frames in section 9) */
 body #page .sbp-term-card { transition: background-color var(--hr-dur-2) var(--hr-ease); }
 body #page .sbp-term-card:hover { background-color: var(--hr-surface); }
 body #page .sbp-term-val { letter-spacing: -0.02em !important; }
 body #page .sbp-term-label, body #page .sbp-ticker-label { letter-spacing: 0.14em !important; }
-
-.tradingview-widget-container:not(.hr-ticker-tape__widget):not(:has(iframe)) {
-    position: relative;
-    min-height: 240px;
-    background:
-        repeating-linear-gradient(180deg, transparent 0 47px, var(--hr-line-dark) 47px 48px),
-        linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%) 0 0 / 50% 100% no-repeat,
-        #0a0a0c;
-    animation: hr-shimmer 1.4s linear infinite;
-}
-.tradingview-widget-container.is-unavailable { animation: none !important; background: #0a0a0c !important; display: grid; place-items: center; }
-.hr-tv-unavailable { margin: 0; padding: var(--hr-s5); color: var(--hr-muted-dark); font: 600 13px/1.5 var(--hr-font-ui); letter-spacing: 0.04em; text-align: center; }
-.hr-tv-unavailable a { color: var(--hr-red); }
-.hr-ticker-tape:has(.is-unavailable) { display: none; }
-@keyframes hr-shimmer { from { background-position: 0 0, -50% 0, 0 0; } to { background-position: 0 0, 150% 0, 0 0; } }
 
 /* 5h. Header: compact red nav once it sticks, account slot alignment */
 @media (min-width: 769px) {
@@ -330,10 +328,12 @@ body #page .hr-cta-hero-title { font-family: var(--hr-font-head); font-size: 17p
 .hr-mobile-cta-close { min-width: 44px; min-height: 44px; }
 
 /* 5j. Back to top (the parent's #scroll-up, faded in by its script) */
+/* Bottom-right only: the bottom-left 96 x 96 px corner belongs to the reading-streak widget (hr-platform). */
 body #scroll-up {
     width: 44px; height: 44px;
+    left: auto !important;
     right: max(16px, env(safe-area-inset-right)) !important;
-    bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(16px + var(--hr-sticky-cta-h, 0px) + env(safe-area-inset-bottom)) !important;
     display: none;
     place-items: center;
     border-radius: 0 !important;
@@ -344,9 +344,6 @@ body #scroll-up {
 body #scroll-up[style*="block"] { display: grid !important; }
 body #scroll-up:hover { background: var(--hr-red-deep) !important; }
 body #scroll-up i { line-height: 1; font-size: 20px; }
-@media (max-width: 768px) {
-    html:has(.hr-mobile-cta.is-visible) body #scroll-up { bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
-}
 
 /* 5k. Footer + newsletter (hr-footer.css prints later: selectors carry an extra element) */
 body .hr-footer-wrapper :is(.hr-footer-desc, .hr-latest-link, .hr-copyright, .hr-bottom-inner, .hr-bottom-socials a, .hr-footer-empty, .hr-cookie-settings) { color: var(--hr-muted-dark-2); }
@@ -463,7 +460,6 @@ body #page .hr-404-story-cat { color: var(--hr-red-deep); }
     }
 }
 @media (prefers-reduced-motion: reduce) {
-    .tradingview-widget-container { animation: none !important; }
     form[aria-busy="true"] button[type="submit"]::after { animation: none; }
     body #page .sbp-view-all::after { transition: none; }
 }
@@ -527,8 +523,6 @@ body #page .hr-404-field input { background: #111112; }
 /* ======================================================================
    Performance (MSBJ, inc/perf.php): reserved embed space, YouTube facade, skipped off-screen rendering
    ====================================================================== */
-/* The ticker-tape iframe arrives after load: hold its 46 px so nothing below jumps. */
-.hr-ticker-tape__widget { min-height: 46px; }
 
 .hr-yt { position: relative; aspect-ratio: 16 / 9; background: #111; }
 :is(.esa-video-frame, .wp-has-aspect-ratio .wp-block-embed__wrapper) .hr-yt { position: absolute; inset: 0; aspect-ratio: auto; }
@@ -545,3 +539,251 @@ html:has(#hr-cc.is-open) { scroll-padding-bottom: calc(260px + env(safe-area-ins
 @media (min-width: 769px) { html:has(#hr-cc.is-open) { scroll-padding-bottom: 160px; } }
 /* "Latest News" is now the h2 its h3 headlines need (heading order); it keeps the look of the old label. */
 body #page .sbp-sidebar-header h2.sbp-sidebar-title { margin-top: 0; line-height: 1.6; font-family: inherit; }
+
+/* ==========================================================================
+   9. Home cards with their images, Executive Spotlight portraits, Markets (MSBJ)
+   ========================================================================== */
+/* 9a. A post without a featured image: the HR mark on near-black, in the same box the image would fill */
+.hr-img-fallback {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: radial-gradient(circle at 72% 28%, rgba(255, 0, 28, 0.2), transparent 62%), #0a0a0a;
+}
+.hr-img-fallback__mark { color: #ffffff; font: 800 clamp(1.125rem, 0.8rem + 1.6vw, 2rem)/1 var(--hr-font-head); letter-spacing: -0.03em; }
+.hr-img-fallback__mark span { color: var(--hr-red); }
+body #page :is(.hr-rail-thumb, .sbp-list-thumb, .hr-biz-thumb, .sbp-circle-avatar) .hr-img-fallback { position: absolute; inset: 0; height: 100%; aspect-ratio: auto; }
+body #page :is(.hr-rail-thumb, .hr-biz-thumb, .sbp-list-thumb) .hr-img-fallback__mark { font-size: 1.125rem; }
+
+/* Thumbnails in fixed boxes: the image fills the box, cropped from the centre (never stretched) */
+body #page :is(.hr-rail-thumb, .hr-biz-thumb) {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--hr-surface), var(--hr-line-dark));
+}
+body #page :is(.hr-rail-thumb, .hr-biz-thumb) img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin: 0;
+    object-fit: cover;
+    transition: transform var(--hr-dur-3) var(--hr-ease-out);
+}
+body #page .hr-biz-thumb { background: linear-gradient(135deg, var(--hr-paper-2), var(--hr-line)); }
+body #page .sbp-list-thumb { position: relative; }
+body #page .sbp-list-thumb > a { display: block; width: 100%; height: 100%; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    body #page :is(.hr-rail-item, .hr-biz-item):is(:hover, :focus-within) :is(.hr-rail-thumb, .hr-biz-thumb) img { transform: scale(1.05); }
+}
+
+/* 9b. Home hero, "Latest News": thumbnail, category, headline, date */
+body #page .hr-rail { display: flex; flex-direction: column; }
+body #page .hr-rail-item {
+    display: grid;
+    grid-template-columns: minmax(64px, 31%) minmax(0, 1fr);
+    column-gap: 14px;
+    align-items: start;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--hr-line-dark);
+}
+body #page .hr-rail-item:first-child { padding-top: 4px; }
+body #page .hr-rail-item:last-child { border-bottom: 0; }
+body #page .hr-rail-body { min-width: 0; }
+body #page .sbp-premium-hero-dark .hr-rail .sbp-story-cat { margin-bottom: 6px !important; font-size: 10px !important; line-height: 1.2; }
+body #page .sbp-premium-hero-dark .hr-rail .sbp-story-title { font-size: 15px !important; line-height: 1.35 !important; margin: 0 0 6px !important; overflow-wrap: break-word; }
+body #page .sbp-premium-hero-dark .hr-rail .sbp-story-date { display: block; line-height: 1.3; }
+body #page .hr-rail-item:hover .sbp-story-title a { background-size: 100% 1px; }
+@media (max-width: 768px) {
+    body #page .hr-rail-item { grid-template-columns: 112px minmax(0, 1fr); column-gap: 16px; }
+    body #page .sbp-premium-hero-dark .hr-rail .sbp-story-title { font-size: 16px !important; }
+}
+@media (max-width: 359px) {
+    body #page .hr-rail-item { grid-template-columns: 92px minmax(0, 1fr); column-gap: 12px; }
+}
+
+/* 9c. Business: the three side stories carry their image too */
+body #page .hr-biz-item {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    column-gap: 18px;
+    align-items: start;
+}
+body #page .hr-biz-item .hr-biz-thumb { order: -1; }
+body #page .hr-biz-item-body { min-width: 0; }
+body #page .hr-biz-item .sbp-story-cat { display: block; margin-bottom: 6px; font-size: 11px !important; }
+@media (max-width: 768px) {
+    body #page .hr-biz-item { grid-template-columns: 104px minmax(0, 1fr); column-gap: 14px; }
+    body #page .sbp-biz-list { padding-left: 15px !important; padding-right: 15px !important; margin-top: 24px; }
+}
+
+/* 9d. Executive Spotlight on the home page: a larger portrait, head kept in frame */
+body #page .sbp-circle-avatar.hr-exec-portrait {
+    position: relative;
+    width: clamp(184px, 17vw, 236px) !important;
+    height: clamp(184px, 17vw, 236px) !important;
+    margin-bottom: 32px !important;
+    text-decoration: none;
+}
+body #page .sbp-circle-avatar img { object-position: 50% 22% !important; transition: transform var(--hr-dur-3) var(--hr-ease-out); }
+body #page .hr-exec-initials { color: #8e8e93; font: 300 28px/1 var(--hr-font-head); letter-spacing: 2px; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    body #page .sbp-exec-card:is(:hover, :focus-within) .sbp-circle-avatar img { transform: scale(1.04); }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+    body #page .sbp-exec-avatar-col { flex-basis: 38% !important; max-width: 38% !important; }
+    body #page .sbp-exec-content-col { flex-basis: 62% !important; max-width: 62% !important; padding: 40px 36px !important; }
+}
+
+/* 9e. Markets Intelligence: quotes panel + six State Bank tiles. One column on phones; quotes above the tiles on
+       tablets; side by side from 1024px. The tiles reflow 1, 2, then 3 across with the width they get. */
+body #page .hr-markets h2.sbp-section-title { margin: 0; font-family: inherit; line-height: 1.4; }
+body #page .hr-markets-grid { display: grid !important; grid-template-columns: minmax(0, 1fr); }
+body #page .hr-markets-grid > .sbp-terminal-col { width: auto; max-width: none; float: none; min-width: 0; }
+body #page .hr-markets-quotes { display: flex; flex-direction: column; border-right: 0 !important; border-bottom: 1px solid var(--hr-line-dark) !important; }
+body #page .hr-markets-quotes > .hr-tv { flex: 1 1 auto; }
+body #page .hr-markets-tiles { display: flex; flex-direction: column; container-type: inline-size; }
+body #page .hr-markets .sbp-terminal-indicators {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1px;
+    flex: 1 1 auto;
+    height: auto !important;
+    background: var(--hr-line-dark);
+}
+@container (min-width: 420px) { body #page .hr-markets .sbp-terminal-indicators { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (min-width: 640px) { body #page .hr-markets .sbp-terminal-indicators { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+body #page .hr-markets .sbp-term-card {
+    min-width: 0;
+    padding: clamp(18px, 2.2vw, 28px) !important;
+    border: 0 !important;
+    background: #0a0a0c;
+}
+body #page .hr-markets .sbp-term-card:hover { background: var(--hr-surface); }
+body #page .hr-markets .sbp-term-label { line-height: 1.35; margin-bottom: 10px !important; }
+body #page .hr-markets .sbp-term-val {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 6px;
+    font-size: clamp(1.375rem, 1.1rem + 0.9vw, 1.75rem) !important;
+    line-height: 1.1 !important;
+    white-space: nowrap;
+}
+body #page .hr-markets .sbp-term-unit { margin-left: 0 !important; white-space: nowrap; }
+body #page .hr-markets .hr-markets-note {
+    margin: 0;
+    padding: 12px clamp(18px, 2.2vw, 28px);
+    border-top: 1px solid var(--hr-line-dark);
+    color: var(--hr-muted-dark-2);
+    font: 500 12px/1.5 var(--hr-font-ui);
+}
+@media (min-width: 1024px) {
+    body #page .hr-markets-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+    body #page .hr-markets-quotes { border-bottom: 0 !important; border-right: 1px solid var(--hr-line-dark) !important; }
+}
+/* No live feed: the "LIVE" mark goes with it */
+body #page .hr-markets:has(.hr-tv--quotes:is([data-hr-tv-state="error"], [data-hr-tv-state="off"])) .sbp-live-indicator { display: none !important; }
+@media (prefers-reduced-motion: reduce) { body #page .sbp-pulse-dot { animation: none !important; } }
+
+/* 9f. TradingView frames (inc/markets.php, hr-ui.js). The placeholder sits in the flow and sets the frame's height;
+       the widget is laid over it, so nothing moves when it arrives. */
+.hr-tv {
+    --hr-tv-bg: #0a0a0c; --hr-tv-fg: #f2f2f7; --hr-tv-muted: var(--hr-muted-dark-2); --hr-tv-line: var(--hr-line-dark); --hr-tv-link: var(--hr-red);
+    position: relative;
+    display: grid;
+    min-height: 380px;
+    isolation: isolate;
+    font-family: var(--hr-font-ui);
+}
+.hr-tv--light { --hr-tv-bg: #fafafa; --hr-tv-fg: var(--hr-ink); --hr-tv-muted: var(--hr-muted); --hr-tv-line: var(--hr-line); --hr-tv-link: var(--hr-red-deep); }
+.hr-tv > .tradingview-widget-container { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; }
+.hr-tv .tradingview-widget-container__widget { width: 100%; height: 100%; }
+.hr-tv:not([data-hr-tv-state="ready"]) > .tradingview-widget-container { visibility: hidden; }
+.hr-tv-ph {
+    grid-area: 1 / 1;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    padding: clamp(18px, 3vw, 28px);
+    background: var(--hr-tv-bg);
+    color: var(--hr-tv-fg);
+    transition: opacity var(--hr-dur-3) var(--hr-ease), visibility 0s linear var(--hr-dur-3);
+}
+.hr-tv[data-hr-tv-state="ready"] > .hr-tv-ph { opacity: 0; visibility: hidden; pointer-events: none; }
+.hr-tv-ph__status { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--hr-tv-muted); font: 700 12px/1.45 var(--hr-font-ui); letter-spacing: 0.04em; }
+.hr-tv-ph__pulse { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--hr-tv-muted); }
+.hr-tv[data-hr-tv-state="error"] .hr-tv-ph__pulse { background: var(--hr-red); }
+.hr-tv[data-hr-tv-state="off"] .hr-tv-ph__pulse { background: transparent; box-shadow: inset 0 0 0 1px var(--hr-tv-muted); }
+@media (prefers-reduced-motion: no-preference) {
+    .hr-tv:is([data-hr-tv-state="idle"], [data-hr-tv-state="loading"]) .hr-tv-ph__pulse { animation: hr-tv-pulse 1.2s var(--hr-ease) infinite alternate; }
+}
+@keyframes hr-tv-pulse { from { opacity: 0.25; } to { opacity: 1; } }
+.hr-tv-ph__caption { margin: 6px 0 0; color: var(--hr-tv-muted); font: 700 10px/1.4 var(--hr-font-ui); letter-spacing: 0.14em; text-transform: uppercase; }
+.hr-tv-ph__figs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr));
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--hr-tv-line);
+    background: var(--hr-tv-line);
+}
+.hr-tv-ph__fig { min-width: 0; padding: 12px 14px; background: var(--hr-tv-bg); }
+.hr-tv-ph__fig dt { margin: 0 0 6px; color: var(--hr-tv-muted); font: 700 10px/1.3 var(--hr-font-ui); letter-spacing: 0.1em; text-transform: uppercase; }
+.hr-tv-ph__fig dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 5px; margin: 0; }
+.hr-tv-ph__num { color: var(--hr-tv-fg); font: 600 clamp(1.125rem, 1rem + 0.5vw, 1.375rem)/1.15 var(--hr-font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
+.hr-tv-ph__unit { color: var(--hr-tv-muted); font: 700 11px/1 var(--hr-font-ui); white-space: nowrap; }
+.hr-tv-ph__symbols { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.hr-tv-ph__symbols li { margin: 0; padding: 5px 9px; border: 1px solid var(--hr-tv-line); color: var(--hr-tv-fg); font: 600 12px/1.2 var(--hr-font-ui); white-space: nowrap; }
+.hr-tv-ph__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-top: auto; }
+.hr-tv-ph__actions:not(:has(> :not([hidden]))) { display: none; }
+.hr-tv-ph__load {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 0;
+    background: var(--hr-red-deep);
+    color: #ffffff;
+    font: 800 12px/1 var(--hr-font-ui);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.hr-tv-ph__load:hover { background: var(--hr-red-press); }
+.hr-tv-ph__load[hidden] { display: none; }
+.hr-tv-ph__link { display: inline-flex; align-items: center; min-height: 44px; color: var(--hr-tv-link) !important; font: 700 12px/1.2 var(--hr-font-ui); letter-spacing: 0.1em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; }
+.hr-tv :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.hr-tv--dark :focus-visible { outline-color: #ffffff; }
+/* Sizes: the widget fills whatever the frame is */
+.hr-tv--quotes { min-height: 380px; }
+.hr-tv--overview { min-height: clamp(440px, 60vw, 500px); }
+.hr-tv--events { min-height: 350px; }
+.hr-tv--hotlists { min-height: 400px; }
+@media (min-width: 1024px) { .hr-tv--quotes { min-height: 420px; } }
+/* Ticker tape: one line of State Bank figures until the tape arrives (46px either way) */
+.hr-tv--tape { --hr-tv-bg: #ffffff; --hr-tv-fg: var(--hr-ink); --hr-tv-muted: var(--hr-muted); --hr-tv-line: var(--hr-line); min-height: 46px; }
+.hr-tv-ph--tape {
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 0 0 0 max(16px, env(safe-area-inset-left));
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+}
+.hr-tv-ph--tape .hr-tv-ph__figs { display: flex; flex-wrap: nowrap; gap: 0; padding: 0; border: 0; background: none; }
+.hr-tv-ph--tape .hr-tv-ph__fig { display: flex; align-items: baseline; gap: 8px; padding: 0 18px 0 0; margin-right: 18px; border-right: 1px solid var(--hr-tv-line); background: none; white-space: nowrap; }
+.hr-tv-ph--tape .hr-tv-ph__fig:last-child { border-right: 0; }
+.hr-tv-ph--tape .hr-tv-ph__fig dt { margin: 0; font-size: 11px; letter-spacing: 0.06em; }
+.hr-tv-ph--tape .hr-tv-ph__num { font-size: 13px; }
+.hr-tv-ph--tape .hr-tv-ph__unit { font-size: 11px; }
+/* The hero meets the red nav bar: no strip of page background between them */
+body.home header#masthead { margin-bottom: 0; }

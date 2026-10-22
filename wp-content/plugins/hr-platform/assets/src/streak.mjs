@@ -2,8 +2,8 @@
 //
 // Signed-in readers: POST hr/v1/reads/start → count visible time only (Page Visibility API) and wait until the
 // sentinel after the article body has been on screen → POST hr/v1/reads/complete. A counted read dispatches
-// 'hr:streak' (the header chip updates), shows a "+10 XP" toast and, when the daily goal is met, a celebration
-// dialog. The REST nonce comes from the in-memory session payload (window.HR.session) and is never stored.
+// 'hr:streak' (the header chip and the floating widget update), shows a "+10 XP" note and, when the daily goal is
+// met, a celebration dialog. The REST nonce comes from the in-memory session payload (window.HR.session) and is never stored.
 import { animate } from 'motion/mini';
 import { spring } from 'motion';
 
@@ -66,6 +66,9 @@ function loadCss() {
 
 let region;
 function toast(text) {
+  // The floating streak widget (streak-widget.js), when it is on screen, shows the note next to the counter instead.
+  const widget = window.HR && window.HR.streakWidget;
+  if (widget && typeof widget.visible === 'function' && widget.visible()) return widget.notify(text);
   region ||= document.body.appendChild(h('div', { class: 'hrp-toasts', role: 'status', 'aria-live': 'polite' }));
   const el = h('div', { class: 'hrp-toast hrs-toast' }, flame(), h('span', { text }));
   region.appendChild(el);

@@ -79,8 +79,52 @@ add_filter( 'wpseo_json_ld_output', function ( $data ) {
 }, 20 );
 
 // The address block for the footer (and anywhere else the theme calls the action). Only filled parts are printed.
+// Compact: the address on two lines beside a pin, then the email (and phone, when set) on one line each beside an
+// icon. Plain semantic <address>; the structured data is in the page's JSON-LD graph.
 add_action( 'hr_footer_contact', function () {
-    render( 'site/footer-contact', array( 'org' => org() ) );
+    $org      = org();
+    $street   = (string) ( $org['street_address'] ?? '' );
+    $locality = trim( implode( ' ', array_filter( array(
+        implode( ', ', array_filter( array( $org['locality'] ?? '', $org['region'] ?? '' ) ) ),
+        $org['postal_code'] ?? '',
+    ) ) ) );
+    $city     = implode( ', ', array_filter( array( $locality, ! empty( $org['country'] ) ? country_name( $org['country'] ) : '' ) ) );
+    $phone    = (string) ( $org['phone'] ?? '' );
+    $email    = (string) ( $org['email'] ?? '' );
+    if ( '' === $street && '' === $city && '' === $phone && '' === $email ) {
+        return;
+    }
+    $icon = static fn( string $path ): string => '<svg class="hr-fc__icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="' . $path . '"/></svg>';
+    $pin  = 'M12 2.5a7 7 0 0 0-7 7c0 5.2 7 12 7 12s7-6.8 7-12a7 7 0 0 0-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z';
+    $mail = 'M3 5.5h18v13H3v-13Zm1.8 1.6v.3L12 12.6l7.2-5.2v-.3H4.8Zm14.4 2.3L12 14.6 4.8 9.4v7.5h14.4V9.4Z';
+    $tel  = 'M6.6 3h3l1.5 4.5-2 1.3a11 11 0 0 0 6.1 6.1l1.3-2 4.5 1.5v3A2.6 2.6 0 0 1 18.4 20 15.4 15.4 0 0 1 4 5.6 2.6 2.6 0 0 1 6.6 3Z';
+
+    echo '<address class="hr-footer-address hr-fc">';
+    if ( '' !== $street || '' !== $city ) {
+        echo '<span class="hr-fc__row hr-fc__row--addr">' . $icon( $pin ) . '<span class="hr-fc__text">'; // phpcs:ignore WordPress.Security.EscapeOutput -- static SVG
+        if ( ! empty( $org['legal_name'] ) ) {
+            echo '<span class="screen-reader-text">' . esc_html( $org['legal_name'] ) . ', </span>';
+        }
+        echo implode( '<br>', array_map( 'esc_html', array_filter( array( $street, $city ) ) ) );
+        echo '</span></span>';
+    }
+    if ( '' !== $email ) {
+        printf(
+            '<a class="hr-fc__row hr-fc__row--mail" href="%s">%s<span class="hr-fc__text">%s</span></a>',
+            esc_url( 'mailto:' . $email, array( 'mailto' ) ),
+            $icon( $mail ), // phpcs:ignore WordPress.Security.EscapeOutput -- static SVG
+            esc_html( $email )
+        );
+    }
+    if ( '' !== $phone ) {
+        printf(
+            '<a class="hr-fc__row hr-fc__row--tel" href="%s">%s<span class="hr-fc__text">%s</span></a>',
+            esc_url( 'tel:' . preg_replace( '/[^0-9+]/', '', $phone ), array( 'tel' ) ),
+            $icon( $tel ), // phpcs:ignore WordPress.Security.EscapeOutput -- static SVG
+            esc_html( $phone )
+        );
+    }
+    echo '</address>';
 } );
 
 // ---------------------------------------------------------------------------------------------------------------

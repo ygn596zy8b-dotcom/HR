@@ -8,7 +8,7 @@ get_header();
 
 <style>
 /* ================================================
-   EXECUTIVE SPOTLIGHT — LISTING PAGE
+   EXECUTIVE SPOTLIGHT: LISTING PAGE
    Scoped to .es-wrapper only
 ================================================ */
 
@@ -163,7 +163,7 @@ get_header();
     flex: 0 0 400px;
     background: #111111;
     position: relative;
-    min-height: 400px;
+    min-height: 440px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -176,28 +176,44 @@ get_header();
     inset: 0;
     background: radial-gradient(circle at 55% 45%, rgba(192,0,26,0.28) 0%, transparent 65%);
 }
-.es-card-left img {
-    width: 190px;
-    height: 190px;
-    border-radius: 50%;
-    border: 2px solid rgba(192,0,26,0.5);
+/* The executive's portrait fills the panel; the crop keeps the top of the frame, so heads are never cut. */
+.es-card-left img.es-card-portrait {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin: 0;
     object-fit: cover;
-    position: relative;
-    z-index: 1;
+    object-position: 50% 20%;
     display: block;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.es-card-left.has-portrait::before {
+    z-index: 1;
+    background: linear-gradient(to top, rgba(10,10,10,0.94) 0%, rgba(10,10,10,0.6) 30%, rgba(10,10,10,0) 58%);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .es-featured-card:hover .es-card-left img.es-card-portrait { transform: scale(1.03); }
 }
 .es-card-left-badge {
     position: absolute;
-    bottom: 28px;
-    left: 0; right: 0;
-    text-align: center;
+    top: 24px;
+    left: 28px;
+    padding: 6px 10px 5px;
+    background: #C0001A;
     font-size: 10px;
     font-weight: 800;
-    letter-spacing: 3px;
-    color: #C0001A;
+    line-height: 1;
+    letter-spacing: 2px;
+    color: #ffffff;
     text-transform: uppercase;
     z-index: 2;
 }
+.es-card-person { position: relative; z-index: 2; padding: 0 28px; text-align: center; }
+.es-card-left.has-portrait .es-card-person { position: absolute; left: 0; right: 0; bottom: 28px; text-align: left; }
+.es-card-person-name { margin: 0 0 4px; font-size: 20px; font-weight: 800; line-height: 1.25; color: #ffffff; }
+.es-card-person-title { margin: 0; font-size: 13px; line-height: 1.45; color: #D1D1D6; }
 
 /* Right white panel */
 .es-card-right {
@@ -325,6 +341,16 @@ get_header();
     margin: 0;
 }
 
+/* Archive cards: the full portrait on top, 3:2 like the uploads, cropped from the top if ever needed */
+.es-coming-item.es-archive-card { display: flex; flex-direction: column; padding: 0; background: #ffffff; text-decoration: none; color: inherit; transition: box-shadow 0.25s ease, border-color 0.25s ease; }
+.es-archive-card:hover { border-color: #D1D5DB; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+.es-archive-media { aspect-ratio: 3 / 2; overflow: hidden; background: #111111; }
+.es-archive-media img { display: block; width: 100%; height: 100%; max-width: none; margin: 0; object-fit: cover; object-position: 50% 20%; transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) { .es-archive-card:hover .es-archive-media img { transform: scale(1.04); } }
+.es-archive-card .es-coming-tag { margin: 20px 24px 8px; color: #C0001A; }
+.es-archive-title { margin: 0 24px 10px; font-size: 17px; font-weight: 700; line-height: 1.4; color: #0A0A0A; }
+.es-archive-date { margin: auto 24px 24px; font-size: 12px; color: #6B7280; }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
     .es-hero { padding: 56px 24px 100px; }
@@ -332,11 +358,15 @@ get_header();
     .es-main { margin-top: 0; padding: 40px 24px 60px; }
     .es-featured-card { flex-direction: column; }
     .es-card-left { flex: 0 0 auto; min-height: 280px; width: 100%; }
+    .es-card-left.has-portrait { min-height: 0; aspect-ratio: 3 / 2; }
     .es-card-right { padding: 36px 28px; }
     .es-card-title { font-size: 22px; }
     .es-card-footer { flex-direction: column; align-items: flex-start; gap: 16px; }
     .es-info-split { grid-template-columns: 1fr; gap: 36px; padding: 40px 0; }
     .es-coming-grid { grid-template-columns: 1fr; }
+}
+@media (min-width: 601px) and (max-width: 900px) {
+    .es-coming-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>
 
@@ -378,29 +408,30 @@ get_header();
         if ($featured_q->have_posts()) :
             while ($featured_q->have_posts()) : $featured_q->the_post();
                 $featured_post_id = get_the_ID();
-                $img     = hr_post_image($featured_post_id, 'large', array('loading' => 'eager', 'fetchpriority' => 'high'));
+                // The LCP of this page: fetched first, sized to the panel (portrait crop on desktop, full frame on phones).
+                $img     = has_post_thumbnail() ? hr_card_image($featured_post_id, 'large', '(max-width: 900px) calc(100vw - 48px), 400px', array('loading' => 'eager', 'fetchpriority' => 'high', 'class' => 'es-card-portrait')) : '';
                 $quote   = get_post_meta($featured_post_id, 'es_pull_quote', true);
                 if (!$quote) $quote = wp_trim_words(get_the_excerpt(), 22, '...');
                 $exec_name  = get_post_meta($featured_post_id, '_hr_exec_name', true);
                 $exec_title = get_post_meta($featured_post_id, '_hr_exec_title', true);
         ?>
         <a href="<?php echo esc_url(get_permalink()); ?>" class="es-featured-card">
-            <div class="es-card-left">
-    <?php echo $img; // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_url/esc_attr ?>
-    <?php if ($exec_name) : ?>
-        <h3 style="font-size: 18px; font-weight: 700; color: #ffffff; margin: 16px 0 4px; position: relative; z-index: 1;"><?php echo esc_html($exec_name); ?></h3>
-    <?php endif; ?>
-    <?php if ($exec_title) : ?>
-        <p style="font-size: 12px; color: #9CA3AF; margin: 0 0 16px; position: relative; z-index: 1;"><?php echo esc_html($exec_title); ?></p>
-    <?php endif; ?>
-    <span class="es-card-left-badge">Executive Spotlight</span>
-</div>
+            <div class="es-card-left<?php echo $img ? ' has-portrait' : ''; ?>">
+                <?php echo $img; // phpcs:ignore WordPress.Security.EscapeOutput -- built by wp_get_attachment_image() ?>
+                <span class="es-card-left-badge">Executive Spotlight</span>
+                <?php if ($exec_name || $exec_title) : ?>
+                <div class="es-card-person">
+                    <?php if ($exec_name) : ?><p class="es-card-person-name"><?php echo esc_html($exec_name); ?></p><?php endif; ?>
+                    <?php if ($exec_title) : ?><p class="es-card-person-title"><?php echo esc_html($exec_title); ?></p><?php endif; ?>
+                </div>
+                <?php endif; ?>
+            </div>
             <div class="es-card-right">
                 <div class="es-card-meta">Featured Executive</div>
                 <h2 class="es-card-title"><?php echo esc_html(get_the_title()); ?></h2>
                 <blockquote class="es-card-quote"><?php echo esc_html($quote); ?></blockquote>
                 <div class="es-card-footer">
-                    <span class="es-card-date"><?php echo get_the_date('F j, Y'); ?></span>
+                    <span class="es-card-date"><?php echo esc_html(get_the_date('F j, Y')); ?></span>
                     <span class="es-btn">Read the Interview &rarr;</span>
                 </div>
             </div>
@@ -416,11 +447,11 @@ get_header();
         <div class="es-info-split">
             <div>
                 <h3 class="es-info-heading">About the Series</h3>
-                <p class="es-info-text">Executive Spotlight is Headline Recorder's flagship interview series — a space where Pakistan's top business leaders speak without filters. Each conversation pairs a video interview with an in-depth written profile, distributed across web, LinkedIn, Instagram, and Facebook.</p>
+                <p class="es-info-text">Executive Spotlight is Headline Recorder's flagship interview series: a space where Pakistan's top business leaders speak without filters. Each conversation pairs a video interview with an in-depth written profile, distributed across web, LinkedIn, Instagram, and Facebook.</p>
             </div>
             <div>
                 <h3 class="es-info-heading">Want to be Featured?</h3>
-                <p class="es-info-text">Executive Spotlight is open to C-suite leaders, founders, and policymakers driving change in Pakistan's economy. We handle everything — video production, editorial writing, and full multi-platform distribution.</p>
+                <p class="es-info-text">Executive Spotlight is open to C-suite leaders, founders, and policymakers driving change in Pakistan's economy. We handle everything: video production, editorial writing, and full multi-platform distribution.</p>
                 <a href="/contact" class="es-info-link">Get in Touch &rarr;</a>
             </div>
         </div>
@@ -443,18 +474,19 @@ get_header();
                 if ($archive_q->have_posts()) :
                     while ($archive_q->have_posts()) : $archive_q->the_post();
                         $rendered_count++;
-                        $archive_img = hr_post_image(get_the_ID(), 'medium', array('style' => 'width:100%; height:100%; object-fit:cover; display:block;'));
+                        $archive_img = has_post_thumbnail() ? hr_card_image(get_the_ID(), 'medium', '(max-width: 900px) calc(100vw - 96px), 300px', array('alt' => '')) : '';
                 ?>
                 <!-- Reusing the coming-item styling for the real archive cards to keep the grid perfect -->
-                <a href="<?php echo esc_url(get_permalink()); ?>" class="es-coming-item" style="display:block; text-decoration:none; padding: 24px; transition: transform 0.2s;">
+                <a href="<?php echo esc_url(get_permalink()); ?>" class="es-coming-item es-archive-card">
                     <?php if ($archive_img) : ?>
-                    <div style="height: 140px; background: #111; margin-bottom: 16px; overflow: hidden; border-radius: 4px;">
-                        <?php echo $archive_img; // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_url/esc_attr ?>
+                    <div class="es-archive-media">
+                        <?php echo $archive_img; // phpcs:ignore WordPress.Security.EscapeOutput -- built by wp_get_attachment_image() ?>
                     </div>
                     <?php endif; ?>
-                    <div class="es-coming-tag">Interview Archive</div>
-                    <h3 style="font-size: 16px; font-weight: 700; color: #0A0A0A; margin: 0 0 10px; line-height: 1.4;"><?php echo esc_html(get_the_title()); ?></h3>
-                    <div style="font-size: 11px; color: #6B7280;"><?php echo get_the_date('F j, Y'); ?></div>
+                    <?php $hr_exec_name = get_post_meta(get_the_ID(), '_hr_exec_name', true); ?>
+                    <div class="es-coming-tag"><?php echo $hr_exec_name ? esc_html($hr_exec_name) : 'Interview Archive'; ?></div>
+                    <h3 class="es-archive-title"><?php echo esc_html(get_the_title()); ?></h3>
+                    <div class="es-archive-date"><?php echo esc_html(get_the_date('F j, Y')); ?></div>
                 </a>
                 <?php 
                     endwhile; 

@@ -1,7 +1,8 @@
 <?php
 /**
  * /podcast/feed/ (the hr_episode archive feed) as an Apple Podcasts / Podcasting 2.0 feed on top of core RSS2.
- * Items without playable audio are left out of the feed (directories reject enclosure-less items).
+ * It lists the episodes the website keeps (see retention.php) that have playable audio: directories reject items
+ * without an enclosure. The browser view (XSLT) and the main-site feed fixes live in includes/feeds/.
  */
 
 namespace HR\Platform\Podcast;
@@ -17,16 +18,24 @@ function is_podcast_feed(): bool {
 add_action( 'pre_get_posts', function ( \WP_Query $query ) {
     if ( $query->is_main_query() && $query->is_feed() && $query->is_post_type_archive( CPT ) ) {
         $query->set( 'meta_query', HAS_AUDIO );
+        $query->set( 'post__in', kept_ids() ?: array( 0 ) );
+        $query->set( 'posts_per_rss', keep_count() );
+        $query->set( 'orderby', array( 'date' => 'DESC', 'ID' => 'DESC' ) );
     }
 } );
 
 // Yoast's "Remove post type feeds" crawl setting (on for this site) would redirect /podcast/feed/ to /podcast/,
 // but podcast apps need this feed. Yoast reads that setting just after this, at priority -10000 on 'wp'.
 add_action( 'wp', function () {
-    if ( is_podcast_feed() && class_exists( '\WPSEO_Options' ) ) {
-        add_filter( 'option_wpseo', static fn( $o ) => array( 'remove_feed_post_types' => false ) + (array) $o );
+    if ( ! is_podcast_feed() ) {
+        return;
+    }
+    if ( class_exists( '\WPSEO_Options' ) ) {
+        add_filter( 'option_wpseo', static fn( $o ) => array( 'remove_feed_post_types' => false ) + (array) $o, 20 );
         \WPSEO_Options::clear_cache();
     }
+    // The show cover replaces the 32 px site icon as the channel <image>.
+    remove_action( 'rss2_head', 'rss2_site_icon' );
 }, -10001 );
 
 // Episode descriptions are show notes; Yoast's "originally published at" RSS lines don't belong in podcast apps.
@@ -78,6 +87,7 @@ add_action( 'rss2_head', function () {
     printf( "\t<itunes:owner><itunes:name>%s</itunes:name>%s</itunes:owner>\n", esc_html( $author ), $email ? '<itunes:email>' . esc_html( $email ) . '</itunes:email>' : '' );
     if ( $image ) {
         printf( "\t<itunes:image href=\"%s\"/>\n", esc_url( $image ) );
+        printf( "\t<image>\n\t\t<url>%s</url>\n\t\t<title>%s</title>\n\t\t<link>%s</link>\n\t</image>\n", esc_url( $image ), esc_html( feed_title() ), esc_url( (string) get_post_type_archive_link( CPT ) ) );
     }
     if ( in_array( $sub, APPLE_CATEGORIES[ $category ], true ) ) {
         printf( "\t<itunes:category text=\"%s\"><itunes:category text=\"%s\"/></itunes:category>\n", esc_attr( $category ), esc_attr( $sub ) );
@@ -107,5 +117,11 @@ add_action( 'rss2_item', function () {
         printf( "\t\t<itunes:season>%d</itunes:season>\n", $meta( '_hr_season' ) );
     }
     echo "\t\t<itunes:episodeType>full</itunes:episodeType>\n";
+    // Episode artwork only when it meets Apple's rules (square, 1400 to 3000 px); otherwise apps show the show cover.
+    $thumb = (int) get_post_thumbnail_id( $post );
+    $src   = $thumb ? wp_get_attachment_image_src( $thumb, 'full' ) : false;
+    if ( $src && (int) $src[1] === (int) $src[2] && $src[1] >= 1400 && $src[1] <= 3000 ) {
+        printf( "\t\t<itunes:image href=\"%s\"/>\n", esc_url( $src[0] ) );
+    }
     printf( "\t\t<itunes:explicit>%s</itunes:explicit>\n", get_post_meta( $post->ID, '_hr_explicit', true ) ? 'true' : 'false' );
 } );

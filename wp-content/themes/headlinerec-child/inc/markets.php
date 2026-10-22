@@ -1,12 +1,14 @@
 <?php
 /**
- * Markets (MSBJ): the placeholder every TradingView panel ships with, and the State Bank figures it shows.
+ * Markets (MSBJ): TradingView panels that cost nothing on first paint, and the State Bank figures they fall back to.
  *
- * TradingView widgets are printed inert (<script type="text/plain" data-hr-tv>) inside a .hr-tv frame and started by
- * hr-ui.js once the page has loaded and the panel is within 400px of the viewport. Until the widget's frame has
- * loaded, and for good when it cannot load (blocked, offline, embedded content switched off in the cookie settings),
- * the frame shows this placeholder at the widget's own size: a status line, the latest SBP figures and the
- * instruments the live panel tracks. The HTML is the same for every reader, so pages stay cacheable.
+ * Every panel is printed by hr_tv_widget(): a fixed-size .hr-tv frame holding a placeholder and an inert widget
+ * (<script type="text/plain" data-hr-tv>). hr-ui.js starts the widget once the page has loaded and the frame is
+ * within 400px of the viewport, and moves the frame through data-hr-tv-state: idle, loading, ready, error or off
+ * (embedded content switched off in the cookie settings). Until "ready", and for good when the widget cannot load,
+ * the placeholder shows a status line, the latest SBP figures and the instruments the live panel tracks, so the
+ * panel is never an empty box and nothing moves when the widget arrives. The HTML is the same for every reader,
+ * so pages stay cacheable.
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
@@ -49,19 +51,23 @@ function hr_sbp_updated(): string {
  *     @type string   $button  Label of the "load anyway" button shown in the $off state.
  *     @type array    $figures Rows from hr_sbp_figures().
  *     @type string[] $symbols Instruments the live widget tracks.
+ *     @type string   $link    Optional URL for a "more" link under the figures (e.g. the Markets page).
+ *     @type string   $link_label Text of that link.
  *     @type string   $variant '' (panel) or 'tape' (one-line ticker).
  * }
  */
 function hr_tv_placeholder( array $args ): string {
     $args = array_merge(
         array(
-            'loading' => 'Live market data loads here',
-            'error'   => 'Live market data is unavailable right now.',
-            'off'     => 'Live market data comes from TradingView, which may set its own cookies. Embedded content is switched off in your cookie settings.',
-            'button'  => 'Load live data',
-            'figures' => array(),
-            'symbols' => array(),
-            'variant' => '',
+            'loading'    => 'Live market data loads here',
+            'error'      => 'Live market data is unavailable right now.',
+            'off'        => 'Live market data comes from TradingView, which may set its own cookies. Embedded content is switched off in your cookie settings.',
+            'button'     => 'Load live data',
+            'figures'    => array(),
+            'symbols'    => array(),
+            'link'       => '',
+            'link_label' => '',
+            'variant'    => '',
         ),
         $args
     );
@@ -104,7 +110,42 @@ function hr_tv_placeholder( array $args ): string {
         $html .= '</ul>';
     }
     if ( ! $tape ) {
+        $html .= '<div class="hr-tv-ph__actions">';
         $html .= '<button type="button" class="hr-tv-ph__load" data-hr-tv-load hidden>' . esc_html( $args['button'] ) . '</button>';
+        if ( '' !== $args['link'] && '' !== $args['link_label'] ) {
+            $html .= sprintf( '<a class="hr-tv-ph__link" href="%s">%s</a>', esc_url( $args['link'] ), esc_html( $args['link_label'] ) );
+        }
+        $html .= '</div>';
     }
     return $html . '</div>';
+}
+
+/**
+ * A complete TradingView panel: frame, placeholder and inert widget.
+ *
+ * @param string $widget  Widget slug, e.g. "market-quotes" (embed-widget-market-quotes.js).
+ * @param array  $config  Widget configuration. Width and height default to "100%": the frame sets the size in CSS.
+ * @param array  $args    {
+ *     @type string $class       Extra classes on the frame (size and colour variants: hr-tv--dark, hr-tv--quotes...).
+ *     @type string $label       Accessible name of the panel.
+ *     @type array  $placeholder Arguments for hr_tv_placeholder().
+ *     @type bool   $autosize    False for widgets with their own fixed height (ticker tape).
+ * }
+ */
+function hr_tv_widget( string $widget, array $config, array $args = array() ): string {
+    if ( ! preg_match( '/^[a-z-]+$/', $widget ) ) {
+        return '';
+    }
+    $args   = array_merge( array( 'class' => '', 'label' => '', 'placeholder' => array(), 'autosize' => true ), $args );
+    $config = $args['autosize'] ? array_merge( array( 'width' => '100%', 'height' => '100%' ), $config ) : $config;
+    $json   = wp_json_encode( $config, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP );
+
+    return sprintf(
+        '<div class="hr-tv %1$s" data-hr-tv-state="idle"%2$s>%3$s<div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div><script type="text/plain" data-hr-tv="%4$s">%5$s</script></div></div>',
+        esc_attr( trim( $args['class'] ) ),
+        '' !== $args['label'] ? ' role="region" aria-label="' . esc_attr( $args['label'] ) . '"' : '',
+        hr_tv_placeholder( $args['placeholder'] ),
+        esc_url( "https://s3.tradingview.com/external-embedding/embed-widget-{$widget}.js" ),
+        $json // phpcs:ignore WordPress.Security.EscapeOutput -- JSON with <, > and & hex-escaped, inside an inert script
+    );
 }

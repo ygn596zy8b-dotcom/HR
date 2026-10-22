@@ -93,14 +93,17 @@
 }
 
 /* ── 2. MAIN FOOTER GRID ── */
+/* Brand + address | Latest Updates | Company. Two columns on tablets (Latest Updates spans both), one on phones. */
 .hr-footer-main {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 80px 40px;
+    padding: clamp(56px, 7vw, 80px) clamp(20px, 4vw, 40px);
     display: grid;
-    grid-template-columns: 1.2fr 2fr 0.8fr;
-    gap: 60px;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.6fr) minmax(0, 0.9fr);
+    gap: clamp(40px, 4.5vw, 64px);
+    align-items: start;
 }
+.hr-footer-col { min-width: 0; }
 .hr-footer-col-title {
     color: #E31837;
     font-size: 13px; /* Bumped from 11px */
@@ -124,11 +127,40 @@
 .hr-footer-logo span:last-child { color: #E31837; }
 .hr-footer-desc {
     font-size: 15px; /* Bumped from 13px */
-    line-height: 1.8;
+    line-height: 1.7;
     color: #6B7280;
-    margin-bottom: 30px;
-    max-width: 320px;
+    margin: 16px 0 24px;
+    max-width: 340px;
 }
+
+/* Registered address and newsroom email (filled by hr-platform on hr_footer_contact): an icon beside each line,
+   the address on two lines, the email on one. */
+.hr-footer-wrapper .hr-fc {
+    display: grid;
+    gap: 2px;
+    margin: 0 0 24px;
+    max-width: 340px;
+    font-style: normal;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #9CA3AF;
+}
+.hr-footer-wrapper .hr-fc__row {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+    min-height: 0;
+    color: #9CA3AF;
+    text-decoration: none;
+}
+.hr-footer-wrapper .hr-fc__row--addr { padding: 0 0 6px; }
+.hr-footer-wrapper a.hr-fc__row { align-items: center; min-height: 44px; transition: color 0.2s; }
+.hr-footer-wrapper a.hr-fc__row:hover,
+.hr-footer-wrapper a.hr-fc__row:focus-visible { color: #FFFFFF; }
+.hr-footer-wrapper a.hr-fc__row .hr-fc__text { text-decoration: underline; text-decoration-color: rgba(255, 255, 255, 0.25); text-underline-offset: 3px; overflow-wrap: anywhere; }
+.hr-footer-wrapper .hr-fc__icon { width: 16px; height: 16px; margin-top: 3px; fill: #E31837; }
+.hr-footer-wrapper a.hr-fc__row .hr-fc__icon { margin-top: 0; }
 .hr-social-boxes {
     display: flex;
     gap: 8px;
@@ -229,12 +261,15 @@
 }
 
 /* ── RESPONSIVE ── */
+@media (max-width: 1023px) {
+    .hr-footer-main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .hr-footer-col--latest { grid-column: 1 / -1; grid-row: 2; }
+}
+@media (max-width: 639px) {
+    .hr-footer-main { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+    .hr-footer-col--latest { grid-row: auto; }
+}
 @media (max-width: 900px) {
-    .hr-footer-main {
-        grid-template-columns: 1fr;
-        gap: 40px;
-        padding: 60px 20px;
-    }
     .hr-nl-heading {
         font-size: 32px; /* Bumped from 28px */
     }

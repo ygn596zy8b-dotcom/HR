@@ -90,25 +90,60 @@ add_action( 'rss2_item', function () {
     }
 } );
 
-// Settings → Headline Recorder: what the signer has done so far.
+// Settings > Headline Recorder > Content signing: what the signer has done so far (read-only; this sits inside the
+// settings form, so the actions live on their own screen).
 add_action( 'hr_settings_section_after', function ( $section ) {
-    if ( 'signing' !== $section || ! current_user_can( 'manage_options' ) ) {
+    if ( 'signing' !== $section || ! current_user_can( 'manage_options' ) || ! function_exists( __NAMESPACE__ . '\\status_summary' ) ) {
         return;
     }
-    global $wpdb;
-    $public  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'post' AND post_status = 'publish' AND post_password = ''" );
-    $pending = queue_candidate_ids( 0, 0, true );
-    $signers = count( get_users( array( 'role' => ROLE, 'fields' => 'ID', 'number' => 50 ) ) );
+    $s       = status_summary();
     $keys    = keyset();
+    $signers = count( get_users( array( 'role' => ROLE, 'fields' => 'ID', 'number' => 50 ) ) );
+    $screen  = admin_url( 'options-general.php?page=hr-signing' );
+    $run     = $s['run'];
+    $when    = static fn( int $ts ) => sprintf( '%s (%s ago)', wp_date( 'j M Y, H:i', $ts ), human_time_diff( $ts ) );
+    $sources = array( 'cron' => 'automatic run', 'backlog' => '"Sign all pending now"', 'cli' => 'WP-CLI' );
     ?>
-    <table class="widefat striped" style="max-width:720px">
+    <table class="widefat striped" style="max-width:760px">
         <tbody>
-            <tr><th scope="row">Keyset</th><td><?php echo $keys ? esc_html( sprintf( '%d key(s): %s', count( $keys['keys'] ), implode( ', ', array_map( static fn( $k ) => substr( $k['kid'], 0, 16 ) . '…' . ( empty( $k['revoked'] ) ? '' : ' (revoked)' ), $keys['keys'] ) ) ) ) : 'Not configured — nothing can be signed yet.'; ?></td></tr>
-            <tr><th scope="row">Articles</th><td><?php echo esc_html( sprintf( '%d of %d published articles signed; %d waiting for the signer.', max( 0, $public - $pending ), $public, $pending ) ); ?></td></tr>
+            <tr><th scope="row">Automatic signing</th><td>
+                <?php
+                if ( ! $s['enabled'] ) {
+                    echo '<strong>Off.</strong> New and edited articles wait until signing is switched back on above, or until someone signs them offline.';
+                } elseif ( $s['usable'] ) {
+                    echo '<strong>On.</strong> Articles are signed the moment they are published or edited; a sweep every 5 minutes catches anything left.';
+                } else {
+                    echo '<strong>On, but not signing:</strong> ' . esc_html( $s['problem'] );
+                }
+                ?>
+                <a href="<?php echo esc_url( $screen ); ?>">Open Settings &gt; Content signing</a>
+            </td></tr>
+            <tr><th scope="row">Articles</th><td><?php echo esc_html( sprintf( '%s of %s published articles signed; %s pending.', number_format_i18n( $s['signed'] ), number_format_i18n( $s['public'] ), number_format_i18n( $s['pending'] ) ) ); ?></td></tr>
+            <tr><th scope="row">Server key</th><td><?php
+                if ( empty( $s['key']['installed'] ) ) {
+                    echo 'Not installed.';
+                } else {
+                    echo esc_html( sprintf( '%s, %s.', group_hex( $s['key']['kid'], 4 ), 'generated' === $s['key']['source'] ? 'generated on this server' : 'imported' ) );
+                }
+            ?></td></tr>
+            <tr><th scope="row">Last run</th><td><?php
+                if ( ! $run ) {
+                    echo 'No run yet.';
+                } else {
+                    echo esc_html( sprintf( '%s, %s: %s, %s signed%s.', $when( (int) $run['at'] ), $sources[ $run['source'] ] ?? $run['source'], empty( $run['ok'] ) ? 'problems' : 'OK', number_format_i18n( (int) $run['signed'] ), $run['failed'] ? sprintf( ', %d failed', (int) $run['failed'] ) : '' ) );
+                    foreach ( (array) $run['errors'] as $error ) {
+                        echo '<br><span style="color:#b32d2e">' . esc_html( $error ) . '</span>';
+                    }
+                }
+            ?></td></tr>
+            <?php foreach ( array_slice( $s['errors'], 0, 3, true ) as $id => $error ) : ?>
+                <tr><th scope="row"><?php echo esc_html( sprintf( 'Article %d', $id ) ); ?></th><td><?php echo esc_html( sprintf( '%s (%s ago)', $error['message'], human_time_diff( (int) $error['at'] ) ) ); ?></td></tr>
+            <?php endforeach; ?>
+            <tr><th scope="row">Keyset</th><td><?php echo $keys ? esc_html( sprintf( '%d key(s): %s', count( $keys['keys'] ), implode( ', ', array_map( static fn( $k ) => substr( $k['kid'], 0, 16 ) . '...' . ( empty( $k['revoked'] ) ? '' : ' (revoked)' ), $keys['keys'] ) ) ) ) : 'Not configured: nothing can be signed yet.'; ?></td></tr>
             <?php foreach ( feed_sources() as $key => $source ) : $feed = stored_feed( $key ); ?>
                 <tr><th scope="row"><?php echo esc_html( 'Feed ' . $source ); ?></th><td><?php echo $feed ? esc_html( 'Signed snapshot from ' . wp_date( 'j M Y, H:i', (int) $feed['at'] ) ) : 'Not signed yet.'; ?></td></tr>
             <?php endforeach; ?>
-            <tr><th scope="row">Signer accounts</th><td><?php echo esc_html( $signers ? sprintf( '%d user(s) with the Content signer role.', $signers ) : 'None. Create a user with the Content signer role and an application password for the signing job.' ); ?></td></tr>
+            <tr><th scope="row">Offline signer</th><td><?php echo esc_html( $signers ? sprintf( '%d user(s) with the Content signer role (only needed for security/pq/wp-sign.mjs).', $signers ) : 'Not set up (only needed for the offline signer, security/pq/wp-sign.mjs).' ); ?></td></tr>
         </tbody>
     </table>
     <?php

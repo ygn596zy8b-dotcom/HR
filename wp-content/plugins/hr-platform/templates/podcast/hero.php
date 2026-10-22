@@ -1,9 +1,10 @@
 <?php
 /**
- * Home-page Podcast section (hr_home_after_banner). Inline SVG only, so it never competes for LCP.
+ * Home-page Podcast section (hr_home_after_banner): the show on the left, the newest published episode (and only
+ * that one) on the right with its player. Inline SVG only, so it never competes for LCP.
  * Theme override: headlinerec-child/hr/podcast/hero.php
  *
- * @var array|null $episode latest episode (episode() data) or null
+ * @var array|null $episode newest published episode (episode() data) or null
  */
 
 use function HR\Platform\icon;
@@ -21,22 +22,6 @@ $about = preg_split( '/(?<=[.!?])\s+/', trim( (string) setting( 'podcast_descrip
 ?>
 <section class="hrp hrp-dark hr-podcast-hero" aria-labelledby="hr-podcast-hero-title">
     <div class="hrp-wrap hr-podcast-hero__inner">
-        <div class="hr-podcast-hero__disc">
-            <span class="hr-podcast-hero__ring" aria-hidden="true"></span>
-            <span class="hr-podcast-hero__ring" aria-hidden="true"></span>
-            <span class="hr-podcast-hero__ring" aria-hidden="true"></span>
-            <?php if ( $playable ) : ?>
-                <button type="button" class="hr-podcast-hero__orb" data-hrp-target="hr-podcast-hero-player" aria-pressed="false">
-                    <?php echo icon( 'play', '', 'hrp-i-play' ) . icon( 'pause', '', 'hrp-i-pause' ); // phpcs:ignore -- static SVG ?>
-                    <span class="hrp-sr">Play the latest episode</span>
-                </button>
-            <?php else : ?>
-                <a class="hr-podcast-hero__orb" href="<?php echo esc_url( $episode ? $episode['url'] : $archive ); ?>">
-                    <?php echo icon( 'headphones' ); // phpcs:ignore ?>
-                    <span class="hrp-sr"><?php echo $episode ? 'Listen to the latest episode' : 'Go to the Podcast'; ?></span>
-                </a>
-            <?php endif; ?>
-        </div>
         <div class="hr-podcast-hero__copy">
             <p class="hrp-eyebrow"><?php echo esc_html( (string) setting( 'podcast_eyebrow' ) ); ?></p>
             <h2 class="hr-podcast-hero__title" id="hr-podcast-hero-title"><?php echo esc_html( show_name() ); ?></h2>
@@ -44,28 +29,62 @@ $about = preg_split( '/(?<=[.!?])\s+/', trim( (string) setting( 'podcast_descrip
             <?php if ( $about ) : ?>
                 <p class="hr-podcast-hero__about"><?php echo esc_html( $about ); ?></p>
             <?php endif; ?>
+        </div>
+
+        <div class="hr-podcast-hero__actions">
+            <a class="hrp-btn hrp-btn--ghost hr-podcast-hero__all" href="<?php echo esc_url( $archive ); ?>">All episodes<?php echo icon( 'arrow-right' ); // phpcs:ignore -- static SVG ?></a>
+            <?php render( 'podcast/subscribe' ); ?>
+        </div>
+
+        <div class="hr-podcast-hero__episode">
             <?php if ( $episode ) : ?>
-                <div class="hr-podcast-hero__latest">
-                    <p class="hr-podcast-hero__label">Latest episode</p>
-                    <p class="hr-podcast-hero__ep"><a href="<?php echo esc_url( $episode['url'] ); ?>"><?php echo esc_html( $episode['title'] ); ?></a></p>
-                    <p class="hr-podcast-hero__meta">
-                        <?php if ( $episode['duration'] ) : ?><span><?php echo icon( 'clock' ); // phpcs:ignore ?><?php echo esc_html( minutes( $episode['duration'] ) ); ?></span><?php endif; ?>
-                        <span><?php echo icon( 'calendar' ); // phpcs:ignore ?><time datetime="<?php echo esc_attr( $episode['iso'] ); ?>"><?php echo esc_html( $episode['date'] ); ?></time></span>
-                    </p>
+                <div class="hr-podcast-hero__head">
+                    <div class="hr-podcast-hero__disc">
+                        <span class="hr-podcast-hero__ring" aria-hidden="true"></span>
+                        <span class="hr-podcast-hero__ring" aria-hidden="true"></span>
+                        <?php if ( $playable ) : ?>
+                            <button type="button" class="hr-podcast-hero__orb" data-hrp-target="hr-podcast-hero-player" aria-pressed="false">
+                                <?php echo icon( 'play', '', 'hrp-i-play' ) . icon( 'pause', '', 'hrp-i-pause' ); // phpcs:ignore -- static SVG ?>
+                                <span class="hrp-sr">Play the latest episode: <?php echo esc_html( $episode['title'] ); ?></span>
+                            </button>
+                        <?php else : ?>
+                            <a class="hr-podcast-hero__orb" href="<?php echo esc_url( $episode['url'] ); ?>">
+                                <?php echo icon( 'headphones' ); // phpcs:ignore ?>
+                                <span class="hrp-sr">Listen to the latest episode: <?php echo esc_html( $episode['title'] ); ?></span>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                    <div class="hr-podcast-hero__head-text">
+                        <p class="hr-podcast-hero__label"><span class="hr-podcast-hero__live" aria-hidden="true"></span>Latest episode</p>
+                        <p class="hr-podcast-hero__meta">
+                            <span><?php echo icon( 'calendar' ); // phpcs:ignore ?><time datetime="<?php echo esc_attr( $episode['iso'] ); ?>"><?php echo esc_html( $episode['date'] ); ?></time></span>
+                            <?php if ( $episode['duration'] ) : ?><span><?php echo icon( 'clock' ); // phpcs:ignore ?><?php echo esc_html( minutes( $episode['duration'] ) ); ?></span><?php endif; ?>
+                        </p>
+                    </div>
                 </div>
-            <?php endif; ?>
-            <div class="hr-podcast-hero__actions">
+                <h3 class="hr-podcast-hero__ep"><a href="<?php echo esc_url( $episode['url'] ); ?>"><?php echo esc_html( $episode['title'] ); ?></a></h3>
+                <?php if ( $episode['excerpt'] ) : ?>
+                    <p class="hr-podcast-hero__excerpt"><?php echo esc_html( wp_trim_words( $episode['excerpt'], 32 ) ); ?></p>
+                <?php endif; ?>
+                <?php if ( $episode['ai'] ) : ?>
+                    <p class="hr-podcast-hero__ai"><?php echo icon( 'sparkles' ); // phpcs:ignore ?>Script drafted with AI, reviewed by our editors</p>
+                <?php endif; ?>
                 <?php if ( $playable ) : ?>
-                    <button type="button" class="hrp-btn" data-hrp-target="hr-podcast-hero-player" aria-pressed="false"><?php echo icon( 'play', '', 'hrp-i-play' ) . icon( 'pause', '', 'hrp-i-pause' ); // phpcs:ignore ?>Play latest episode</button>
-                <?php elseif ( $episode ) : ?>
+                    <?php render( 'podcast/player', array( 'episode' => $episode, 'id' => 'hr-podcast-hero-player' ) ); ?>
+                <?php else : ?>
                     <a class="hrp-btn" href="<?php echo esc_url( $episode['url'] ); ?>"><?php echo icon( 'headphones' ); // phpcs:ignore ?>Listen to the latest episode</a>
                 <?php endif; ?>
-                <a class="hrp-btn hrp-btn--ghost" href="<?php echo esc_url( $archive ); ?>">All episodes<?php echo icon( 'arrow-right' ); // phpcs:ignore ?></a>
-            </div>
-            <?php if ( $playable ) : ?>
-                <?php render( 'podcast/player', array( 'episode' => $episode, 'id' => 'hr-podcast-hero-player' ) ); ?>
+            <?php else : ?>
+                <div class="hr-podcast-hero__head">
+                    <div class="hr-podcast-hero__disc">
+                        <span class="hr-podcast-hero__ring" aria-hidden="true"></span>
+                        <span class="hr-podcast-hero__ring" aria-hidden="true"></span>
+                        <a class="hr-podcast-hero__orb" href="<?php echo esc_url( $archive ); ?>"><?php echo icon( 'headphones' ); // phpcs:ignore ?><span class="hrp-sr">Go to the Podcast</span></a>
+                    </div>
+                    <p class="hr-podcast-hero__label">Coming soon</p>
+                </div>
+                <p class="hr-podcast-hero__excerpt">The first episode is on its way. Follow the Podcast in your app and it will arrive as soon as it is published.</p>
             <?php endif; ?>
-            <?php render( 'podcast/subscribe' ); ?>
         </div>
     </div>
 </section>
