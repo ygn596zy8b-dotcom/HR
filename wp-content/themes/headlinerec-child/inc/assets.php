@@ -2,8 +2,8 @@
 /**
  * Theme assets (MSBJ): the stylesheets that used to be inline <style> blocks, and the deferred site scripts.
  *
- * The old blocks printed after Customizer Additional CSS (wp_head 101) — in wp_head 999, the article body and
- * the footer — and many of their !important rules win over it. So the files are printed from wp_head 999 in the
+ * The old blocks printed after Customizer Additional CSS (wp_head 101), from wp_head 999, the article body and
+ * the footer, and many of their !important rules win over it. So the files are printed from wp_head 999 in the
  * same order (template CSS, then base), which keeps the cascade identical while moving them into <head>.
  * The footer rules (hr-footer.css) are printed by footer.php where its <style> was, after any template <style>.
  * Optional design layers (assets/css/hr-elevate.css, assets/js/hr-ui.js) load after them when present.
@@ -25,7 +25,7 @@ function hr_is_spotlight_post(): bool {
 add_action( 'wp_enqueue_scripts', 'hr_theme_assets', 20 );
 function hr_theme_assets() {
     // The parent's covernews-script is a webpack dev build that runs its code through eval(), which the site CSP
-    // (no 'unsafe-eval') blocks — and with it the mobile menu, sticky header and scroll-up button. The parent
+    // (no 'unsafe-eval') blocks, and with it the mobile menu, sticky header and scroll-up button. The parent
     // ships the same code un-bundled in assets/script.js; serve that under the same handle.
     if ( wp_script_is( 'covernews-script', 'registered' ) ) {
         $parent = wp_scripts()->registered['covernews-script'];

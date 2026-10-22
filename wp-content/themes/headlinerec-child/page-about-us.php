@@ -262,7 +262,7 @@ get_header();
                     <div class="hr-std-card">
                         <div class="hr-std-icon">📰</div>
                         <h3>No Clickbait</h3>
-                        <p>Our headlines reflect the actual content. We don't sensationalize—we clarify.</p>
+                        <p>Our headlines reflect the actual content. We don't sensationalize; we clarify.</p>
                     </div>
                     <div class="hr-std-card">
                         <div class="hr-std-icon">🔍</div>

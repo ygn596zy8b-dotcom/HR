@@ -1,6 +1,6 @@
 <?php
 /**
- * 404 — page not found (MSBJ). WordPress sends the 404 status; Yoast marks it noindex.
+ * 404: page not found (MSBJ). WordPress sends the 404 status; Yoast marks it noindex.
  * Gives readers (and crawlers) a way back in: search, the latest stories, the main sections, Podcast and Home.
  */
 

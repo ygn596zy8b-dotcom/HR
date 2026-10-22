@@ -68,6 +68,7 @@ while (have_posts()) : the_post();
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .hr-live-dot { animation: none; } }
 .hr-live-badge-wrap { text-align: right; }
+.hr-module-box.hr-module-box--tv { padding: 0; overflow: hidden; } /* the TradingView frame fills the box */
 .hr-live-text { font-size: 12px; font-weight: 600; color: #27272a; letter-spacing: 0.5px; }
 /* No live feed (widget blocked, offline or switched off): the badge says so instead of claiming "Live". */
 .hr-single-wrapper:has(.hr-tv--overview:is([data-hr-tv-state="error"], [data-hr-tv-state="off"])) .hr-live-badge { display: none; }

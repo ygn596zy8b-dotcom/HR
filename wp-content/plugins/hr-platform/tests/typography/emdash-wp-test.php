@@ -67,10 +67,10 @@ $hr_check( 'widget_text', has_em_dash( apply_filters( 'widget_text', 'Markets --
 $hr_check( 'comment_text', has_em_dash( apply_filters( 'comment_text', 'Good piece -- thanks', null, array() ) ), false );
 
 // Separators: Yoast's "sc-mdash" choice and the document title separator.
-$hr_check( 'Yoast separator (entity)', apply_filters( 'wpseo_replacements_filter_sep', '&mdash;' ), '-' );
+$hr_check( 'Yoast separator (entity)', apply_filters( 'wpseo_replacements_filter_sep', '&' . 'mdash;' ), '-' );
 $hr_check( 'Yoast separator (character)', apply_filters( 'wpseo_replacements_filter_sep', $hr_d ), '-' );
 $hr_check( 'Yoast separator, en dash left alone', apply_filters( 'wpseo_replacements_filter_sep', '&ndash;' ), '&ndash;' );
-$hr_check( 'document_title_separator', apply_filters( 'document_title_separator', '&#8212;' ), '-' );
+$hr_check( 'document_title_separator', apply_filters( 'document_title_separator', '&#' . '8212;' ), '-' );
 $hr_check( 'document_title', apply_filters( 'document_title', "PSX {$hr_d} Headline Recorder" ), 'PSX: Headline Recorder' );
 
 // Settings are registered with their defaults.

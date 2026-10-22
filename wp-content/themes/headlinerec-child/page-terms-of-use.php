@@ -237,10 +237,10 @@ html { scroll-behavior: smooth; }
                         </p>
                         <ul class="hr-term-list">
                             <li><strong>Originality:</strong> Your piece must be your own original work, not published elsewhere (including on your own blog or social media), and must not infringe anyone else’s rights. Credit your sources, tell us about any conflict of interest, and tell us if you used AI tools and how.</li>
-                            <li><strong>Licence on acceptance:</strong> You keep the copyright. When we accept a piece, you grant Headline Recorder a non-exclusive, worldwide, royalty-free, perpetual licence to publish, edit, adapt, translate, sign, archive and distribute it, with your byline, headshot and intro, in any format — on the site, in our newsletter, the Podcast, feeds and social media. You may republish it elsewhere after it appears with us, with a credit and link to the original.</li>
+                            <li><strong>Licence on acceptance:</strong> You keep the copyright. When we accept a piece, you grant Headline Recorder a non-exclusive, worldwide, royalty-free, perpetual licence to publish, edit, adapt, translate, sign, archive and distribute it, with your byline, headshot and intro, in any format: on the site, in our newsletter, the Podcast, feeds and social media. You may republish it elsewhere after it appears with us, with a credit and link to the original.</li>
                             <li><strong>Editing:</strong> Editors may edit for length, clarity, accuracy, style and legal reasons, and choose the headline and images. We will check substantial changes with you where time allows.</li>
                             <li><strong>No guarantee of publication:</strong> Submitting a piece does not mean we will publish it, and we cannot give detailed feedback on every piece. We do not pay for submissions unless we have agreed so in writing.</li>
-                            <li><strong>Response time:</strong> We aim to reply within 10 working days. If you have not heard from us by then, you are free to offer the piece elsewhere — please let us know.</li>
+                            <li><strong>Response time:</strong> We aim to reply within 10 working days. If you have not heard from us by then, you are free to offer the piece elsewhere; please let us know.</li>
                             <li><strong>Withdrawal:</strong> You can withdraw a piece before an editor starts reviewing it by emailing <a href="<?php echo esc_url( 'mailto:' . $hr_email ); ?>"><?php echo esc_html( $hr_email ); ?></a>. After that, ask us and we will do our best to accommodate you.</li>
                         </ul>
                         <p class="hr-term-text" style="margin-bottom: 0;">
@@ -301,7 +301,7 @@ html { scroll-behavior: smooth; }
                             <li>Impersonate any person or entity, including officials or hosts of Headline Recorder.</li>
                             <li>Post unsolicited advertising, "junk mail," "spam" or any other form of commercial solicitation.</li>
                             <li>Scrape or copy the site beyond what our robots.txt allows.</li>
-                            <li>Attack or probe the site — for example, try to break in, guess passwords, overload it, get around security or rate limits, or test for vulnerabilities without our written permission. (Found a security issue? Please email us first.)</li>
+                            <li>Attack or probe the site, for example: try to break in, guess passwords, overload it, get around security or rate limits, or test for vulnerabilities without our written permission. (Found a security issue? Please email us first.)</li>
                             <li>Create accounts automatically or in bulk, or use bots to submit forms, inflate reading streaks or send submissions.</li>
                             <li>Violate any applicable local, provincial, national, or international law.</li>
                         </ul>
@@ -342,7 +342,7 @@ html { scroll-behavior: smooth; }
                     <div class="hr-term-header-text">
                         <h2>Termination</h2>
                         <p class="hr-term-text" style="margin-bottom: 0;">
-                            You can stop using the site and delete your account at any time from your account settings. We may suspend or end your access — including your account — if you break these terms or misuse the site, and we will tell you why unless the law or the security of the site prevents it. The licence you gave us for pieces we have already published continues after your account ends.
+                            You can stop using the site and delete your account at any time from your account settings. We may suspend or end your access (including your account) if you break these terms or misuse the site, and we will tell you why unless the law or the security of the site prevents it. The licence you gave us for pieces we have already published continues after your account ends.
                         </p>
                     </div>
                 </div>

@@ -202,8 +202,9 @@ function mount(cfg, data) {
   if (!reader) {
     const register = safeUrl(cfg.register);
     const login = safeUrl(cfg.login);
-    // Come back to this page after signing in (the sign-in form validates redirect_to on the server too).
-    if (login && !onDashboard) login.searchParams.set('redirect_to', location.href.split('#')[0]);
+    // Come back to this page after signing in or confirming a new account (the server validates redirect_to too).
+    const here = location.href.split('#')[0];
+    if (!onDashboard) for (const u of [login, register]) if (u) u.searchParams.set('redirect_to', here);
     const goal = Math.max(1, num(cfg.goal, 100)) || 3;
     card.append(
       h('div', { class: 'hrsw-head' }, art, minimise),

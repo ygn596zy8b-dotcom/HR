@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Headline Recorder — Sentry
+ * Plugin Name: Headline Recorder Sentry
  * Description: PHP error and performance monitoring. Loads before normal plugins so their fatal errors are caught. Does nothing unless HR_SENTRY_DSN is defined in wp-config.php.
  * Version:     1.0.0
  */
@@ -87,7 +87,7 @@ function boot(): void {
 }
 
 function add_hooks(): void {
-    // The user is identified by ID only — never email, login or IP.
+    // The user is identified by ID only, never email, login or IP.
     add_action( 'set_current_user', static function () {
         try {
             $id = get_current_user_id();

@@ -64,7 +64,7 @@ $hr_form_open = static function ( string $op, bool $multipart = false ) use ( $p
     </p>
 
     <?php if ( $notice ) : ?>
-        <div class="notice notice-<?php echo 'success' === $notice['type'] ? 'success' : 'error'; ?> is-dismissible" role="<?php echo 'success' === $notice['type'] ? 'status' : 'alert'; ?>"><p><?php echo esc_html( (string) $notice['message'] ); ?></p></div>
+        <div class="notice hr-sig-notice notice-<?php echo 'success' === $notice['type'] ? 'success' : 'error'; ?> is-dismissible" role="<?php echo 'success' === $notice['type'] ? 'status' : 'alert'; ?>"><p><?php echo esc_html( (string) $notice['message'] ); ?></p></div>
     <?php endif; ?>
     <?php if ( ! $summary['ready'] ) : ?>
         <div class="notice notice-error inline"><p>This server&rsquo;s PHP cannot run the signer: it needs 64-bit PHP 8.2 or newer. Use the offline signer until the hosting is upgraded.</p></div>

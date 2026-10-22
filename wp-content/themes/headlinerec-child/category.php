@@ -1,6 +1,6 @@
 <?php
 /**
- * Category Archive Template — Custom Premium Layout
+ * Category Archive Template: Custom Premium Layout
  * File: category.php (place in child theme root)
  */
 get_header();
@@ -44,7 +44,7 @@ echo '<script type="application/ld+json">' . wp_json_encode( $schema_data, JSON_
 
 <style>
 /* ================================================
-   HR PREMIUM CATEGORY PAGE — FULL OVERRIDE
+   HR PREMIUM CATEGORY PAGE: FULL OVERRIDE
 ================================================ */
 * { box-sizing: border-box; }
 

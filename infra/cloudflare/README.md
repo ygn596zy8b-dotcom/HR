@@ -23,13 +23,13 @@ Honest limit: browsers negotiate ML-KEM-768 hybrids today; no browser offers ML-
 3. **SSL/TLS → Edge Certificates:**
    - Minimum TLS version: **TLS 1.2** (1.3 if your audience allows; check analytics for old Android).
    - TLS 1.3: **On**. Always Use HTTPS: **On**. Automatic HTTPS Rewrites: **On**.
-   - HSTS: max-age 2 years, include subdomains, preload — only after every subdomain serves HTTPS
+   - HSTS: max-age 2 years, include subdomains, preload, only after every subdomain serves HTTPS
      (the origin already sends the same header from `infra/litespeed/htaccess-hardening.conf`).
 4. **SSL/TLS → Origin Server:** enable **Authenticated Origin Pulls** and, on the origin, only accept Cloudflare IPs
    for HTTP(S) if the host allows it (cPanel → IP Blocker / ModSecurity, or ask support).
 5. **DNS → Settings:** enable **DNSSEC**, then add the DS record Cloudflare shows at the registrar.
    Add CAA records from `infra/dns/DNSSEC.md` (Cloudflare's own CAs need `letsencrypt.org`, `pki.goog`, `ssl.com`
-   or `digicert.com` entries if you use Universal SSL — Cloudflare lists the exact ones on the CAA page).
+   or `digicert.com` entries if you use Universal SSL; Cloudflare lists the exact ones on the CAA page).
 6. **Security → WAF → Custom rules:**
    - Block `http.request.uri.path eq "/xmlrpc.php"`.
    - Managed challenge on `/wp-login.php` and `/account/login/` when `cf.threat_score gt 10`.
@@ -42,7 +42,7 @@ Honest limit: browsers negotiate ML-KEM-768 hybrids today; no browser offers ML-
 
    ```php
    define( 'HR_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );
-   // Current list: https://www.cloudflare.com/ips/ — update when Cloudflare changes it.
+   // Current list: https://www.cloudflare.com/ips/ (update when Cloudflare changes it).
    define( 'HR_TRUSTED_PROXIES', '173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22,2400:cb00::/32,2606:4700::/32,2803:f800::/32,2405:b500::/32,2405:8100::/32,2a06:98c0::/29,2c0f:f248::/32' );
    ```
 

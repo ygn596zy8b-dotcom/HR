@@ -3,7 +3,8 @@
  * House style tests: the em dash rewrite (includes/site/typography.php). Plain PHP, no WordPress needed.
  * Run: php wp-content/plugins/hr-platform/tests/typography/emdash-test.php
  *
- * "{D}" in a case stands for an em dash, "{B}" for the horizontal bar, so this file contains neither.
+ * "{D}" in a case stands for an em dash, "{B}" for the horizontal bar and {mdash}, {dec}, {hex} for its HTML
+ * entities, so this file contains none of them.
  * The "post N" cases are real sentences from published articles (local copy of the archive, read with wp-cli),
  * with the rewrite an editor checked by hand.
  */
@@ -27,7 +28,7 @@ use function HR\Platform\Site\{replace_em_dashes, replace_em_dashes_text, has_em
 
 $fails = 0;
 $total = 0;
-$d     = static fn( string $s ): string => str_replace( array( '{D}', '{B}' ), array( "\u{2014}", "\u{2015}" ), $s );
+$d     = static fn( string $s ): string => str_replace( array( '{D}', '{B}', '{mdash}', '{dec}', '{hex}' ), array( "\u{2014}", "\u{2015}", '&' . 'mdash;', '&#' . '8212;', '&#x' . '2014;' ), $s );
 $check = static function ( string $name, string $got, string $want ) use ( &$fails, &$total ): void {
     $total++;
     if ( $got === $want ) {
@@ -59,9 +60,9 @@ $html_cases = array(
     array( 'quote next: colon', 'The governor said{D}"we will act".', 'The governor said: "we will act".' ),
     array( 'percent then aside', '<p>Inflation hit 5.6% {D} the lowest in years.</p>', '<p>Inflation hit 5.6%, the lowest in years.</p>' ),
     // Every spelling of the dash.
-    array( 'named entity', '<p>The index rose &mdash; and banks led.</p>', '<p>The index rose, and banks led.</p>' ),
-    array( 'decimal entity', '<p>The index rose &#8212; and banks led.</p>', '<p>The index rose, and banks led.</p>' ),
-    array( 'hex entity', '<p>The index rose &#x2014; and banks led.</p>', '<p>The index rose, and banks led.</p>' ),
+    array( 'named entity', '<p>The index rose {mdash} and banks led.</p>', '<p>The index rose, and banks led.</p>' ),
+    array( 'decimal entity', '<p>The index rose {dec} and banks led.</p>', '<p>The index rose, and banks led.</p>' ),
+    array( 'hex entity', '<p>The index rose {hex} and banks led.</p>', '<p>The index rose, and banks led.</p>' ),
     array( 'upper hex entity, capital next', '<p>The index rose &#X2014; Banks led.</p>', '<p>The index rose: Banks led.</p>' ),
     array( 'horizontal bar', '<p>The index rose {B} and banks led.</p>', '<p>The index rose, and banks led.</p>' ),
     array( 'doubled dash', '<p>The index rose {D}{D} and banks led.</p>', '<p>The index rose, and banks led.</p>' ),
@@ -79,7 +80,7 @@ $html_cases = array(
     // Never touched: attributes, URLs, shortcodes, code, raw elements, block settings.
     array( 'attributes kept', '<p><a href="https://example.com/a{D}b" title="x{D}y">Link{D}text</a> here.</p>', '<p><a href="https://example.com/a{D}b" title="x{D}y">Link, text</a> here.</p>' ),
     array( 'image alt attribute kept', '<img alt="a{D}b" src="x.jpg"><p>a{D}b</p>', '<img alt="a{D}b" src="x.jpg"><p>a, b</p>' ),
-    array( 'URL in text kept', '<p>Read https://example.com/a&mdash;b?q=1 {D} the full report.</p>', '<p>Read https://example.com/a&mdash;b?q=1, the full report.</p>' ),
+    array( 'URL in text kept', '<p>Read https://example.com/a{mdash}b?q=1 {D} the full report.</p>', '<p>Read https://example.com/a{mdash}b?q=1, the full report.</p>' ),
     array( 'shortcode kept', '<p>[caption id="1" caption="a{D}b"]Pic[/caption] Text{D}more.</p>', '<p>[caption id="1" caption="a{D}b"]Pic[/caption] Text, more.</p>' ),
     array( 'unknown shortcode shape kept', '<p>[gallery title="a{D}b"] Text{D}more.</p>', '<p>[gallery title="a{D}b"] Text, more.</p>' ),
     array( 'inline code kept', '<p>Use <code>a{D}b</code> here{D}now.</p>', '<p>Use <code>a{D}b</code> here, now.</p>' ),
@@ -184,8 +185,8 @@ if ( ! has_em_dash( $d( 'a{D}b' ) ) || ! has_em_dash( 'a&#x2015;b' ) || has_em_d
 $bad = "a\xC3{D}b";
 $check( 'invalid UTF-8 left alone', replace_em_dashes( $d( $bad ) ), $d( $bad ) );
 $check( 'placeholder characters left alone', replace_em_dashes( $d( "a\u{E000}{D}b" ) ), $d( "a\u{E000}{D}b" ) );
-replace_em_dashes( $d( '<p>The rupee fell{D}sharply.</p>' ), $rows );
-$check( 'preview row', json_encode( $rows[0] ?? null, JSON_UNESCAPED_UNICODE ), json_encode( array( 'before' => 'The rupee fell', 'old' => $d( '{D}' ), 'new' => ', ', 'after' => 'sharply.' ), JSON_UNESCAPED_UNICODE ) );
+replace_em_dashes( $d( '<p>The rupee fell{D}sharply{D}on Monday.</p>' ), $rows );
+$check( 'preview row', json_encode( $rows[0] ?? null, JSON_UNESCAPED_UNICODE ), json_encode( array( 'before' => 'The rupee fell', 'old' => $d( '{D}' ), 'new' => ', ', 'after' => $d( 'sharply{D}on Monday.' ), 'new_before' => 'The rupee fell', 'new_after' => 'sharply, on Monday.' ), JSON_UNESCAPED_UNICODE ) );
 $check( 'output never holds an em dash', (string) (int) has_em_dash( replace_em_dashes( $d( '<p>{D}{D} a {D} b {D} c {D}.</p><p>X{D}</p>' ) ) ), '0' );
 $check( 'idempotent', replace_em_dashes( replace_em_dashes( $d( '<p>He said {D} and I quote {D} that rates will fall.</p>' ) ) ), '<p>He said, and I quote, that rates will fall.</p>' );
 

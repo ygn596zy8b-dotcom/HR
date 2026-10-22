@@ -7,7 +7,7 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 // The parent forces loading="lazy" on every attachment image (covernews_alt_text_optimized), including the ones a
-// template asks to load first with fetchpriority="high" — that held the article hero (the LCP) back ~350 ms.
+// template asks to load first with fetchpriority="high"; that held the article hero (the LCP) back ~350 ms.
 add_filter( 'wp_get_attachment_image_attributes', static function ( $attr ) {
     if ( 'high' === ( $attr['fetchpriority'] ?? '' ) ) {
         $attr['loading'] = 'eager';

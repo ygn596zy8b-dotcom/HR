@@ -475,12 +475,23 @@ function emdash_rewrite( string $flat, array $parts, ?array &$changes ): string 
                 'old'    => ( $spaces && $tok['lws'] ? ' ' : '' ) . $dash . ( $spaces && $tok['rws'] ? ' ' : '' ),
                 'new'    => (string) preg_replace( '/\xEE\x80[\x80-\x84](?:\xEE\x80[\x90-\x99])+\xEE\x80\x8F/', '', $new ),
                 'after'  => emdash_visible( $flat, $to, 1, 60 )[0],
+                'at'     => strlen( $out ) + $from - $cursor, // where the replacement starts in the output, for its context
+                'len'    => strlen( $new ),
             );
         }
         $out   .= substr( $flat, $cursor, $from - $cursor ) . $new;
         $cursor = $to;
     }
     $out .= substr( $flat, $cursor );
+    if ( null !== $changes ) {
+        // The "after" view reads the rewritten text, so other dashes near this one show as rewritten too.
+        foreach ( $changes as &$row ) {
+            $row['new_before'] = emdash_visible( $out, $row['at'], -1, 60 )[0];
+            $row['new_after']  = emdash_visible( $out, $row['at'] + $row['len'], 1, 60 )[0];
+            unset( $row['at'], $row['len'] );
+        }
+        unset( $row );
+    }
     return emdash_restore( $out, $parts );
 }
 
@@ -1053,10 +1064,10 @@ add_action( 'wp_ajax_hr_emdash_apply', function () {
 
 /** "...before" + [old -> new] + "after..." as escaped HTML for the preview. */
 function emdash_diff_html( array $row, bool $after ): string {
-    $left  = mb_substr( (string) $row['before'], -60 );
-    $right = mb_substr( (string) $row['after'], 0, 60 );
-    $mark  = $after ? '<ins>' . esc_html( (string) $row['new'] ) . '</ins>' : '<del>' . esc_html( (string) $row['old'] ) . '</del>';
-    return ( mb_strlen( (string) $row['before'] ) > 60 ? '&hellip;' : '' ) . esc_html( $left ) . $mark . esc_html( $right ) . ( mb_strlen( (string) $row['after'] ) > 60 ? '&hellip;' : '' );
+    $before = (string) ( $after ? ( $row['new_before'] ?? $row['before'] ) : $row['before'] );
+    $next   = (string) ( $after ? ( $row['new_after'] ?? $row['after'] ) : $row['after'] );
+    $mark   = $after ? '<ins>' . esc_html( (string) $row['new'] ) . '</ins>' : '<del>' . esc_html( (string) $row['old'] ) . '</del>';
+    return '&hellip;' . esc_html( ltrim( mb_substr( $before, -60 ), ' ,' ) ) . $mark . esc_html( mb_substr( $next, 0, 60 ) ) . '&hellip;';
 }
 
 function emdash_screen(): void {
@@ -1101,6 +1112,7 @@ function emdash_screen(): void {
         </ul>
 
         <h2>What is stored now</h2>
+        <div class="hr-emdash-scroll" role="region" aria-label="Counts" tabindex="0">
         <table class="widefat striped hr-emdash-counts">
             <thead>
                 <tr><th scope="col">Published</th><th scope="col">Total</th><th scope="col">With em dashes</th><th scope="col">In headline</th><th scope="col">In text</th><th scope="col">In excerpt</th><th scope="col">In SEO fields or summary</th></tr>
@@ -1119,6 +1131,7 @@ function emdash_screen(): void {
                 <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
         <p>
             <?php
             echo esc_html( sprintf(
@@ -1143,9 +1156,10 @@ function emdash_screen(): void {
             <?php foreach ( $preview as $plan ) : $post = $plan['post']; $edit = get_edit_post_link( $post->ID ); ?>
                 <div class="hr-emdash-item">
                     <h3>
-                        <?php if ( $edit ) : ?><a href="<?php echo esc_url( $edit ); ?>"><?php endif; ?>
-                        <?php echo esc_html( html_entity_decode( wp_strip_all_tags( get_the_title( $post ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ?: sprintf( '#%d', $post->ID ) ); ?>
-                        <?php if ( $edit ) : ?></a><?php endif; ?>
+                        <?php
+                        $name = esc_html( html_entity_decode( wp_strip_all_tags( get_the_title( $post ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ?: sprintf( '#%d', $post->ID ) );
+                        echo $edit ? '<a href="' . esc_url( $edit ) . '">' . $name . '</a>' : $name; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above
+                        ?>
                         <span class="hr-emdash-meta"><?php echo esc_html( sprintf( '%s, %d %s', 'attachment' === $post->post_type ? 'Image' : ( $labels[ $post->post_type ] ?? $post->post_type ), count( $plan['changes'] ), 1 === count( $plan['changes'] ) ? 'change' : 'changes' ) ); ?></span>
                     </h3>
                     <ol class="hr-emdash-diffs">
@@ -1183,7 +1197,9 @@ function emdash_screen(): void {
         .hr-emdash { max-width: 1100px; }
         .hr-emdash-lead { font-size: 14px; max-width: 75ch; }
         .hr-emdash-rules { list-style: disc; padding-left: 20px; max-width: 75ch; }
-        .hr-emdash-counts { max-width: 900px; }
+        .hr-emdash-scroll { max-width: 900px; overflow-x: auto; }
+        .hr-emdash-scroll:focus-visible { outline: 2px solid #2271b1; outline-offset: 2px; }
+        .hr-emdash-counts { min-width: 640px; }
         .hr-emdash-counts td, .hr-emdash-counts th { font-variant-numeric: tabular-nums; }
         .hr-emdash-item { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 12px 16px; margin: 12px 0; }
         .hr-emdash-item h3 { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }

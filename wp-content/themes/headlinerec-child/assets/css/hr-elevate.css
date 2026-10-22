@@ -718,8 +718,8 @@ body #page .hr-markets:has(.hr-tv--quotes:is([data-hr-tv-state="error"], [data-h
     transition: opacity var(--hr-dur-3) var(--hr-ease), visibility 0s linear var(--hr-dur-3);
 }
 .hr-tv[data-hr-tv-state="ready"] > .hr-tv-ph { opacity: 0; visibility: hidden; pointer-events: none; }
-.hr-tv-ph__status { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--hr-tv-muted); font: 700 12px/1.45 var(--hr-font-ui); letter-spacing: 0.04em; }
-.hr-tv-ph__pulse { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--hr-tv-muted); }
+.hr-tv-ph__status { display: flex; align-items: flex-start; gap: 10px; margin: 0; color: var(--hr-tv-muted); font: 700 12px/1.45 var(--hr-font-ui); letter-spacing: 0.04em; }
+.hr-tv-ph__pulse { flex: none; width: 8px; height: 8px; margin-top: 0.4em; border-radius: 50%; background: var(--hr-tv-muted); }
 .hr-tv[data-hr-tv-state="error"] .hr-tv-ph__pulse { background: var(--hr-red); }
 .hr-tv[data-hr-tv-state="off"] .hr-tv-ph__pulse { background: transparent; box-shadow: inset 0 0 0 1px var(--hr-tv-muted); }
 @media (prefers-reduced-motion: no-preference) {
@@ -733,6 +733,7 @@ body #page .hr-markets:has(.hr-tv--quotes:is([data-hr-tv-state="error"], [data-h
     gap: 1px;
     margin: 1px;
     padding: 0;
+    border: 0;
 }
 /* hairlines drawn by the cells, so an unfilled cell in the last row stays blank */
 .hr-tv-ph__fig { min-width: 0; padding: 12px 14px; background: var(--hr-tv-bg); outline: 1px solid var(--hr-tv-line); }
@@ -778,6 +779,7 @@ body #page .hr-markets:has(.hr-tv--quotes:is([data-hr-tv-state="error"], [data-h
     -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
     mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
 }
+.hr-tv-ph--tape .hr-tv-ph__status { margin: 0; }
 .hr-tv-ph--tape .hr-tv-ph__figs { display: flex; flex-wrap: nowrap; gap: 0; margin: 0; padding: 0; border: 0; background: none; }
 .hr-tv-ph--tape .hr-tv-ph__fig { display: flex; align-items: baseline; gap: 8px; padding: 0 18px 0 0; margin-right: 18px; border-right: 1px solid var(--hr-tv-line); outline: 0; background: none; white-space: nowrap; }
 .hr-tv-ph--tape .hr-tv-ph__fig:last-child { border-right: 0; }

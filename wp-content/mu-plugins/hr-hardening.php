@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Headline Recorder — Hardening
+ * Plugin Name: Headline Recorder Hardening
  * Description: Cookie flags, Argon2id password hashing, enumeration and XML-RPC lockdown, security headers and CSP. Loads before all plugins.
  * Version:     1.0.0
  */
@@ -17,7 +17,7 @@ if ( 'local' !== wp_get_environment_type() ) {
 @header_remove( 'X-Powered-By' );
 
 // ---------------------------------------------------------------------------------------------------------------
-// Passwords: Argon2id for every new or rehashed password (OWASP minimum profile: 19 MiB, t=2, p=1 — sized for
+// Passwords: Argon2id for every new or rehashed password (OWASP minimum profile: 19 MiB, t=2, p=1, sized for
 // shared hosting). Existing bcrypt/phpass hashes keep working and are upgraded transparently at next login.
 // ---------------------------------------------------------------------------------------------------------------
 if ( defined( 'PASSWORD_ARGON2ID' ) ) {

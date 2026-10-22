@@ -1,6 +1,6 @@
 <?php
 /**
- * Single Post Template — Custom Premium Layout
+ * Single Post Template: Custom Premium Layout
  * File: single.php (place in child theme root)
  * Overrides CoverNews parent single.php
  */

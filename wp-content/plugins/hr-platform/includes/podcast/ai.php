@@ -256,7 +256,7 @@ function validate_script( $data, array $allowed_ids ): ?array {
 
 /** House style has no em dashes: a spaced or closed-up em dash (or its entities) becomes a comma. */
 function no_dashes( string $text ): string {
-    $text = preg_replace( '/\s*(?:\x{2014}|&mdash;|&#8212;|&#x2014;)\s*/iu', ', ', $text );
+    $text = preg_replace( '/\s*(?:\x{2014}|&(?:mdash|#0*8212|#x0*2014);)\s*/iu', ', ', $text );
     return trim( (string) preg_replace( '/,\s*,/', ',', (string) $text ), " \t\n\r\0\x0B," );
 }
 

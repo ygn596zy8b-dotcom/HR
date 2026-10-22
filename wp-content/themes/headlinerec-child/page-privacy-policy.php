@@ -259,7 +259,7 @@ html { scroll-behavior: smooth; }
                     <div class="hr-priv-header-text">
                         <h2 style="margin-bottom: 20px;">Third-Party Analytics</h2>
                         <p class="hr-priv-text">
-                            We use Google Analytics (via Google Site Kit) to understand which articles readers find useful and how people move around the site — <strong>only if you allow analytics</strong> in our cookie banner. We do not use it for advertising.
+                            We use Google Analytics (via Google Site Kit) to understand which articles readers find useful and how people move around the site, <strong>only if you allow analytics</strong> in our cookie banner. We do not use it for advertising.
                         </p>
                         <p class="hr-priv-text">
                             We use Google Consent Mode. Until you choose, analytics and advertising storage are set to “denied”.
@@ -316,12 +316,12 @@ html { scroll-behavior: smooth; }
                             An account is optional. You need one to keep a reading streak and to submit articles or op-eds. When you have an account we store:
                         </p>
                         <ul class="hr-priv-list">
-                            <li><strong>Your name and email address</strong> — to identify you, sign you in and send account messages (verification, password reset, security alerts).</li>
-                            <li><strong>A password hash</strong> — your password is never stored. We keep only a one-way Argon2id hash of it.</li>
+                            <li><strong>Your name and email address</strong>: to identify you, sign you in and send account messages (verification, password reset, security alerts).</li>
+                            <li><strong>A password hash</strong>: your password is never stored. We keep only a one-way Argon2id hash of it.</li>
                             <li><strong>Passkey public keys</strong>, if you add a passkey. The private key never leaves your device.</li>
-                            <li><strong>Your two-step verification secret</strong>, if you turn it on — stored encrypted — plus one-way hashes of your recovery codes.</li>
-                            <li><strong>Session records</strong> — for each signed-in session: when it started and expires, how you signed in, the browser and device type, and the IP address it started from. You can see and end your sessions in your account settings.</li>
-                            <li><strong>Known devices</strong> — a random device ID in a cookie, of which we store only keyed hashes of your last 10 devices, so we can email you a <strong>new-device alert</strong> when your account is used from a device we have not seen before.</li>
+                            <li><strong>Your two-step verification secret</strong>, if you turn it on (stored encrypted), plus one-way hashes of your recovery codes.</li>
+                            <li><strong>Session records</strong>: for each signed-in session, when it started and expires, how you signed in, the browser and device type, and the IP address it started from. You can see and end your sessions in your account settings.</li>
+                            <li><strong>Known devices</strong>: a random device ID in a cookie, of which we store only keyed hashes of your last 10 devices, so we can email you a <strong>new-device alert</strong> when your account is used from a device we have not seen before.</li>
                         </ul>
                         <p class="hr-priv-text" style="margin-bottom: 0;">
                             We keep this information until you delete your account. Sessions end when you sign out or when they expire.
@@ -442,7 +442,7 @@ html { scroll-behavior: smooth; }
                     <div class="hr-priv-header-text">
                         <h2 style="margin-bottom: 20px;">Cookies &amp; Tracking</h2>
                         <p class="hr-priv-text">
-                            Cookies are small files your browser stores for a website. We use <strong>necessary</strong> cookies to run the site and keep your account secure — these are always on. <strong>Analytics</strong> and <strong>embedded content</strong> are optional: when you first visit, our cookie banner lets you accept all, reject all or choose. Analytics stay off until you accept them. Embedded YouTube videos and TradingView market widgets load unless you switch them off (or your browser sends Global Privacy Control).
+                            Cookies are small files your browser stores for a website. We use <strong>necessary</strong> cookies to run the site and keep your account secure; these are always on. <strong>Analytics</strong> and <strong>embedded content</strong> are optional: when you first visit, our cookie banner lets you accept all, reject all or choose. Analytics stay off until you accept them. Embedded YouTube videos and TradingView market widgets load unless you switch them off (or your browser sends Global Privacy Control).
                         </p>
 
                         <div class="hr-cookie-table-wrap">
@@ -526,7 +526,7 @@ html { scroll-behavior: smooth; }
                             <li><strong>Access and export</strong> the data we hold about you. Account holders can download it from account settings (Privacy &amp; data → Download your data).</li>
                             <li><strong>Correct</strong> inaccurate data. You can change your name and email address in account settings.</li>
                             <li><strong>Delete</strong> your data. You can delete your account, with your reading history, from account settings (Privacy &amp; data → Delete your account).</li>
-                            <li><strong>Object</strong> to or withdraw consent for processing — for example, switch analytics off in “Cookie settings”, or unsubscribe from the newsletter at any time.</li>
+                            <li><strong>Object</strong> to or withdraw consent for processing. For example, switch analytics off in “Cookie settings”, or unsubscribe from the newsletter at any time.</li>
                             <li><strong>Port</strong> your data to another service, using the export.</li>
                         </ul>
 
