@@ -994,6 +994,9 @@ function emdash_apply_post( int $post_id ): string {
         }
     }
     clean_post_cache( $post_id );
+    if ( ! $plan['fields'] ) {
+        do_action( 'litespeed_purge_post', $post_id ); // only meta changed, so no save hook purged the cached page
+    }
     return 'changed';
 }
 

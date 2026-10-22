@@ -393,7 +393,7 @@ add_action( 'admin_post_hr_edge_purge_all', static function () {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( 'Not allowed.', 403 );
     }
-    check_admin_referer( 'hr_edge_purge_all' );
+    check_admin_referer( 'hr_edge_purge_all', '_hr_edge_nonce' );
     if ( ! same_origin_request() ) {
         wp_die( 'This request did not come from this site.', 403 );
     }
@@ -500,7 +500,7 @@ add_action( 'hr_settings_page_after', static function () {
     ?>
     <form id="hr-edge-purge-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
         <input type="hidden" name="action" value="hr_edge_purge_all">
-        <?php wp_nonce_field( 'hr_edge_purge_all' ); ?>
+        <?php wp_nonce_field( 'hr_edge_purge_all', '_hr_edge_nonce' ); ?>
     </form>
     <?php
 } );

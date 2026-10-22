@@ -1,6 +1,7 @@
 <?php
 /**
  * Create an account. @var array $errors  @var array $values  @var string $ts signed render time
+ * @var string $redirect_to validated return page ('' for none)
  */
 
 use function HR\Platform\icon;
@@ -8,8 +9,11 @@ use function HR\Platform\Accounts\field;
 use function HR\Platform\Accounts\error_summary;
 use function HR\Platform\Accounts\hidden_fields;
 use function HR\Platform\Accounts\account_url;
+use function HR\Platform\Accounts\login_url;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
+
+$redirect_to = isset( $redirect_to ) ? (string) $redirect_to : '';
 ?>
 <p class="hrp-eyebrow">Free account</p>
 <h1 class="hra-title">Create your account</h1>
@@ -19,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) exit;
     <?php error_summary( $errors ); ?>
     <?php hidden_fields( 'register' ); ?>
     <input type="hidden" name="hr_ts" value="<?php echo esc_attr( $ts ); ?>">
+    <?php if ( '' !== $redirect_to ) : ?>
+        <input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>">
+    <?php endif; ?>
     <div class="hrp-hp" aria-hidden="true">
         <label for="hra-website">Website (leave empty)</label>
         <input type="text" id="hra-website" name="website" value="" tabindex="-1" autocomplete="off">
@@ -69,4 +76,4 @@ if ( ! defined( 'ABSPATH' ) ) exit;
     </div>
     <button type="submit" class="hrp-btn hrp-btn--block hra-submit"><span>Create account</span><?php echo icon( 'arrow-right' ); // phpcs:ignore -- static SVG ?></button>
 </form>
-<p class="hra-switch">Already have an account? <a href="<?php echo esc_url( account_url( 'login' ) ); ?>">Sign in</a></p>
+<p class="hra-switch">Already have an account? <a href="<?php echo esc_url( login_url( $redirect_to ) ); ?>">Sign in</a></p>

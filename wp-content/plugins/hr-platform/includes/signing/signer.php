@@ -136,6 +136,10 @@ function autosign_now( int $id ): void {
     if ( ! autosign_enabled() || ! pq_ready() ) {
         return;
     }
+    // Without a usable key nothing can be signed; the status screens report that once, not per article.
+    if ( is_wp_error( server_key() ) ) {
+        return;
+    }
     // Imports and over-budget bulk edits are left to the sweep instead of slowing the request down.
     if ( ( defined( 'WP_IMPORTING' ) && WP_IMPORTING ) || save_budget_spent() >= SAVE_BUDGET ) {
         schedule_retry();
@@ -233,12 +237,12 @@ function sign_pending( float $budget, int $limit = 0, ?array $cursor = null ): a
             } elseif ( 'current' === $status || 'not_found' === $status ) {
                 $out['current']++;
             } else {
-                $out['failed'][] = array( 'id' => (int) $id, 'status' => $status, 'message' => status_message( $status ) );
-                remember_error( (int) $id, $status );
                 if ( 'no_key' === $status ) {
                     $out['stopped'] = status_message( $status );
                     break 2;
                 }
+                $out['failed'][] = array( 'id' => (int) $id, 'status' => $status, 'message' => status_message( $status ) );
+                remember_error( (int) $id, $status );
             }
         }
     }

@@ -731,12 +731,11 @@ body #page .hr-markets:has(.hr-tv--quotes:is([data-hr-tv-state="error"], [data-h
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr));
     gap: 1px;
-    margin: 0;
+    margin: 1px;
     padding: 0;
-    border: 1px solid var(--hr-tv-line);
-    background: var(--hr-tv-line);
 }
-.hr-tv-ph__fig { min-width: 0; padding: 12px 14px; background: var(--hr-tv-bg); }
+/* hairlines drawn by the cells, so an unfilled cell in the last row stays blank */
+.hr-tv-ph__fig { min-width: 0; padding: 12px 14px; background: var(--hr-tv-bg); outline: 1px solid var(--hr-tv-line); }
 .hr-tv-ph__fig dt { margin: 0 0 6px; color: var(--hr-tv-muted); font: 700 10px/1.3 var(--hr-font-ui); letter-spacing: 0.1em; text-transform: uppercase; }
 .hr-tv-ph__fig dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 5px; margin: 0; }
 .hr-tv-ph__num { color: var(--hr-tv-fg); font: 600 clamp(1.125rem, 1rem + 0.5vw, 1.375rem)/1.15 var(--hr-font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
@@ -779,8 +778,8 @@ body #page .hr-markets:has(.hr-tv--quotes:is([data-hr-tv-state="error"], [data-h
     -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
     mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
 }
-.hr-tv-ph--tape .hr-tv-ph__figs { display: flex; flex-wrap: nowrap; gap: 0; padding: 0; border: 0; background: none; }
-.hr-tv-ph--tape .hr-tv-ph__fig { display: flex; align-items: baseline; gap: 8px; padding: 0 18px 0 0; margin-right: 18px; border-right: 1px solid var(--hr-tv-line); background: none; white-space: nowrap; }
+.hr-tv-ph--tape .hr-tv-ph__figs { display: flex; flex-wrap: nowrap; gap: 0; margin: 0; padding: 0; border: 0; background: none; }
+.hr-tv-ph--tape .hr-tv-ph__fig { display: flex; align-items: baseline; gap: 8px; padding: 0 18px 0 0; margin-right: 18px; border-right: 1px solid var(--hr-tv-line); outline: 0; background: none; white-space: nowrap; }
 .hr-tv-ph--tape .hr-tv-ph__fig:last-child { border-right: 0; }
 .hr-tv-ph--tape .hr-tv-ph__fig dt { margin: 0; font-size: 11px; letter-spacing: 0.06em; }
 .hr-tv-ph--tape .hr-tv-ph__num { font-size: 13px; }

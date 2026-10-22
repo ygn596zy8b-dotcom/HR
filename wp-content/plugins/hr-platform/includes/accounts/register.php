@@ -18,8 +18,11 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 const VERIFY_TTL = 2 * DAY_IN_SECONDS;
 
 function route_register(): void {
+    // Optional ?redirect_to= (same site, validated by requested_redirect()): where the reader lands once the
+    // confirmation link signs them in. Kept with the confirmation token, never in the email link.
+    $return = requested_redirect();
     if ( is_user_logged_in() ) {
-        redirect( account_url() );
+        redirect( '' !== $return ? $return : account_url() );
     }
     $flash = take_flash();
     if ( $flash && 'registered' === $flash['key'] ) {
@@ -36,7 +39,7 @@ function route_register(): void {
         }
         $errors = $result;
     }
-    render_auth( 'register', array( 'errors' => $errors, 'values' => $values, 'ts' => signed_time() ), 'Create your account', 'register', array( 'strength' ) );
+    render_auth( 'register', array( 'errors' => $errors, 'values' => $values, 'ts' => signed_time(), 'redirect_to' => $return ), 'Create your account', 'register', array( 'strength' ) );
 }
 
 /** @return true|array<string,string> */
@@ -128,7 +131,7 @@ function handle_register( array &$values ) {
     }
     update_user_meta( $uid, 'hr_email_verified', '0' );
     note_password_set( (int) $uid );
-    send_verification( get_userdata( $uid ) );
+    send_verification( get_userdata( $uid ), requested_redirect() );
     log_security( 'register', array( 'uid' => (int) $uid ) );
     return true;
 }
@@ -173,11 +176,17 @@ function verify_browser_binding( string $browser_id ): string {
     return 43 === strlen( $browser_id ) ? mac( 'verify-browser', $browser_id ) : '';
 }
 
-function send_verification( $user ): void {
+/** $return: a same-site page to land on after the link signs the reader in (stored with the token, '' for none). */
+function send_verification( $user, string $return = '' ): void {
     if ( ! $user instanceof \WP_User ) {
         return;
     }
-    $token = issue_token( (int) $user->ID, 'hr_verify', array( 'b' => verify_browser_binding( browser_id() ) ) );
+    $extra  = array( 'b' => verify_browser_binding( browser_id() ) );
+    $return = safe_redirect_target( $return, '' );
+    if ( '' !== $return ) {
+        $extra['r'] = $return;
+    }
+    $token = issue_token( (int) $user->ID, 'hr_verify', $extra );
     mail_verify( $user, add_query_arg( array( 'u' => (int) $user->ID, 't' => $token ), account_url( 'verify' ) ) );
 }
 
@@ -265,9 +274,10 @@ function route_verify(): void {
 
     update_user_meta( $uid, 'hr_email_verified', '1' );
     log_security( 'email_verified', array( 'uid' => $uid ) );
+    $return = safe_redirect_target( (string) ( $record['r'] ?? '' ), '' ); // the page they registered from, if any
     if ( $current ) {
         flash( 'welcome' );
-        redirect( account_url() );
+        redirect( '' !== $return ? $return : account_url() );
     }
     // The link proves the inbox; sign in only accounts without a second factor (never bypass 2FA/passkeys), and
     // only in the browser that registered or asked for the link (see verify_browser_binding()).
@@ -275,11 +285,11 @@ function route_verify(): void {
     $same_browser = '' !== $binding && hash_equals( (string) ( $record['b'] ?? '' ), $binding );
     if ( has_mfa( $uid ) || ! $same_browser ) {
         flash( 'verified_signin' );
-        redirect( login_url() );
+        redirect( login_url( $return ) );
     }
     complete_login( $user, false, 'email-link' );
     flash( 'welcome' );
-    redirect( default_login_redirect( $user ) );
+    redirect( '' !== $return ? $return : default_login_redirect( $user ) );
 }
 
 function render_verify_state( string $state, string $kind, array $vars ): void {

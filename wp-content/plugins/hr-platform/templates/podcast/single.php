@@ -1,6 +1,7 @@
 <?php
 /**
- * One episode: player (or device voice), AI disclosure, show notes / transcript, related articles, subscribe.
+ * One episode: player (or device voice), AI disclosure, show notes / transcript, related articles, more episodes,
+ * follow links.
  * Theme override: headlinerec-child/single-hr_episode.php (whole page) or hr/podcast/single.php.
  */
 
@@ -8,6 +9,8 @@ use function HR\Platform\icon;
 use function HR\Platform\render;
 use function HR\Platform\Podcast\episode;
 use function HR\Platform\Podcast\clock;
+use function HR\Platform\Podcast\kept_ids;
+use function HR\Platform\Podcast\minutes;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -17,9 +20,13 @@ while ( have_posts() ) :
     $e       = episode( get_post() );
     $related = array_filter( array_map( 'get_post', (array) get_post_meta( $e['id'], '_hr_related_posts', true ) ), static fn( $p ) => $p instanceof WP_Post && 'publish' === $p->post_status && 'post' === $p->post_type );
     $archive = (string) get_post_type_archive_link( 'hr_episode' );
+    $cover   = (int) \HR\Platform\setting( 'podcast_cover' );
+    $more    = array_slice( array_values( array_diff( kept_ids(), array( $e['id'] ) ) ), 0, 4 );
     ?>
 <article <?php post_class( 'hrp hrp-podcast hrp-episode' ); ?>>
     <header class="hrp-dark hrp-podcast-band hrp-podcast-band--single">
+      <div class="hrp-podcast-single__grid">
+       <div class="hrp-podcast-single__main">
         <a class="hrp-podcast-back" href="<?php echo esc_url( $archive ); ?>"><?php echo icon( 'chevron-right', '', 'hrp-flip' ); // phpcs:ignore ?>All episodes</a>
         <p class="hrp-eyebrow">The Headline Recorder Podcast<?php echo $e['number'] ? esc_html( ' · Episode ' . $e['number'] ) : ''; ?></p>
         <h1 class="hrp-title"><?php echo esc_html( $e['title'] ); ?></h1>
@@ -37,8 +44,22 @@ while ( have_posts() ) :
             render( 'podcast/voice', array( 'source' => '.hrp-episode__notes' ) );
         }
         ?>
+       </div>
+       <div class="hrp-podcast-single__art<?php echo has_post_thumbnail() || $cover ? '' : ' hrp-podcast-art--icon'; ?>" aria-hidden="true">
+            <?php
+            if ( has_post_thumbnail() ) {
+                echo get_the_post_thumbnail( null, 'medium_large', array( 'alt' => '', 'sizes' => '320px' ) ); // phpcs:ignore -- core-escaped
+            } elseif ( $cover ) {
+                echo wp_get_attachment_image( $cover, 'medium', false, array( 'alt' => '' ) ); // phpcs:ignore -- core-escaped
+            } else {
+                echo icon( 'headphones' ); // phpcs:ignore -- static SVG
+            }
+            ?>
+       </div>
+      </div>
     </header>
 
+    <div class="hrp-episode__layout">
     <div class="hrp-episode__body">
         <h2 class="hrp-episode__heading">Show notes and transcript</h2>
         <div class="hrp-episode__notes"><?php the_content(); ?></div>
@@ -68,6 +89,23 @@ while ( have_posts() ) :
             <?php render( 'podcast/subscribe' ); ?>
         </section>
         <p><a class="hrp-btn hrp-btn--ghost" href="<?php echo esc_url( $archive ); ?>"><?php echo icon( 'chevron-right', '', 'hrp-flip' ); // phpcs:ignore ?>All episodes</a></p>
+    </div>
+
+    <?php if ( $more ) : ?>
+        <aside class="hrp-episode__more" aria-labelledby="hrp-more-title">
+            <h2 class="hrp-episode__heading" id="hrp-more-title">More episodes</h2>
+            <ul class="hrp-more" role="list">
+                <?php foreach ( $more as $more_id ) : $m = episode( get_post( $more_id ) ); ?>
+                    <li class="hrp-more__item">
+                        <a class="hrp-more__link" href="<?php echo esc_url( $m['url'] ); ?>">
+                            <span class="hrp-more__title"><?php echo esc_html( $m['title'] ); ?></span>
+                            <span class="hrp-more__meta"><time datetime="<?php echo esc_attr( $m['iso'] ); ?>"><?php echo esc_html( $m['date'] ); ?></time><?php echo $m['duration'] ? ' <span aria-hidden="true">&middot;</span> ' . esc_html( minutes( $m['duration'] ) ) : ''; ?></span>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </aside>
+    <?php endif; ?>
     </div>
 </article>
     <?php
