@@ -31,7 +31,7 @@ require_once __DIR__ . '/includes/core/settings.php';
 
 // Each module is self-contained and optional; a missing module simply does nothing, and a module that fails to
 // load is skipped (and reported) instead of taking the whole news site down.
-foreach ( array( 'monitoring', 'accounts', 'streaks', 'submissions', 'podcast', 'clients', 'signing', 'site' ) as $module ) {
+foreach ( array( 'monitoring', 'accounts', 'streaks', 'submissions', 'podcast', 'clients', 'signing', 'site', 'feeds', 'edge' ) as $module ) {
     $file = __DIR__ . "/includes/{$module}/module.php";
     if ( ! is_readable( $file ) ) {
         continue;
