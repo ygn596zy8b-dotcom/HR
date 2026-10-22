@@ -25,7 +25,7 @@ if ( 1 === preg_match( '/^(?:GMT)?[+-]/', $hr_tz ) ) {
         <p class="hrp-eyebrow">Authenticity</p>
         <?php if ( $hr_signed ) : ?>
             <h2 id="hr-signature-title" class="hr-pqsig-note__title">Post-quantum signed</h2>
-            <p class="hr-pqsig-note__text">This article is digitally signed with post-quantum cryptography — ML-DSA-87 (NIST FIPS 204) together with Ed448. Changing even one character after publication breaks the signature.</p>
+            <p class="hr-pqsig-note__text">This article is digitally signed with post-quantum cryptography: ML-DSA-87 (NIST FIPS 204) together with Ed448. Changing even one character after publication breaks the signature.</p>
             <dl class="hr-pqsig-meta">
                 <?php if ( $hr_at > 0 ) : ?>
                     <div><dt>Signed</dt><dd><time datetime="<?php echo esc_attr( gmdate( 'c', $hr_at ) ); ?>"><?php echo esc_html( wp_date( 'j M Y, H:i', $hr_at ) . ' ' . $hr_tz ); ?></time></dd></div>
@@ -40,13 +40,13 @@ if ( 1 === preg_match( '/^(?:GMT)?[+-]/', $hr_tz ) ) {
         <?php else : ?>
             <h2 id="hr-signature-title" class="hr-pqsig-note__title">Signature pending</h2>
             <p class="hr-pqsig-note__text">
-                Every article on Headline Recorder is digitally signed with post-quantum cryptography — ML-DSA-87 (NIST FIPS 204) together with Ed448.
+                Every article on Headline Recorder is digitally signed with post-quantum cryptography: ML-DSA-87 (NIST FIPS 204) together with Ed448.
                 <?php if ( 'stale' === $hr_state && ! empty( $state['changed'] ) ) : ?>
-                    This article was updated after it was last signed. The new version is signed automatically, usually within 15 minutes.
+                    This article was updated after it was last signed. The new version is signed automatically, usually within a few minutes.
                 <?php elseif ( 'stale' === $hr_state ) : ?>
-                    The key that signed this article has been retired. A new signature is added automatically, usually within 15 minutes.
+                    The key that signed this article has been retired. A new signature is added automatically, usually within a few minutes.
                 <?php else : ?>
-                    This article has not been signed yet. Signatures are added automatically, usually within 15 minutes of publication.
+                    This article has not been signed yet. Signatures are added automatically, usually within a few minutes of publication.
                 <?php endif; ?>
             </p>
             <div class="hr-pqsig-actions">

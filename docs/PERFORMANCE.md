@@ -116,7 +116,7 @@ once a page is stored ("cached") in a city, the next reader there gets it straig
 |---|---|---|
 | Home, sections, tags, authors, `/podcast/`, `/verify/` | `public, max-age=0, s-maxage=300, stale-while-revalidate=600, stale-if-error=86400` | 5 min |
 | Articles, pages, episodes | same, `s-maxage=3600` | 1 hour (purged on change) |
-| RSS feeds, `/podcast/feed/`, XML sitemaps | `public, max-age=300, s-maxage=600, ...` | 10 min |
+| RSS feeds (served as `application/xml`), `/podcast/feed/`, XML sitemaps | `public, max-age=300, s-maxage=600, ...` | 10 min |
 | `/signed/*` signature files | `public, max-age=300, s-maxage=3600, ...` | 1 hour (purged when the signer uploads) |
 | 404 / 410 for guests | `public, max-age=0, s-maxage=60, ...` | 1 min |
 | Anyone signed in, or with a personal cookie | WordPress `no-store, private` (or `private, no-cache`) | never cached |
@@ -173,14 +173,14 @@ visitor IPs) is in `infra/cloudflare/README.md`; do both.
 
    **Rule 1, "Static files (long)"**
    ```
-   (http.request.uri.path.extension in {"css" "js" "woff2" "woff" "ttf" "webp" "avif" "png" "jpg" "jpeg" "gif" "svg" "ico" "mp3"})
+   (http.request.uri.path.extension in {"css" "js" "woff2" "woff" "ttf" "webp" "avif" "png" "jpg" "jpeg" "gif" "svg" "ico" "mp3" "xsl"})
    ```
    Cache eligibility: **Eligible for cache**. Edge TTL: **Ignore cache-control header and use this TTL**, 30 days.
    Browser TTL: **Respect origin** (the server already sends one year for versioned theme files).
 
    **Rule 2, "Anonymous HTML"**
    ```
-   (http.host eq "headlinerecorder.com" and not http.request.uri.path.extension in {"css" "js" "woff2" "woff" "ttf" "webp" "avif" "png" "jpg" "jpeg" "gif" "svg" "ico" "mp3"})
+   (http.host eq "headlinerecorder.com" and not http.request.uri.path.extension in {"css" "js" "woff2" "woff" "ttf" "webp" "avif" "png" "jpg" "jpeg" "gif" "svg" "ico" "mp3" "xsl"})
    ```
    Cache eligibility: **Eligible for cache**. Edge TTL: **Use cache-control header if present, bypass cache if not**
    (the site decides page by page). Browser TTL: **Respect origin**. Serve stale content while revalidating: leave on.

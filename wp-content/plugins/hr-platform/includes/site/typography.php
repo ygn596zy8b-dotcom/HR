@@ -840,10 +840,10 @@ add_filter( 'nav_menu_item_title', static function ( $title, $item = null ) {
 
 // Titles and excerpts of pages and episodes only, wherever they are shown; an article's headline stays as written,
 // also in lists on the home page. wptexturize runs at 10 on these, so this runs after it.
-add_filter( 'the_title', static fn( $title, $id = 0 ) => $id && emdash_site_post( $id ) ? emdash_display_html( $title ) : $title, 50, 2 );
-add_filter( 'single_post_title', static fn( $title, $post = null ) => emdash_site_post( $post ) ? emdash_display_html( $title ) : $title, 50, 2 );
-add_filter( 'get_the_excerpt', static fn( $excerpt, $post = null ) => emdash_site_post( $post ) ? emdash_display_html( $excerpt ) : $excerpt, 50, 2 );
-add_filter( 'the_excerpt', static fn( $excerpt ) => emdash_site_post() ? emdash_display_html( $excerpt ) : $excerpt, 50 );
+add_filter( 'the_title', static fn( $title, $id = 0 ) => is_string( $title ) && has_em_dash( $title ) && $id && emdash_site_post( $id ) ? emdash_display_html( $title ) : $title, 50, 2 );
+add_filter( 'single_post_title', static fn( $title, $post = null ) => is_string( $title ) && has_em_dash( $title ) && emdash_site_post( $post ) ? emdash_display_html( $title ) : $title, 50, 2 );
+add_filter( 'get_the_excerpt', static fn( $excerpt, $post = null ) => is_string( $excerpt ) && has_em_dash( $excerpt ) && emdash_site_post( $post ) ? emdash_display_html( $excerpt ) : $excerpt, 50, 2 );
+add_filter( 'the_excerpt', static fn( $excerpt ) => is_string( $excerpt ) && has_em_dash( $excerpt ) && emdash_site_post() ? emdash_display_html( $excerpt ) : $excerpt, 50 );
 
 // Document, SEO, Open Graph and X titles and descriptions: the home page, archives, pages and episodes.
 foreach ( array(
@@ -978,7 +978,7 @@ function emdash_counts(): array {
 
 function emdash_field_label( string $field ): string {
     $labels = array(
-        'post_title'                         => 'Headline',
+        'post_title'                         => 'Title',
         'post_content'                       => 'Text',
         'post_excerpt'                       => 'Excerpt',
         '_yoast_wpseo_title'                 => 'SEO title',
@@ -1211,7 +1211,7 @@ function emdash_screen(): void {
         <div class="hr-emdash-scroll" role="region" aria-label="Counts" tabindex="0">
         <table class="widefat striped hr-emdash-counts">
             <thead>
-                <tr><th scope="col">Published</th><th scope="col">Total</th><th scope="col">With em dashes</th><th scope="col">In headline</th><th scope="col">In text</th><th scope="col">In excerpt</th><th scope="col">In SEO fields or summary</th></tr>
+                <tr><th scope="col">Published</th><th scope="col">Total</th><th scope="col">With em dashes</th><th scope="col">In title</th><th scope="col">In text</th><th scope="col">In excerpt</th><th scope="col">In SEO fields or summary</th></tr>
             </thead>
             <tbody>
                 <?php foreach ( $labels as $type => $label ) : $row = $counts[ $type ]; ?>
@@ -1290,6 +1290,7 @@ function emdash_screen(): void {
     </div>
     <style>
         .hr-emdash { max-width: 1100px; }
+        .hr-emdash [hidden] { display: none !important; }
         .hr-emdash-lead { font-size: 14px; max-width: 75ch; }
         .hr-emdash-rules { list-style: disc; padding-left: 20px; max-width: 75ch; }
         .hr-emdash-scroll { max-width: 900px; overflow-x: auto; }

@@ -89,7 +89,7 @@ uses `var(--hr-red, <fallback>)` so it renders correctly even without the theme.
   reset, verify-resend, submit, read tracking.
 - No secrets in git or in the web root. Config comes from `wp-config.php` constants:
   `HR_SENTRY_DSN`, `HR_SENTRY_BROWSER_DSN`, `HR_SENTRY_TRACES`, `ANTHROPIC_API_KEY`.
-- The signing secret key never touches the web server; signing runs in CI or on an editor's machine.
+- The signing secret key is never in git, the web root or the database: the site signs on publish with a dedicated server key kept AES-256-GCM encrypted outside the web root (`HR_PRIVATE_DIR` or `../hr-private/`, key-encryption key `HR_SIGNING_KEK` in `wp-config.php`), used only in admin, cron and WP-CLI context; the offline key stays offline (docs/SIGNING.md).
 - Submission plaintext never reaches the server: sealed in the browser, opened in the editor's browser.
 
 ## Testing

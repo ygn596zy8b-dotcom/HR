@@ -12,7 +12,7 @@
 .hr-sig-small { font-size: 12px; color: #50575e; }
 
 /* Status figures */
-.hr-sig-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin: 0; }
+.hr-sig-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 16px; margin: 0; }
 .hr-sig-stat { margin: 0; padding: 12px 14px; border-left: 3px solid #dcdcde; }
 .hr-sig-stat dt { margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #50575e; }
 .hr-sig-stat dd { margin: 0; font-size: 13px; line-height: 1.5; }
@@ -44,7 +44,8 @@
 .hr-sig-progress__bar::-moz-progress-bar { background: #111; }
 .hr-sig-progress__label { margin: 6px 0 0; font-variant-numeric: tabular-nums; }
 .hr-sig-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.hr-sig .button { min-height: 36px; }
+.hr-sig .button { min-height: 36px; height: auto; white-space: normal; text-align: center; }
+.hr-sig-option, .hr-sig-card, .hr-sig-form, .hr-sig-reauth { min-width: 0; overflow-wrap: anywhere; }
 .hr-sig-failures ul { padding-left: 18px; list-style: disc; }
 
 /* Key */
@@ -54,14 +55,14 @@
 .hr-sig-kid { display: inline-block; font-size: 12px; line-height: 1.7; word-spacing: 2px; overflow-wrap: anywhere; }
 .hr-sig-dns { margin: 12px 0 0; }
 .hr-sig-code-block { display: block; padding: 8px 10px; overflow-wrap: anywhere; white-space: normal; }
-.hr-sig-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0 8px; }
+.hr-sig-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 20px; margin: 20px 0 8px; }
 .hr-sig-option { padding: 16px 18px; border: 1px solid #dcdcde; }
 .hr-sig-option--recommended { border-color: #111; }
 .hr-sig-option h3 { margin-top: 0; }
 .hr-sig-reauth { margin: 12px 0 0; padding: 12px 0 0; border-top: 1px solid #f0f0f1; }
 .hr-sig-reauth__lead { margin: 0 0 6px; font-weight: 600; }
 .hr-sig-reauth label, .hr-sig-form label { display: block; margin: 0 0 4px; font-weight: 600; }
-.hr-sig-reauth input, .hr-sig-form input[type="file"] { max-width: 100%; min-height: 36px; }
+.hr-sig-reauth input, .hr-sig-form input[type="file"] { width: 100%; max-width: 25em; min-height: 36px; box-sizing: border-box; }
 .hr-sig-reauth .description { display: block; margin-top: 4px; }
 .hr-sig-copy { display: flex; gap: 8px; align-items: center; max-width: 860px; }
 .hr-sig-copy input { flex: 1 1 auto; min-width: 0; min-height: 36px; }

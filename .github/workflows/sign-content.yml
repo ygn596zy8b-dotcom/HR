@@ -1,9 +1,12 @@
-name: Sign content
+name: Sign content (manual, offline alternative)
 
-# Signs new and edited articles and the feeds with ML-DSA-87 + Ed448 and uploads the signatures to the site.
+# Signing now happens on the server: the site signs every article the moment it is published or edited, and a
+# WP-Cron sweep every 5 minutes catches anything pending (see docs/SIGNING.md). This workflow no longer runs on a
+# schedule. It is kept only as a manual, offline alternative (for example while the server key is being replaced):
+# it signs with the offline key and uploads through the same checks, which verify every signature before storing it.
 # The secret key lives only in the HR_PQ_SIGNING_KEY secret and in $RUNNER_TEMP for the length of one step.
 #
-# Configure (Settings → Secrets and variables → Actions):
+# Configure (Settings > Secrets and variables > Actions) only if you want to use it:
 #   secrets   HR_PQ_SIGNING_KEY   contents of signing.secret.json (node security/pq/cli.mjs keygen sign signing)
 #             HR_WP_USER          WordPress user with the "Content signer" role
 #             HR_WP_APP_PASSWORD  application password of that user
@@ -11,8 +14,6 @@ name: Sign content
 #             HR_PQ_KID           key ID of the signing key (pinned; the job refuses any other key)
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:

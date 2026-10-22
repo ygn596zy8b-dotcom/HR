@@ -1,6 +1,6 @@
 <?php
 /**
- * /verify/ — reader and partner verification. All checking runs in the browser (assets/src/verify.mjs).
+ * /verify/: reader and partner verification. All checking runs in the browser (assets/src/verify.mjs).
  * Vars: $keyset (normalised keyset or null), $rest (hr/v1 REST root), $keys_url, $feeds (keys of signed feeds).
  */
 
@@ -18,8 +18,8 @@ $hr_feeds = array_values( array_filter( (array) ( $feeds ?? array() ), static fn
         <h1 class="hrp-title">Verify authenticity</h1>
         <p class="hrp-lede"><?php echo $hr_feeds ? 'Every article and every feed we publish is digitally signed.' : 'Every article we publish is digitally signed.'; ?> If even one character is changed after publication, verification fails. Checking happens entirely in your browser; nothing you paste or upload is sent anywhere.</p>
         <ul class="hr-verify-facts" aria-label="How it is signed">
-            <li><strong>ML-DSA-87</strong><span>NIST FIPS 204, security category 5 — a post-quantum signature that a future quantum computer cannot forge.</span></li>
-            <li><strong>Ed448</strong><span>RFC 8032 — a classical signature alongside it. Both must be valid, so breaking one algorithm is not enough.</span></li>
+            <li><strong>ML-DSA-87</strong><span>NIST FIPS 204, security category 5: a post-quantum signature that a future quantum computer cannot forge.</span></li>
+            <li><strong>Ed448</strong><span>RFC 8032: a classical signature alongside it. Both must be valid, so breaking one algorithm is not enough.</span></li>
             <li><strong>SHA-512</strong><span>Fingerprint of the exact published bytes, covered by both signatures with the date and address.</span></li>
         </ul>
     </header>
@@ -87,7 +87,7 @@ $hr_feeds = array_values( array_filter( (array) ( $feeds ?? array() ), static fn
                                 $hr_bits[] = 'created ' . substr( (string) $hr_key['created'], 0, 10 );
                             }
                             if ( ! empty( $hr_key['revoked'] ) ) {
-                                $hr_bits[] = 'REVOKED ' . substr( (string) $hr_key['revoked'], 0, 10 ) . ' — content it signed no longer verifies';
+                                $hr_bits[] = 'REVOKED ' . substr( (string) $hr_key['revoked'], 0, 10 ) . ': content it signed no longer verifies';
                             }
                             echo esc_html( implode( ' · ', $hr_bits ) );
                             ?>
@@ -101,7 +101,7 @@ $hr_feeds = array_values( array_filter( (array) ( $feeds ?? array() ), static fn
             <p class="hrp-eyebrow">How it works</p>
             <h2 id="hr-verify-how-h" class="hr-verify-h2">What a signature proves</h2>
             <ol class="hr-verify-how">
-                <li>When an article is published or edited, our signing system — which never runs on the web server — signs the exact stored article: address, headline, byline, dates and text.</li>
+                <li>When an article is published or edited, our publishing system signs the exact stored article (address, headline, byline, dates and text) at that moment, with a key kept encrypted and separate from the website files.</li>
                 <li>The signature file holds a SHA-512 fingerprint of those bytes, the time and the key ID, signed by <strong>both</strong> ML-DSA-87 and Ed448. Both must verify.</li>
                 <li>This page checks both signatures with our published keys, then compares the signed version with the article as it is on the site right now.</li>
             </ol>
