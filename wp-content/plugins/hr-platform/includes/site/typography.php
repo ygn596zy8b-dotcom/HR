@@ -2,16 +2,20 @@
 /**
  * House style: no em dashes (MSBJ).
  *
- * The owner's rule is that Headline Recorder never uses an em dash (U+2014, or the horizontal bar U+2015, in any
- * spelling: the character itself or its named, decimal or hex HTML entity). This file:
+ * The owner's rule is that the website's own text never uses an em dash (U+2014, or the horizontal bar U+2015, in
+ * any spelling: the character itself or its named, decimal or hex HTML entity). Text written by people is never
+ * changed: articles and op-eds (post type "post", every category), reader and guest submissions, comments, and their
+ * headlines, excerpts and SEO fields stay exactly as written, on save and on display. What is cleaned is text that
+ * belongs to the website: pages (About, Privacy, Terms...), podcast episodes (generated), menus, widgets, category
+ * names, the site title and tagline, the home and archive SEO titles and descriptions, and the title separators.
  *
  *   replace_em_dashes()       context-aware rewrite of em dashes in HTML; only text nodes change
- *   replace_em_dashes_text()  the same for plain text (meta descriptions, document titles, alt text)
- *   on save                   posts, pages and podcast episodes ("Replace em dashes when saving", default on)
- *   on display                text printed by WordPress, the theme and Yoast, including the em dashes wptexturize
- *                             makes from "---" and " -- " ("Replace em dashes on the live site", default on)
- *   Tools > Remove em dashes  counts, previews and rewrites what is already stored, in batches, through
- *                             wp_update_post() so every changed post keeps a revision of its previous text
+ *   replace_em_dashes_text()  the same for plain text (meta descriptions, document titles)
+ *   on save                   pages and podcast episodes ("Replace em dashes when saving", default on)
+ *   on display                website-owned text as pages are built, including the em dashes wptexturize makes
+ *                             from "---" and " -- " ("Replace em dashes on the live site", default on)
+ *   Tools > Remove em dashes  counts, previews and rewrites what pages and episodes already store, in batches,
+ *                             through wp_update_post() so every changed page keeps a revision of its previous text
  *
  * Rules, in the order they are tried for each dash (a run of dashes counts as one):
  *   - at the start of a line or paragraph, or after a full stop (an attribution: "- Reuters"): a plain hyphen;
@@ -38,10 +42,13 @@ use function HR\Platform\setting;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-/** Post types whose title, content and excerpt are rewritten. */
-const EMDASH_POST_TYPES = array( 'post', 'page', 'hr_episode' );
+/**
+ * Post types that belong to the website, whose title, content and excerpt are rewritten. Never add 'post' (articles
+ * and op-eds are written by people and stay as written) or the submission and comment types.
+ */
+const EMDASH_POST_TYPES = array( 'page', 'hr_episode' );
 
-/** Reader-facing text kept in post meta (SEO titles and descriptions, the GEO summary), rewritten with the post. */
+/** Reader-facing text kept in post meta (SEO titles and descriptions, the GEO summary), rewritten with the page. */
 const EMDASH_META_KEYS = array(
     '_yoast_wpseo_title',
     '_yoast_wpseo_metadesc',
@@ -647,13 +654,13 @@ add_filter( 'hr_settings_schema', function ( array $schema ): array {
             'label'       => 'Replace em dashes when saving',
             'type'        => 'checkbox',
             'default'     => 1,
-            'description' => 'Rewrites em dashes in the headline, text and excerpt of articles, pages and podcast episodes, and in their SEO title, meta description and summary, each time they are saved. Restoring an earlier revision brings that version back exactly as it was.',
+            'description' => 'Rewrites em dashes in the title, text and excerpt of pages and podcast episodes, and in their SEO title, meta description and summary, each time they are saved. Articles and op-eds are never changed. Restoring an earlier revision brings that version back exactly as it was.',
         ),
         'emdash_on_display' => array(
             'label'       => 'Replace em dashes on the live site',
             'type'        => 'checkbox',
             'default'     => 1,
-            'description' => 'Covers text that WordPress and plugins print as pages are built: dashes typed as "---" or " -- ", headlines, menus, widgets, comments, image alt text and the titles and descriptions shown in search results. This does not change what is stored.',
+            'description' => 'Covers the website\'s own text as pages are built: pages and podcast episodes (including dashes typed as "---" or " -- "), menus, widgets, category names, the site title and tagline, the home and archive titles and descriptions shown in search results, and the title separator. Articles, op-eds and comments are shown exactly as written. This does not change what is stored.',
         ),
     );
     if ( isset( $schema['site']['fields'] ) && is_array( $schema['site']['fields'] ) ) {
@@ -663,7 +670,7 @@ add_filter( 'hr_settings_schema', function ( array $schema ): array {
     $schema['typography'] = array(
         'title'       => 'House style',
         'description' => sprintf(
-            'Headline Recorder does not use em dashes. To rewrite the ones already stored in published articles, use <a href="%s">Tools &gt; Remove em dashes</a>.',
+            'The website\'s own text does not use em dashes; articles and op-eds are left as written. To rewrite the ones already stored in pages and podcast episodes, use <a href="%s">Tools &gt; Remove em dashes</a>.',
             esc_url( admin_url( 'tools.php?page=hr-em-dashes' ) )
         ),
         'fields'      => $fields,
@@ -692,15 +699,19 @@ function emdash_on_insert( $data, $postarr = array() ) {
     return $data;
 }
 
-// SEO titles, meta descriptions and summaries (sanitize_meta passes them unslashed). Only the generic hook: adding a
-// "_for_{post type}" variant would stop WordPress running the generic one, which Yoast's own sanitising uses.
+// SEO titles, meta descriptions and summaries of pages and episodes (sanitize_meta passes them unslashed). The
+// generic "sanitize_post_meta_{key}" hook does not say which post the value belongs to, so the "_for_{post type}"
+// variants are used. WordPress then skips the generic hook (where Yoast sanitises), so it is applied here first.
 foreach ( EMDASH_META_KEYS as $hr_emdash_key ) {
-    add_filter( "sanitize_post_meta_{$hr_emdash_key}", __NAMESPACE__ . '\\emdash_on_meta_save', 20, 4 );
+    foreach ( EMDASH_POST_TYPES as $hr_emdash_type ) {
+        add_filter( "sanitize_post_meta_{$hr_emdash_key}_for_{$hr_emdash_type}", __NAMESPACE__ . '\\emdash_on_meta_save', 20, 4 );
+    }
 }
-unset( $hr_emdash_key );
+unset( $hr_emdash_key, $hr_emdash_type );
 
-function emdash_on_meta_save( $value, $key = '', $type = '', $subtype = '' ) {
-    if ( ! is_string( $value ) || ! has_em_dash( $value ) || ( '' !== $subtype && ! in_array( $subtype, EMDASH_POST_TYPES, true ) ) || empty( setting( 'emdash_on_save' ) ) ) {
+function emdash_on_meta_save( $value, $key = '', $type = 'post', $subtype = '' ) {
+    $value = apply_filters( "sanitize_post_meta_{$key}", $value, $key, $type );
+    if ( ! is_string( $value ) || ! has_em_dash( $value ) || ! in_array( $subtype, EMDASH_POST_TYPES, true ) || empty( setting( 'emdash_on_save' ) ) ) {
         return $value;
     }
     return replace_em_dashes_text( $value );
@@ -717,8 +728,8 @@ function emdash_restoring_revision(): bool {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// On display: what WordPress, the theme and plugins print. wptexturize (priority 10) turns "---" and " -- " into
-// em dash entities; these filters run after it. wp-admin keeps showing the stored text so editors see what is saved.
+// On display: the website's own text as WordPress, the theme and plugins print it. Articles, op-eds and comments are
+// printed exactly as written: every filter here checks whose text it is. wp-admin keeps showing the stored text.
 // ---------------------------------------------------------------------------------------------------------------
 
 function emdash_display_on(): bool {
@@ -729,61 +740,155 @@ function emdash_front_end(): bool {
     return ( ! is_admin() || wp_doing_ajax() ) && emdash_display_on();
 }
 
+/** True for a page or podcast episode (website-owned), false for articles and everything else. */
+function emdash_site_post( $post = null ): bool {
+    $type = get_post_type( $post );
+    return is_string( $type ) && in_array( $type, EMDASH_POST_TYPES, true );
+}
+
+/**
+ * True when the current request shows website-owned text: the home page, archives, search, 404, pages and episodes.
+ * False on a single article (its title and SEO fields are written by people) and on author archives (the bio).
+ */
+function emdash_site_context(): bool {
+    if ( is_author() ) {
+        return false;
+    }
+    return ! is_singular() || emdash_site_post( get_queried_object_id() );
+}
+
+/** Site-owned HTML (menus, widgets, category names): rewritten wherever it is shown. */
 function emdash_display_html( $value ) {
     return is_string( $value ) && has_em_dash( $value ) && emdash_front_end() ? replace_em_dashes( $value ) : $value;
 }
 
+/** Site-owned plain text (site title, tagline, site name). */
 function emdash_display_text( $value ) {
     return is_string( $value ) && has_em_dash( $value ) && emdash_front_end() ? replace_em_dashes_text( $value ) : $value;
 }
 
+/** Document and SEO titles and descriptions: only where the page itself is website-owned (see emdash_site_context). */
+function emdash_display_seo( $value ) {
+    return is_string( $value ) && has_em_dash( $value ) && emdash_front_end() && emdash_site_context() ? replace_em_dashes_text( $value ) : $value;
+}
+
+/**
+ * The dashes wptexturize would make ("---" and " -- " become em dashes), turned into em dashes in the text nodes now
+ * so the rewrite sees them. Markup, URLs and shortcodes are left alone, as wptexturize leaves them.
+ */
+function emdash_pretexturize( string $html ): string {
+    if ( false === strpos( $html, '--' ) || ! emdash_safe_input( $html ) ) {
+        return $html;
+    }
+    $out = '';
+    foreach ( emdash_segments( $html ) as [ $kind, $raw ] ) {
+        if ( 'text' !== $kind ) {
+            $out .= $raw;
+            continue;
+        }
+        $pieces = preg_split( '/(' . trim( emdash_protect_pattern(), '/u' ) . ')/u', $raw, -1, PREG_SPLIT_DELIM_CAPTURE );
+        foreach ( (array) $pieces as $i => $piece ) {
+            $out .= 1 === $i % 2 ? $piece : str_replace( array( '---', ' -- ' ), array( "\u{2014}", " \u{2014} " ), $piece );
+        }
+    }
+    return $out;
+}
+
+/**
+ * Pages and episodes, before blocks and shortcodes are rendered (priority 8): only their own stored text is
+ * rewritten, never the output of a block or shortcode that lists articles (latest posts, carousels, query loops).
+ */
+function emdash_display_content( $content ) {
+    if ( ! is_string( $content ) || '' === $content || ! emdash_front_end() || ! emdash_site_post() ) {
+        return $content;
+    }
+    $content = emdash_pretexturize( $content );
+    return has_em_dash( $content ) ? replace_em_dashes( $content ) : $content;
+}
+add_filter( 'the_content', __NAMESPACE__ . '\\emdash_display_content', 8 );
+
+// Widgets belong to the site. Block and text widgets before blocks and shortcodes run, for the same reason.
+$hr_emdash_widget = static function ( $content ) {
+    if ( ! is_string( $content ) || '' === $content || ! emdash_front_end() ) {
+        return $content;
+    }
+    $content = emdash_pretexturize( $content );
+    return has_em_dash( $content ) ? replace_em_dashes( $content ) : $content;
+};
+add_filter( 'widget_block_content', $hr_emdash_widget, 8 );
+add_filter( 'widget_text_content', $hr_emdash_widget, 8 );
+unset( $hr_emdash_widget );
+
 foreach ( array(
-    'the_content', 'the_excerpt', 'get_the_excerpt', 'the_title', 'single_post_title', 'single_cat_title', 'single_tag_title',
-    'single_term_title', 'get_the_archive_title', 'get_the_archive_description', 'term_description', 'the_post_thumbnail_caption',
-    'nav_menu_item_title', 'nav_menu_description', 'widget_title', 'widget_text', 'widget_text_content', 'widget_block_content',
-    'widget_custom_html_content', 'comment_text', 'comment_excerpt', 'comment_text_rss',
+    'single_cat_title', 'single_tag_title', 'single_term_title', 'term_description', 'nav_menu_description', 'widget_title',
+    'widget_text', 'widget_custom_html_content',
 ) as $hr_emdash_hook ) {
     add_filter( $hr_emdash_hook, __NAMESPACE__ . '\\emdash_display_html', 50 );
 }
-foreach ( array(
-    'document_title', 'wpseo_title', 'wpseo_opengraph_title', 'wpseo_twitter_title', 'wpseo_metadesc', 'wpseo_opengraph_desc',
-    'wpseo_twitter_description', 'wpseo_opengraph_site_name',
-) as $hr_emdash_hook ) {
-    add_filter( $hr_emdash_hook, __NAMESPACE__ . '\\emdash_display_text', 50 );
-}
 unset( $hr_emdash_hook );
 
-add_filter( 'document_title_parts', static fn( $parts ) => is_array( $parts ) ? array_map( __NAMESPACE__ . '\\emdash_display_text', $parts ) : $parts, 50 );
+// Archive headings and descriptions, except an author's (the name and bio are the author's own words).
+$hr_emdash_archive = static fn( $value ) => is_author() ? $value : emdash_display_html( $value );
+add_filter( 'get_the_archive_title', $hr_emdash_archive, 50 );
+add_filter( 'get_the_archive_description', $hr_emdash_archive, 50 );
+unset( $hr_emdash_archive );
 
+// Menu labels, except links to articles (their label is the article's headline unless an editor renamed it).
+add_filter( 'nav_menu_item_title', static function ( $title, $item = null ) {
+    return is_object( $item ) && isset( $item->object ) && 'post' === $item->object ? $title : emdash_display_html( $title );
+}, 50, 2 );
+
+// Titles and excerpts of pages and episodes only, wherever they are shown; an article's headline stays as written,
+// also in lists on the home page. wptexturize runs at 10 on these, so this runs after it.
+add_filter( 'the_title', static fn( $title, $id = 0 ) => $id && emdash_site_post( $id ) ? emdash_display_html( $title ) : $title, 50, 2 );
+add_filter( 'single_post_title', static fn( $title, $post = null ) => emdash_site_post( $post ) ? emdash_display_html( $title ) : $title, 50, 2 );
+add_filter( 'get_the_excerpt', static fn( $excerpt, $post = null ) => emdash_site_post( $post ) ? emdash_display_html( $excerpt ) : $excerpt, 50, 2 );
+add_filter( 'the_excerpt', static fn( $excerpt ) => emdash_site_post() ? emdash_display_html( $excerpt ) : $excerpt, 50 );
+
+// Document, SEO, Open Graph and X titles and descriptions: the home page, archives, pages and episodes.
+foreach ( array(
+    'document_title', 'wpseo_title', 'wpseo_opengraph_title', 'wpseo_twitter_title', 'wpseo_metadesc', 'wpseo_opengraph_desc',
+    'wpseo_twitter_description',
+) as $hr_emdash_hook ) {
+    add_filter( $hr_emdash_hook, __NAMESPACE__ . '\\emdash_display_seo', 50 );
+}
+unset( $hr_emdash_hook );
+add_filter( 'document_title_parts', static fn( $parts ) => is_array( $parts ) ? array_map( __NAMESPACE__ . '\\emdash_display_seo', $parts ) : $parts, 50 );
+
+// The site's name and tagline, wherever they are printed.
+add_filter( 'wpseo_opengraph_site_name', __NAMESPACE__ . '\\emdash_display_text', 50 );
 add_filter( 'bloginfo', static function ( $value, $show = '' ) {
     return in_array( $show, array( 'name', 'description' ), true ) ? emdash_display_text( $value ) : $value;
 }, 50, 2 );
 
-// Image alt text printed by wp_get_attachment_image() and the featured image (after alt-text.php's fallback at 20).
-add_filter( 'wp_get_attachment_image_attributes', static function ( $attr ) {
-    if ( is_array( $attr ) && isset( $attr['alt'] ) ) {
-        $attr['alt'] = emdash_display_text( $attr['alt'] );
-    }
-    return $attr;
-}, 30 );
-
-// Structured data: names, headlines, descriptions and captions are reader-facing text too.
+// Structured data: on website-owned pages every name and description; on an article only the site's own nodes
+// (Organization, WebSite), so the article's headline and description stay as written.
 add_filter( 'wpseo_schema_graph', static function ( $graph ) {
     if ( ! is_array( $graph ) || ! emdash_front_end() ) {
         return $graph;
     }
-    array_walk_recursive( $graph, static function ( &$value, $key ) {
-        if ( is_string( $value ) && in_array( $key, array( 'name', 'headline', 'alternativeHeadline', 'description', 'caption', 'abstract' ), true ) && has_em_dash( $value ) ) {
-            $value = replace_em_dashes_text( $value );
+    $all  = emdash_site_context();
+    $keys = array( 'name', 'headline', 'alternativeHeadline', 'description', 'caption', 'abstract', 'alternateName' );
+    foreach ( $graph as &$node ) {
+        if ( ! is_array( $node ) ) {
+            continue;
         }
-    } );
+        $types = (array) ( $node['@type'] ?? array() );
+        if ( ! $all && ! array_intersect( $types, array( 'Organization', 'NewsMediaOrganization', 'WebSite' ) ) ) {
+            continue;
+        }
+        array_walk_recursive( $node, static function ( &$value, $key ) use ( $keys ) {
+            if ( is_string( $value ) && in_array( $key, $keys, true ) && has_em_dash( $value ) ) {
+                $value = replace_em_dashes_text( $value );
+            }
+        } );
+    }
+    unset( $node );
     return $graph;
 }, 50 );
 
-// llms.txt is written by Yoast in the background, so this one does not depend on being on the front end.
-add_filter( 'wpseo_llmstxt_link_description', static fn( $text ) => is_string( $text ) && has_em_dash( $text ) && emdash_display_on() ? replace_em_dashes_text( $text ) : $text, 50 );
-
 // Title separators: Yoast's "Em dash" choice (sc-mdash) and any theme that sets one for wp_get_document_title().
+// The separator is the site's, so it is replaced on every page, articles included.
 $hr_emdash_separator = static fn( $sep ) => is_string( $sep ) && has_em_dash( $sep ) && emdash_display_on() ? '-' : $sep;
 add_filter( 'wpseo_replacements_filter_sep', $hr_emdash_separator, 50 );
 add_filter( 'document_title_separator', $hr_emdash_separator, 50 );
@@ -815,8 +920,8 @@ function emdash_placeholders( array $values ): string {
 }
 
 /**
- * IDs of everything the tool may change, in ID order: published posts, pages and episodes with an em dash in their
- * title, content, excerpt or reader-facing meta, and images whose alt text has one.
+ * IDs of everything the tool may change, in ID order: published pages and episodes with an em dash in their title,
+ * content, excerpt or reader-facing meta. Articles are never listed.
  */
 function emdash_candidate_ids( int $after = 0, int $limit = 0, string $order = 'ASC' ): array {
     global $wpdb;
@@ -829,11 +934,6 @@ function emdash_candidate_ids( int $after = 0, int $limit = 0, string $order = '
     $sql  .= " UNION SELECT p.ID FROM {$wpdb->posts} p INNER JOIN {$wpdb->postmeta} m ON m.post_id = p.ID WHERE {$meta}"
         . ' AND p.post_status = \'publish\' AND p.post_type IN (' . emdash_placeholders( EMDASH_POST_TYPES ) . ') AND m.meta_key IN (' . emdash_placeholders( EMDASH_META_KEYS ) . ')';
     $args  = array_merge( $args, $margs, EMDASH_POST_TYPES, EMDASH_META_KEYS );
-    $aargs = array();
-    $alt   = emdash_sql_match( 'm.meta_value', $aargs );
-    $sql  .= " UNION SELECT p.ID FROM {$wpdb->posts} p INNER JOIN {$wpdb->postmeta} m ON m.post_id = p.ID WHERE {$alt}"
-        . " AND p.post_type = 'attachment' AND m.meta_key = '_wp_attachment_image_alt'";
-    $args  = array_merge( $args, $aargs );
     $sql   = "SELECT ID FROM ( {$sql} ) hr_emdash WHERE ID > %d ORDER BY ID " . ( 'DESC' === $order ? 'DESC' : 'ASC' );
     $args[] = $after;
     if ( $limit > 0 ) {
@@ -873,9 +973,6 @@ function emdash_counts(): array {
     foreach ( (array) $rows as $row ) {
         $out[ $row->post_type ]['meta'] = (int) $row->n;
     }
-    $aargs = array();
-    $a     = emdash_sql_match( 'm.meta_value', $aargs );
-    $out['attachment'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT( DISTINCT m.post_id ) FROM {$wpdb->postmeta} m INNER JOIN {$wpdb->posts} p ON p.ID = m.post_id WHERE {$a} AND p.post_type = 'attachment' AND m.meta_key = '_wp_attachment_image_alt'", $aargs ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
     return $out;
 }
 
@@ -891,7 +988,6 @@ function emdash_field_label( string $field ): string {
         '_yoast_wpseo_twitter-title'         => 'X title',
         '_yoast_wpseo_twitter-description'   => 'X description',
         '_hr_geo_summary'                    => 'Summary',
-        '_wp_attachment_image_alt'           => 'Alt text',
     );
     return $labels[ $field ] ?? $field;
 }
@@ -908,9 +1004,7 @@ function emdash_plan( int $post_id ): ?array {
     $fields  = array();
     $meta    = array();
     $changes = array();
-    if ( 'attachment' === $post->post_type ) {
-        $keys = array( '_wp_attachment_image_alt' );
-    } elseif ( in_array( $post->post_type, EMDASH_POST_TYPES, true ) && 'publish' === $post->post_status ) {
+    if ( in_array( $post->post_type, EMDASH_POST_TYPES, true ) && 'publish' === $post->post_status ) {
         $keys = EMDASH_META_KEYS;
         foreach ( array( 'post_title', 'post_content', 'post_excerpt' ) as $field ) {
             $old = (string) $post->$field;
@@ -963,13 +1057,11 @@ function emdash_apply_post( int $post_id ): string {
         return 'unchanged';
     }
     $post = $plan['post'];
-    if ( 'attachment' !== $post->post_type ) {
-        if ( ! function_exists( 'wp_check_post_lock' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/post.php';
-        }
-        if ( wp_check_post_lock( $post_id ) ) {
-            return 'locked';
-        }
+    if ( ! function_exists( 'wp_check_post_lock' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/post.php';
+    }
+    if ( wp_check_post_lock( $post_id ) ) {
+        return 'locked';
     }
 
     // Keep the previous text: a revision where WordPress keeps them, otherwise a backup on the post itself.
@@ -1078,7 +1170,7 @@ function emdash_screen(): void {
         return;
     }
     $counts   = emdash_counts();
-    $labels   = array( 'post' => 'Articles', 'page' => 'Pages', 'hr_episode' => 'Podcast episodes' );
+    $labels   = array( 'page' => 'Pages', 'hr_episode' => 'Podcast episodes' );
     $preview  = array();
     $to_change = 0;
     $dashes   = 0;
@@ -1099,10 +1191,11 @@ function emdash_screen(): void {
     <div class="wrap hr-emdash">
         <h1>Remove em dashes</h1>
         <p class="hr-emdash-lead">
-            Headline Recorder&rsquo;s house style does not use em dashes. This tool rewrites the ones already stored in published
-            articles, pages and podcast episodes (headline, text, excerpt, SEO title, meta description and summary) and in image alt text.
-            New and edited posts are handled when they are saved, and text that WordPress or plugins add is handled as pages are shown:
-            both switches are under <a href="<?php echo esc_url( admin_url( 'options-general.php?page=hr-platform' ) ); ?>">Settings &gt; Headline Recorder</a>.
+            The website&rsquo;s own text does not use em dashes. This tool rewrites the ones already stored in published pages
+            (About, Privacy, Terms and the rest) and podcast episodes: title, text, excerpt, SEO title, meta description and summary.
+            Articles, op-eds, submissions and comments are written by people and are never listed or changed here.
+            New and edited pages and episodes are handled when they are saved, and the site&rsquo;s own text (menus, widgets,
+            category names, the home page and archive titles, the title separator) is handled as pages are shown: both switches are under <a href="<?php echo esc_url( admin_url( 'options-general.php?page=hr-platform' ) ); ?>">Settings &gt; Headline Recorder</a>.
         </p>
 
         <h2>How each dash is rewritten</h2>
@@ -1138,8 +1231,7 @@ function emdash_screen(): void {
         <p>
             <?php
             echo esc_html( sprintf(
-                'Images with an em dash in their alt text: %1$s. In all, %2$s %3$s will change (%4$s %5$s).',
-                number_format_i18n( $counts['attachment'] ),
+                'In all, %1$s %2$s will change (%3$s %4$s).',
                 number_format_i18n( $to_change ),
                 1 === $to_change ? 'item' : 'items',
                 number_format_i18n( $dashes ),
@@ -1152,7 +1244,7 @@ function emdash_screen(): void {
         </p>
 
         <?php if ( ! $to_change ) : ?>
-            <div class="notice notice-success inline"><p>Nothing to do: no published article, page, podcast episode or image alt text needs rewriting.</p></div>
+            <div class="notice notice-success inline"><p>Nothing to do: no published page or podcast episode needs rewriting.</p></div>
         <?php else : ?>
             <h2>Preview</h2>
             <p>The <?php echo esc_html( number_format_i18n( count( $preview ) ) ); ?> most recent items that will change, with up to five changes each.</p>
@@ -1163,7 +1255,7 @@ function emdash_screen(): void {
                         $name = esc_html( html_entity_decode( wp_strip_all_tags( get_the_title( $post ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ?: sprintf( '#%d', $post->ID ) );
                         echo $edit ? '<a href="' . esc_url( $edit ) . '">' . $name . '</a>' : $name; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above
                         ?>
-                        <span class="hr-emdash-meta"><?php echo esc_html( sprintf( '%s, %d %s', 'attachment' === $post->post_type ? 'Image' : ( $labels[ $post->post_type ] ?? $post->post_type ), count( $plan['changes'] ), 1 === count( $plan['changes'] ) ? 'change' : 'changes' ) ); ?></span>
+                        <span class="hr-emdash-meta"><?php echo esc_html( sprintf( '%s, %d %s', $labels[ $post->post_type ] ?? $post->post_type, count( $plan['changes'] ), 1 === count( $plan['changes'] ) ? 'change' : 'changes' ) ); ?></span>
                     </h3>
                     <ol class="hr-emdash-diffs">
                         <?php foreach ( array_slice( $plan['changes'], 0, 5 ) as $row ) : ?>
@@ -1179,10 +1271,10 @@ function emdash_screen(): void {
 
             <h2>Apply</h2>
             <ul class="hr-emdash-rules">
-                <li>Each post is saved through WordPress, so its previous text stays in its revision history. To undo one post, open it in the editor, choose Revisions and restore the earlier version.</li>
-                <li>Podcast episodes, SEO fields, summaries and alt text have no revision history; their previous text is kept in a hidden field on the same item (<code><?php echo esc_html( EMDASH_BACKUP_META ); ?></code>).</li>
+                <li>Each page is saved through WordPress, so its previous text stays in its revision history. To undo one page, open it in the editor, choose Revisions and restore the earlier version.</li>
+                <li>Podcast episodes, SEO fields and summaries have no revision history; their previous text is kept in a hidden field on the same item (<code><?php echo esc_html( EMDASH_BACKUP_META ); ?></code>).</li>
                 <li>Anything someone has open in the editor is skipped and listed below. Run the tool again later to finish it.</li>
-                <li>Changed articles get a new &ldquo;last modified&rdquo; time. The signing module notices the change and the article is re-signed automatically on the signer&rsquo;s next run; until then its signature notice says the article was updated after signing.</li>
+                <li>Articles are not touched, so their signatures stay valid. Only articles are signed; if an article is ever edited, the signing module notices the change and re-signs it automatically on the signer&rsquo;s next run.</li>
             </ul>
             <div id="hr-emdash-apply" data-ajax="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'hr_emdash_apply' ) ); ?>" data-total="<?php echo esc_attr( (string) $total ); ?>">
                 <p>
