@@ -358,7 +358,11 @@ get_header();
     .es-main { margin-top: 0; padding: 40px 24px 60px; }
     .es-featured-card { flex-direction: column; }
     .es-card-left { flex: 0 0 auto; min-height: 280px; width: 100%; }
-    .es-card-left.has-portrait { min-height: 0; aspect-ratio: 3 / 2; }
+    /* phones and tablets: the whole portrait, then the name below it (never over the face) */
+    .es-card-left.has-portrait { min-height: 0; display: block; }
+    .es-card-left.has-portrait::before { content: none; }
+    .es-card-left img.es-card-portrait { position: relative; inset: auto; height: auto; aspect-ratio: 4 / 3; }
+    .es-card-left.has-portrait .es-card-person { position: relative; bottom: auto; padding: 18px 24px 22px; border-top: 3px solid #C0001A; }
     .es-card-right { padding: 36px 28px; }
     .es-card-title { font-size: 22px; }
     .es-card-footer { flex-direction: column; align-items: flex-start; gap: 16px; }
