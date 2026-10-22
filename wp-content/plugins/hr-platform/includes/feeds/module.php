@@ -17,8 +17,6 @@
 
 namespace HR\Platform\Feeds;
 
-use function HR\Platform\asset_ver;
-
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 const EPISODE_TYPE = 'hr_episode';
@@ -136,10 +134,22 @@ add_action( 'rss2_item', function () {
 // Browser view (XSLT)
 // ---------------------------------------------------------------------------------------------------------------
 
-/** Site-relative URL of the stylesheet: browsers apply XSLT from the feed's own origin only. */
+/**
+ * Site-relative URL of the stylesheet: browsers apply XSLT from the feed's own origin only. The version is a hash of
+ * the stylesheet, its CSS and its script (the XSLT passes it on to both), so it changes only when one of them
+ * changes, never on a redeploy: the feed bytes, which the signing module signs, stay the same.
+ */
 function stylesheet_url(): string {
-    $url = wp_make_link_relative( plugins_url( 'assets/xsl/feed.xsl', HR_PLATFORM_FILE ) );
-    return $url . '?ver=' . rawurlencode( asset_ver( 'xsl/feed.xsl' ) );
+    static $ver = null;
+    if ( null === $ver ) {
+        $hash = '';
+        foreach ( array( 'xsl/feed.xsl', 'css/feed.css', 'js/feed.js' ) as $file ) {
+            $path  = HR_PLATFORM_DIR . '/assets/' . $file;
+            $hash .= is_readable( $path ) ? (string) md5_file( $path ) : '-';
+        }
+        $ver = substr( md5( $hash ), 0, 12 );
+    }
+    return wp_make_link_relative( plugins_url( 'assets/xsl/feed.xsl', HR_PLATFORM_FILE ) ) . '?ver=' . $ver;
 }
 
 add_action( 'rss_tag_pre', function ( $context ) {

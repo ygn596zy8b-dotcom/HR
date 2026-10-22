@@ -73,7 +73,7 @@ handlers (bfcache-friendly; account pages are `no-store` on purpose).
 
 ### Tried and dropped (measured, within noise or wrong)
 
-- Opacity-only scroll reveal (instead of fade + rise) to fix the home a11y contrast findings: no change — the cause was
+- Opacity-only scroll reveal (instead of fade + rise) to fix the home a11y contrast findings: no change; the cause was
   the `content-visibility` placeholder. Reverted.
 - Blocking Lato / the first briefing image to see if they hold the LCP: ±300 ms noise, no signal. Lato stays (it is
   the body face and already a Latin subset).
@@ -89,28 +89,166 @@ handlers (bfcache-friendly; account pages are `no-store` on purpose).
   Security file-change scans; the plugin is inactive). Delete both if file-change detection is not used:
   `wp option delete aiowps_plugin_checksums aiowps_core_checksums`.
 - WP-Cron: 34 events, no duplicates. `aios_change_auth_keys_and_salt` (weekly) rotates the salts and signs every
-  reader out each week — switch it off in AIOS if readers complain about losing their streak session.
+  reader out each week; switch it off in AIOS if readers complain about losing their streak session.
   On cPanel set `define( 'DISABLE_WP_CRON', true );` and a real cron every 5 minutes:
   `*/5 * * * * cd /home/USER/public_html && /usr/local/bin/php wp-cron.php >/dev/null 2>&1`
   (keeps cron off the request path and runs the streak / signing jobs on time).
 
+## Global delivery: how a reader anywhere gets the site from a nearby city
+
+The site lives on one LiteSpeed server. Without help, a reader in London or Toronto waits for every page to cross
+the world and back. Cloudflare fixes that: its network answers on the same address in 330+ cities (anycast), and
+once a page is stored ("cached") in a city, the next reader there gets it straight from that city.
+
+- **Pakistan:** Cloudflare has data centres in **Karachi (KHI), Lahore (LHE) and Islamabad (ISB)**. Most Pakistani
+  readers are served from inside the country, in tens of milliseconds. Which city an internet provider reaches
+  depends on that provider's links; when one routes abroad (Dubai, Mumbai, Singapore, Marseille), Smart Tiered Cache
+  still answers from Cloudflare instead of the server.
+- **Abroad:** readers in the Gulf, UK, Europe and North America are served from their own city.
+- **Freshness:** when an editor publishes or updates a story, the site tells Cloudflare to drop the old copy at once
+  (see "Connect the purge"). Readers never wait for an expiry to see a correction.
+- **Privacy:** only pages that are identical for every reader are shared. Anything personal (signed-in pages, the
+  account area, the reading streak, search results, previews) always comes from the server, every time.
+
+### What the site sends (plugin module `includes/edge/`)
+
+| Response | Cache-Control sent by the site | Edge lifetime (default) |
+|---|---|---|
+| Home, sections, tags, authors, `/podcast/`, `/verify/` | `public, max-age=0, s-maxage=300, stale-while-revalidate=600, stale-if-error=86400` | 5 min |
+| Articles, pages, episodes | same, `s-maxage=3600` | 1 hour (purged on change) |
+| RSS feeds, `/podcast/feed/`, XML sitemaps | `public, max-age=300, s-maxage=600, ...` | 10 min |
+| `/signed/*` signature files | `public, max-age=300, s-maxage=3600, ...` | 1 hour (purged when the signer uploads) |
+| 404 / 410 for guests | `public, max-age=0, s-maxage=60, ...` | 1 min |
+| Anyone signed in, or with a personal cookie | WordPress `no-store, private` (or `private, no-cache`) | never cached |
+| `/account/*`, `/dashboard/`, `/thank-you/`, `/wp-json/*`, `/wp-admin/*`, `wp-login.php`, search, previews, POST | untouched (no-store where the module sets it) | never cached |
+
+`max-age=0` makes browsers ask again on every visit (so nobody keeps a stale front page), `s-maxage` is what
+Cloudflare keeps, `stale-while-revalidate` lets Cloudflare answer instantly while it refreshes in the background, and
+`stale-if-error` keeps the site readable for a day if the server is down. A `CDN-Cache-Control` header repeats the
+edge values and `X-HR-Cache` says what was decided (`public; kind=single; ttl=3600` or `bypass; reason=cookie`).
+
+Personal cookies that switch caching off: `wordpress_logged_in_*`, `wordpress_sec_*`, `wp-postpass_*`,
+`comment_author_*`, `hr_li`. A query string switches it off too, except campaign tags (`utm_*`, `fbclid`, `gclid` ...).
+Every place that prints personal data or a security token (account pages, the session endpoint
+`admin-ajax.php?action=hr_session`, the streak dashboard, submissions, Contact Form 7's nonce for signed-in users,
+comment forms for returning commenters) is covered by one of those rules; the header account chip and streak flame
+are filled in by the browser from the session endpoint, so cached pages carry no personal data.
+
+The lifetimes are in **Settings > Headline Recorder > Edge cache (Cloudflare)**; developers can also use the
+`hr_edge_ttl`, `hr_edge_cache_decision`, `hr_edge_bypass_paths` and `hr_edge_personal_cookies` filters.
+
+Check from a terminal (after Cloudflare is live):
+
+```sh
+curl -sI https://headlinerecorder.com/ | grep -iE 'cf-cache-status|x-hr-cache|cache-control|cf-ray'
+#   first request MISS, second HIT; cf-ray ends in -KHI, -LHE or -ISB from Pakistan
+curl -sI -H 'Cookie: hr_li=1' https://headlinerecorder.com/ | grep -iE 'cf-cache-status|x-hr-cache'
+#   cf-cache-status: BYPASS (or DYNAMIC), x-hr-cache: bypass; reason=cookie
+curl -s https://headlinerecorder.com/cdn-cgi/trace | grep colo     # which Cloudflare city answered you
+```
+
+## Cloudflare setup (exact clicks)
+
+Free plan is enough for everything below. The security side (post-quantum TLS details, DNSSEC, WAF rules, real
+visitor IPs) is in `infra/cloudflare/README.md`; do both.
+
+1. **Add the site.** dash.cloudflare.com > **Add a domain** > `headlinerecorder.com` > **Free** > Continue. Check the
+   imported DNS records, then at the domain registrar replace the nameservers with the two Cloudflare shows.
+   Wait for the "Active" email.
+2. **DNS > Records.** The `A`/`AAAA` record for `@` (headlinerecorder.com) and the `www` record: **Proxied** (orange
+   cloud). Keep **DNS only** (grey cloud) for mail and cPanel: `mail`, `webmail`, `cpanel`, `ftp`, `MX`, `autodiscover`
+   and every TXT record (SPF, DKIM, DMARC), otherwise email breaks.
+3. **SSL/TLS > Overview > Configure:** **Full (strict)**. The server keeps its own certificate (cPanel AutoSSL).
+4. **SSL/TLS > Edge Certificates:** **Always Use HTTPS** On, **Minimum TLS Version** TLS 1.2, **TLS 1.3** On,
+   **Automatic HTTPS Rewrites** On. Post-quantum key agreement (X25519MLKEM768) is on by default for every browser
+   that supports it; there is nothing to switch on.
+5. **Speed > Optimization** (Cloudflare moves these between tabs; use the search box if one is not where listed):
+   **HTTP/3 (with QUIC)** On, **Early Hints** On, **0-RTT** Off (replay risk on forms), **Rocket Loader** Off (it
+   breaks the consent and ticker script order). Brotli compression is always on. The site sends `Link: rel=preload`
+   headers for its two text fonts, which Early Hints turns into a head start for the browser.
+6. **Caching > Tiered Cache:** **Smart Tiered Caching Topology** On.
+7. **Caching > Configuration:** Browser Cache TTL **Respect Existing Headers**.
+8. **Caching > Cache Rules > Create rule.** Create three rules in this order (when several match, the last one wins,
+   so the bypass rule must be last). Use "Edit expression" and paste:
+
+   **Rule 1, "Static files (long)"**
+   ```
+   (http.request.uri.path.extension in {"css" "js" "woff2" "woff" "ttf" "webp" "avif" "png" "jpg" "jpeg" "gif" "svg" "ico" "mp3"})
+   ```
+   Cache eligibility: **Eligible for cache**. Edge TTL: **Ignore cache-control header and use this TTL**, 30 days.
+   Browser TTL: **Respect origin** (the server already sends one year for versioned theme files).
+
+   **Rule 2, "Anonymous HTML"**
+   ```
+   (http.host eq "headlinerecorder.com" and not http.request.uri.path.extension in {"css" "js" "woff2" "woff" "ttf" "webp" "avif" "png" "jpg" "jpeg" "gif" "svg" "ico" "mp3"})
+   ```
+   Cache eligibility: **Eligible for cache**. Edge TTL: **Use cache-control header if present, bypass cache if not**
+   (the site decides page by page). Browser TTL: **Respect origin**. Serve stale content while revalidating: leave on.
+
+   **Rule 3, "Never cache personal" (must be last)**
+   ```
+   (http.cookie contains "wordpress_logged_in_") or (http.cookie contains "wordpress_sec_") or (http.cookie contains "wp-postpass_") or (http.cookie contains "comment_author_") or (http.cookie contains "hr_li") or starts_with(http.request.uri.path, "/account") or starts_with(http.request.uri.path, "/dashboard") or starts_with(http.request.uri.path, "/thank-you") or starts_with(http.request.uri.path, "/reading/") or starts_with(http.request.uri.path, "/wp-admin") or starts_with(http.request.uri.path, "/wp-json") or http.request.uri.path eq "/wp-login.php" or http.request.uri.path eq "/xmlrpc.php" or http.request.uri.path eq "/wp-cron.php"
+   ```
+   Cache eligibility: **Bypass cache**. If the editor refuses `starts_with`, build the same conditions in the visual
+   builder with "URI Path" + "starts with".
+
+   Responses that carry `Set-Cookie` are never stored by Cloudflare. Rule 3 is a second lock: even if a personal page
+   ever sent a public header by mistake, Cloudflare would still not store it.
+9. **Security > WAF > Managed rules:** keep the **Cloudflare Free Managed Ruleset** on. Custom and rate-limiting rules:
+   `infra/cloudflare/README.md` steps 6 and 7.
+10. **Security > Bots: Bot Fight Mode OFF.** On the Free plan it cannot be told to let anyone through, and it
+    challenges exactly the visitors this site needs: feed readers, Apple Podcasts / Spotify fetching
+    `/podcast/feed/`, partners' tools fetching `/signed/*` and `/.well-known/pqsig-keys.json`, the GitHub signer calling
+    `/wp-json/hr/v1/signing/*`, and uptime checks. Use the WAF rules (managed challenge on `/wp-login.php` and
+    `/account/login/`) instead.
+11. **Do not use** "Cache Everything" Page Rules or APO together with these Cache Rules. APO (paid add-on) is an
+    alternative to steps 8 and "Connect the purge", not an addition.
+
+### Connect the purge (so corrections show at once)
+
+1. Cloudflare > top-right profile icon > **My Profile > API Tokens > Create Token > Create Custom Token**.
+2. Name: `headlinerecorder cache purge`. Permissions: **Zone | Cache Purge | Purge**, nothing else.
+   Zone Resources: **Include | Specific zone | headlinerecorder.com**. Optional: Client IP Address Filtering = the
+   server's IP (cPanel home page, "Shared IP Address"). Continue to summary > **Create Token** > copy it (shown once).
+3. Zone ID: Cloudflare > headlinerecorder.com > **Overview**, right-hand column, "API" box, **Zone ID** > Copy.
+4. cPanel > File Manager > `public_html/wp-config.php` > Edit. Above the line `/* That's all, stop editing! */` add:
+
+   ```php
+   define( 'HR_CF_ZONE_ID', 'paste the Zone ID' );
+   define( 'HR_CF_API_TOKEN', 'paste the token' );
+   ```
+5. wp-admin > **Settings > Headline Recorder > Edge cache (Cloudflare)** now says "Connected". Press **Purge everything
+   at Cloudflare** once; "Last purge" should read "done".
+
+What is purged automatically: when a post, page or episode is published, updated, unpublished, trashed or deleted,
+the home page, the article, its category and tag pages (first page), category feeds, the author page, the main feed,
+`/podcast/` and `/podcast/feed/` (episodes), the article's `/signed/<id>.sig.json`, `/signed/feed.xml` (and
+`.sig.json`), the sitemaps and `/llms.txt` / `/llms-full.txt`. Renamed or deleted categories and tags, new
+signatures from the signer, and the keyset are purged too; a Customizer, menu or theme change purges everything.
+Purges go out after the editor's page has loaded (never slowing down Save), at most 30 addresses per call, and are
+retried after 1, 5, 15 and 60 minutes if Cloudflare is unreachable. Without the two constants nothing is sent.
+
+If **LiteSpeed Cache > CDN > Cloudflare** is set up as well, leave it off: this module already purges Cloudflare,
+including when you press LiteSpeed's "Purge All".
+
 ## LiteSpeed Cache (origin)
 
-The plugin is installed; enable it in production. Settings that match this site:
+The plugin is installed; enable it in production. It caches pages on the server, and Cloudflare caches them again
+close to readers; both are purged on every change. Settings that match this site:
 
 - **Cache:** Enable Cache ON, Cache Logged-in Users OFF, Cache Commenters OFF, Cache REST API OFF,
-  Cache Login Page ON, Cache Mobile OFF (one responsive design).
+  Cache Login Page ON, Cache Mobile OFF (one responsive design; Cloudflare also keeps one version).
 - **TTL:** Default Public Cache TTL 3600, Front Page TTL 600, Feed TTL 600, 404 TTL 3600.
-- **Purge:** "Auto Purge Rules For Publish/Update" → All pages, Front page, Home page, Pages, Author archive,
+- **Purge:** "Auto Purge Rules For Publish/Update": All pages, Front page, Home page, Pages, Author archive,
   Post type archive, Yearly/Monthly/Daily archive, Term archive. "Serve Stale" ON.
-- **Excludes → Do Not Cache URIs:** `/account/`, `/dashboard/`, `/wp-json/hr/v1/`, `/verify/` (posts its own
-  form), `/thank-you/`. **Do Not Cache Cookies:** `hr_li`, `wordpress_logged_in`. (The plugin also sends `no-store`
-  and `litespeed_control_set_nocache` on personalised responses.)
+- **Excludes > Do Not Cache URIs:** `/account/`, `/dashboard/`, `/wp-json/hr/v1/`, `/thank-you/`. **Do Not Cache
+  Cookies:** `hr_li`, `wordpress_logged_in`. (The plugin also sends `no-store` and `litespeed_control_set_nocache` on
+  personalised responses, and the edge module never marks a page public when LiteSpeed Cache says `no-cache`.)
 - **ESI:** OFF. Nothing per-user is rendered on cacheable pages: the header account chip and streak flame come from
   `admin-ajax.php?action=hr_session`.
 - **Guest Mode:** ON (first-time visitors get the cached page immediately). **Guest Optimization:** OFF until tested.
-- **Page Optimization → CSS:** CSS Minify ON, **CSS Combine OFF** (the theme's cascade depends on print order; with
-  HTTP/2+ separate files cost little), UCSS OFF, "Load CSS Asynchronously" (CCSS via QUIC.cloud) — try on staging,
+- **Page Optimization > CSS:** CSS Minify ON, **CSS Combine OFF** (the theme's cascade depends on print order; with
+  HTTP/2+ separate files cost little), UCSS OFF, "Load CSS Asynchronously" (CCSS via QUIC.cloud): try on staging,
   keep it if pages look identical; it is the main remaining LCP lever. Font Display Optimization: Default (the theme
   already uses `swap`).
 - **JS:** JS Minify ON, **JS Combine OFF**, **Load JS Deferred OFF** (the theme already defers everything safely;
@@ -119,72 +257,88 @@ The plugin is installed; enable it in production. Settings that match this site:
   Remove Google Fonts N/A, Remove WordPress Emoji ON.
 - **Media:** **Lazy Load Images OFF** (the theme sets `loading` itself and keeps the LCP eager), Responsive
   Placeholder OFF, Add Missing Sizes ON.
-- **Image Optimization (QUIC.cloud):** Auto Request Cron ON, Optimize Original Images ON, keep backups,
-  **Next-Gen Image Format: AVIF** (falls back to WebP), **Image WebP/AVIF Replacement ON**, "WebP For Extra srcset" ON,
-  and add `div.data-background` to **"WebP Attribute To Replace"** so the masthead background (712 KB PNG) is served
-  as WebP (~80 KB). Most uploads are already WebP; this mainly converts the older PNG/JPEG ones.
 - **Browser cache:** ON, TTL 31557600 for static files (theme/plugin files carry `?ver=<mtime>`).
-- **Crawler:** ON with the Yoast sitemap (`/sitemap_index.xml`), Delay 500 µs, Run Duration 400 s, Interval 3600 s,
-  Threads 1, Server Load Limit 1 — gentle on shared hosting; it re-warms the cache after purges.
-- **Object Cache:** ON if the host offers Redis or LSMCD (cPanel → "Redis"/"Memcached"); otherwise OFF.
+- **Crawler:** ON with the sitemap (`/sitemap.xml`), Delay 500 µs, Run Duration 400 s, Interval 3600 s,
+  Threads 1, Server Load Limit 1: gentle on shared hosting; it re-warms the cache after purges.
+- **Object Cache:** ON if the host offers Redis or LSMCD (cPanel > "Redis"/"Memcached"); otherwise OFF.
+- **CDN:** QUIC.cloud CDN is LiteSpeed's own alternative to Cloudflare and is purged by LiteSpeed Cache itself.
+  Use one CDN, not both: this runbook assumes Cloudflare, which also gives the
+  post-quantum TLS and DNSSEC described in `infra/cloudflare/README.md`.
 
-## Cloudflare (edge, close to readers)
+## Images (WebP / AVIF)
 
-The full Cloudflare setup (TLS, post-quantum key exchange, WAF, real IPs) is in `infra/cloudflare/README.md`; its
-caching step is the HTML edge cache summarised here.
+- **LiteSpeed Cache > Image Optimization (QUIC.cloud):** Auto Request Cron ON, Optimize Original Images ON, keep
+  backups, **Next-Gen Image Format: AVIF** (falls back to WebP), **Image WebP/AVIF Replacement ON**, "WebP For Extra
+  srcset" ON, and add `div.data-background` to **"WebP Attribute To Replace"** so the masthead background (712 KB PNG)
+  is served as WebP (~80 KB). Most uploads are already WebP; this mainly converts the older PNG/JPEG ones.
+- Upload photos at most 1600 px wide; WordPress makes the smaller sizes and the theme picks the right one (`sizes`).
+- Cloudflare Polish (image compression at the edge) needs a paid plan and is not needed with the above.
 
-- **Cache Rule "Anonymous HTML"** — when hostname is `headlinerecorder.com`, method GET/HEAD, and NOT (cookie
-  contains `wordpress_logged_in_` or `hr_li` or `wp-postpass_` or `comment_author_`, or path starts with `/account/`,
-  `/dashboard/`, `/wp-json/hr/v1/`, `/wp-admin/`, `/wp-login.php`, `/verify/`, or the query string is non-empty):
-  Eligible for cache; **Edge TTL** override: 5 min for `/` and archives, 1 h for articles (`/20*`); **Browser TTL**:
-  respect origin (HTML is revalidated); **Serve stale content while revalidating** ON. Never cache responses with
-  `Set-Cookie` (Cloudflare's default).
-- **Purge on publish:** LiteSpeed Cache → CDN → Cloudflare API (zone + API token with *Cache Purge* only) so a
-  purge in LiteSpeed also purges Cloudflare. Simpler alternative: Cloudflare **APO** for WordPress (paid add-on),
-  which caches HTML at every PoP and purges on publish; it bypasses on WordPress login cookies by default — add
-  `hr_li` to its bypass cookies.
-- **Speed:** Tiered Cache (Smart Tiered Topology) ON, **HTTP/3 (QUIC)** ON, **Early Hints** ON (Cloudflare turns the
-  page's `preload` links — fonts, CSS — into 103 responses while the origin renders), Brotli is always on, 0-RTT OFF
-  (replay risk on forms), Rocket Loader OFF (breaks the consent / ticker ordering), Auto Minify n/a (deprecated).
-- **Where readers are served:** Cloudflare has PoPs in **Karachi (KHI), Lahore (LHE) and Islamabad (ISB)**, so with
-  the HTML cached at the edge most Pakistani readers get pages from inside the country (TTFB tens of ms instead of a
-  round trip to the origin data centre). Which PoP an ISP reaches depends on that ISP's peering; when a Pakistani ISP
-  routes abroad (Dubai, Mumbai, Singapore, Marseille), Tiered Cache still keeps hits off the origin. Readers in the Gulf
-  and UK/US hit their local PoP.
-- Check a hit: `curl -sI https://headlinerecorder.com/ | grep -iE 'cf-cache-status|cf-ray'` → `HIT` and a ray ID
-  ending in `-KHI`, `-LHE` or `-ISB` from Pakistan.
+## Core Web Vitals budgets and how to measure
+
+| Metric (mobile, 75th percentile of real visits) | Budget |
+|---|---|
+| Largest Contentful Paint (LCP), 4G | under 2.0 s |
+| Interaction to Next Paint (INP) | under 150 ms |
+| Cumulative Layout Shift (CLS) | under 0.05 |
+| Time to First Byte with a Cloudflare HIT (inside Pakistan) | under 200 ms |
+| Lighthouse (lab, mobile), every category | 95 or more |
+
+- **PageSpeed Insights** (pagespeed.web.dev): paste an article URL, choose Mobile. The top block "Discover what your
+  real users are experiencing" is field data from Chrome users (CrUX) and is what Google ranks on; the lower score is
+  a lab test. Test the home page, one article, `/podcast/` and a section page after every design change.
+- **Search Console > Experience > Core Web Vitals:** groups of URLs that pass or fail, from the same field data.
+- **CrUX Vis** (cruxvis.withgoogle.com): month-by-month field trends for the whole origin.
+- **Sentry > Performance** (`HR_SENTRY_TRACES`): LCP, INP and CLS for each page as readers load it.
+- Field data needs a few weeks of traffic after a change before it moves.
 
 ## Origin checklist (cPanel / LiteSpeed)
 
-- PHP **8.4** (cPanel → MultiPHP Manager) with **OPcache** on: `opcache.memory_consumption=256`,
-  `opcache.interned_strings_buffer=16`, `opcache.max_accelerated_files=20000`, `opcache.validate_timestamps=1`,
-  `opcache.revalidate_freq=60`; JIT off (no gain for WordPress).
-- Persistent **object cache** (Redis or LSMCD) if offered — WordPress then keeps query results and the home/llms
+- PHP **8.4** (cPanel > MultiPHP Manager) at **8.4.27 or later** (php2shell fix; see `docs/DEPLOY.md`) with
+  **OPcache** on: `opcache.memory_consumption=256`, `opcache.interned_strings_buffer=16`,
+  `opcache.max_accelerated_files=20000`, `opcache.validate_timestamps=1`, `opcache.revalidate_freq=60`; JIT off
+  (no gain for WordPress).
+- Persistent **object cache** (Redis or LSMCD) if offered: WordPress then keeps query results and the home/llms
   transients in memory instead of the options table.
 - HTTP/2 and HTTP/3 on (LiteSpeed default), Brotli/gzip for `text/*`, JS, JSON, SVG and `font/ttf`.
-- MariaDB 11.4: `innodb_buffer_pool_size` ≥ the data size if the host allows; delete the AIOS checksum options above.
-- `DISABLE_WP_CRON` + real cron (above). Keep `WP_DEBUG` off in production.
+- MariaDB 11.4: `innodb_buffer_pool_size` at least the data size if the host allows; delete the AIOS checksum
+  options above.
+- `DISABLE_WP_CRON` + real cron (above). Keep `WP_DEBUG` off in production. With LiteSpeed (lsphp) the Cloudflare purge
+  runs right after each save; on other PHP handlers it runs from the next cron tick.
+
+## Speculation Rules and resource hints
+
+- WordPress prints Speculation Rules; the site prefetches a same-origin page when the reader hovers or starts to
+  touch its link (`prefetch`, `moderate`), and the rules sit in `<head>` so they work from the first moment.
+  Never prefetched: `/account/*` (including logout), `/dashboard/*`, `/thank-you/*`, `/reading/*`, `/wp-json/*`,
+  `/wp-admin/*`, `/wp-*.php` (login), every feed, `/signed/*`, `/.well-known/*`, `/og/*`, `.xml`/`.txt`/`.json`
+  files, links with a query string (such as nonce links), `rel=nofollow` links and anything inside `.no-prefetch`.
+  Signed-in readers get no speculation at all (WordPress default).
+- No third-party origin is needed for the first paint: fonts are self-hosted and preloaded, TradingView, YouTube and
+  Google load only after interaction or consent. So the site prints no `preconnect`/`dns-prefetch` hints, and drops
+  any pointing at itself or at font CDNs it does not use.
 
 ## Generative-engine optimisation (GEO)
 
-- **`/llms.txt`** — Yoast writes it weekly. Its post links now carry each article's editor-written summary
-  (`_hr_geo_summary`, else the excerpt; `includes/site/geo.php`). In Yoast → Settings → Site features → llms.txt
+- **`/llms.txt`**: Yoast writes it weekly. Its post links now carry each article's editor-written summary
+  (`_hr_geo_summary`, else the excerpt; `includes/site/geo.php`). In Yoast > Settings > Site features > llms.txt
   choose **manual page selection** (About, Editorial & Corrections Policy, Markets, Authors & Experts, PR & Media,
-  Contact, Podcast) — automatic selection currently lists the reader Dashboard.
-- **`/llms-full.txt`** (new, `includes/site/geo.php`) — publisher facts (address, editorial policy, contact, signing),
+  Contact, Podcast); automatic selection currently lists the reader Dashboard.
+- **`/llms-full.txt`** (`includes/site/geo.php`): publisher facts (address, editorial policy, contact, signing),
   how to cite, sections, and the latest 50 articles with date, update date, author, section and summary.
-  Markdown, `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`, rebuilt when posts change.
+  Markdown, `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`, rebuilt when posts change and purged
+  at Cloudflare with them.
 - **Article JSON-LD** (`inc/schema.php`): `NewsArticle` with ImageObject (size), `inLanguage`, `articleSection`,
   `keywords`, `wordCount`, `abstract` (the summary), `datePublished`/`dateModified`, author `Person` with bio and
   `sameAs` (guest LinkedIn / X / Facebook), publisher linked to the site-wide `#organization` node, and `speakable`
   (headline, summary, first paragraphs). Guest-author archives add a `ProfilePage` + `Person` (bio, photo, profiles).
 - **Freshness:** articles edited more than a day after publishing show "Updated <date>" next to the date, matching
-  `dateModified`.
+  `dateModified`; the edge purge makes the corrected text visible worldwide at once.
 - **Organization / Podcast** JSON-LD (Yoast + `includes/site/schema.php`): NewsMediaOrganization with address,
   contact point, editorial and corrections policies; PodcastSeries / PodcastEpisode on the podcast pages.
 - **robots.txt:** the static `robots.txt` in the web root (allows OAI-SearchBot, ChatGPT-User, PerplexityBot,
-  Claude-SearchBot, GPTBot, ClaudeBot, Google-Extended; blocks CCBot, Bytespider …) is kept as is. A static file wins
-  over WordPress's virtual robots.txt.
-- **IndexNow:** the official IndexNow plugin is installed but not active in the production database — activate it
+  Claude-SearchBot, GPTBot, ClaudeBot, Google-Extended; blocks CCBot, Bytespider ...) is kept as is. A static file
+  wins over WordPress's virtual robots.txt. Bot Fight Mode stays off so these crawlers are not challenged.
+- **IndexNow:** the official IndexNow plugin is installed but not active in the production database. Activate it
   (`wp plugin activate indexnow`) so Bing, Yandex, Naver and Seznam (and answer engines that read them) see new and
   updated articles within minutes.

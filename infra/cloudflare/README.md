@@ -36,8 +36,12 @@ Honest limit: browsers negotiate ML-KEM-768 hybrids today; no browser offers ML-
    - Block `http.request.uri.path contains "/wp-content/duplicator-backups"` (defence in depth).
 7. **Security → WAF → Rate limiting rules:** `/account/login/`, `/account/register/`, `/account/forgot/`,
    `/wp-login.php`: 10 requests / 1 minute per IP → block 10 minutes. (The application also rate-limits.)
-8. **Caching → Cache Rules:** bypass cache when the cookie contains `wordpress_logged_in_` or `hr_li`, and for paths
-   starting with `/account/`, `/dashboard/`, `/wp-json/hr/v1/`, `/wp-admin/`. Never cache `Set-Cookie` responses.
+8. **Caching:** follow `docs/PERFORMANCE.md`, "Cloudflare setup (exact clicks)": three Cache Rules (static files,
+   anonymous HTML that respects the site's own `Cache-Control`, and a last rule that bypasses the cache for the
+   `wordpress_logged_in_`, `wordpress_sec_`, `wp-postpass_`, `comment_author_` and `hr_li` cookies and for
+   `/account/`, `/dashboard/`, `/thank-you/`, `/reading/`, `/wp-admin/`, `/wp-json/`, `/wp-login.php`), Smart Tiered
+   Cache, HTTP/3, Early Hints, and the Cache Purge API token (`HR_CF_ZONE_ID`, `HR_CF_API_TOKEN` in `wp-config.php`).
+   Keep **Bot Fight Mode off**: it would challenge feed readers, podcast apps and the content signer.
 9. **Real visitor IPs for rate limits:** in `wp-config.php` add
 
    ```php

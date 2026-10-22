@@ -15,7 +15,7 @@ if ( file_exists( '/home/esofkogo/headlinerecorder.com/aios-bootstrap.php' ) ) {
 
 define( 'WP_CACHE', true ); // LiteSpeed Cache
 
-// ** Database — CHANGE ME (new password; disable remote MySQL in cPanel) ** //
+// ** Database: CHANGE ME (new password; disable remote MySQL in cPanel) ** //
 define( 'DB_NAME', 'CHANGE_ME' );
 define( 'DB_USER', 'CHANGE_ME' );
 define( 'DB_PASSWORD', 'CHANGE_ME' );
@@ -23,7 +23,7 @@ define( 'DB_HOST', 'localhost' );
 define( 'DB_CHARSET', 'utf8mb4' );
 define( 'DB_COLLATE', '' );
 
-// ** Keys and salts — CHANGE ME: paste fresh values from https://api.wordpress.org/secret-key/1.1/salt/ ** //
+// ** Keys and salts. CHANGE ME: paste fresh values from https://api.wordpress.org/secret-key/1.1/salt/ ** //
 define( 'AUTH_KEY',         'CHANGE_ME' );
 define( 'SECURE_AUTH_KEY',  'CHANGE_ME' );
 define( 'LOGGED_IN_KEY',    'CHANGE_ME' );
@@ -64,6 +64,11 @@ define( 'HR_PRIVATE_DIR', '/home/esofkogo/hr-private' );
 // Behind Cloudflare: trust CF-Connecting-IP only from Cloudflare ranges (see infra/cloudflare/README.md).
 // define( 'HR_TRUSTED_PROXY_HEADER', 'HTTP_CF_CONNECTING_IP' );
 // define( 'HR_TRUSTED_PROXIES', '173.245.48.0/20,...' );
+
+// Cloudflare cache purge on publish/update (docs/PERFORMANCE.md, "Connect the purge"). API token with the single
+// permission Zone > Cache Purge > Purge for this zone; nothing is sent while these are absent.
+// define( 'HR_CF_ZONE_ID', 'CHANGE_ME' );   // 32 characters, Cloudflare > Overview > API > Zone ID
+// define( 'HR_CF_API_TOKEN', 'CHANGE_ME' );
 
 /* That's all, stop editing! Happy publishing. */
 

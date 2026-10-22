@@ -104,6 +104,9 @@
     align-items: start;
 }
 .hr-footer-col { min-width: 0; }
+/* The parent theme pads anything whose class contains "col-" by 7.5px; here titles and columns line up flush. */
+.hr-footer-main > .hr-footer-col,
+.hr-footer-main .hr-footer-col-title { padding-left: 0; padding-right: 0; }
 .hr-footer-col-title {
     color: #E31837;
     font-size: 13px; /* Bumped from 11px */

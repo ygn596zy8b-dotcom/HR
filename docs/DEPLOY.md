@@ -1,6 +1,39 @@
-# Deploy — Headline Recorder (cPanel + LiteSpeed)
+# Deploy: Headline Recorder (cPanel + LiteSpeed)
 
 Maintained by MSBJ. Security background: `SECURITY.md`; leaked-archive clean-up: `docs/INCIDENT-2026-10-public-archive.md`.
+
+## Security update, October 2026 (php2shell)
+
+**What it is.** "php2shell" is two flaws in PHP itself (CVE-2026-109618 and CVE-2026-109619), fixed on 21 October 2026.
+A specially built file upload can make PHP reuse memory it has already freed, which lets an attacker run their own code
+on the server without any account. Exploits are public and were used before the fix. Every PHP version before
+**8.2.35, 8.3.36, 8.4.27 and 8.5.12** is affected, and PHP 8.1 or older will never be fixed. Only a PHP update closes
+both flaws.
+
+**Check the version.** wp-admin > **Tools > Site Health > Info > Server > PHP version**. The bundled must-use plugin
+`hr-php-guard.php` also shows a red notice to administrators and a Site Health check ("PHP is patched against
+php2shell") that says plainly whether this server is safe, with no outside requests.
+
+**Update in cPanel.** cPanel > **Select PHP Version** (CloudLinux) or **MultiPHP Manager**: choose PHP 8.4 and make sure
+the build is **8.4.27 or later**. If the newest build offered is older, open a ticket with the host asking for "the PHP
+release that fixes CVE-2026-109618 and CVE-2026-109619 for our lsphp / ea-php / alt-php 8.4". Hosts that backport fixes
+without raising the version number should confirm that in writing; then the notice can be dismissed.
+
+**What the bundle already does.**
+- `bundled/webroot/.user.ini` (source `deploy/webroot/.user.ini`) sets `session.upload_progress.enabled = Off`, the
+  interim mitigation (WordPress does not use that feature), plus safe session and error-display settings.
+  wp-admin > **Headline Recorder > Install** (or **Apply PHP settings** on the same page) merges it into
+  `public_html/.user.ini`, keeps every other line and saves the original once as `.user.ini.hr-backup`. The page lists
+  the live values; PHP rereads `.user.ini` every 5 minutes (`user_ini.cache_ttl`), so allow that long.
+- `bundled/htaccess-hardening.conf` repeats the setting with `php_flag` only inside `<IfModule LiteSpeed>` and
+  `<IfModule mod_php.c>` / `<IfModule php_module>` (outside those, Apache with PHP-FPM answers HTTP 500). If pasting it
+  ever causes HTTP 500 on LiteSpeed, remove the LiteSpeed block and rely on `.user.ini`.
+- The mitigation only blocks the upload-progress path of CVE-2026-109618; the multipart parser flaw (CVE-2026-109619)
+  needs the PHP update.
+
+**WordPress itself.** "wp2shell" (CVE-2026-63030, REST API batch endpoint) affected WordPress 6.9.0 to 6.9.4 and 7.0.0
+to 7.0.1 and was fixed in 6.9.5 and 7.0.2. This site runs **WordPress 7.1.3: not affected**. The same Site Health
+section checks the core version on every visit and says when WordPress has an update waiting.
 
 ## 1. Build the bundle
 
@@ -23,7 +56,9 @@ The bundle never contains `*.secret.json`, `node_modules`, tests, `assets/src` o
 6. Signer account (application password only, never a browser login):
    `wp user create pqsigner signer@headlinerecorder.com --role=hr_signer --user_pass="$(openssl rand -base64 33)"` and
    `wp user application-password create pqsigner signer-ci --porcelain` → store it as the CI secret `HR_WP_APP_PASSWORD`.
-7. Cloudflare in front for post-quantum TLS: `infra/cloudflare/README.md`.
+7. Cloudflare in front for post-quantum TLS and edge caching: `infra/cloudflare/README.md` and
+   `docs/PERFORMANCE.md` ("Cloudflare setup"). For automatic cache purges add `HR_CF_ZONE_ID` and `HR_CF_API_TOKEN`
+   (token permission Zone > Cache Purge only) to `wp-config.php`.
 
 ## 3. Database: least privilege
 

@@ -328,8 +328,8 @@ function read_server_key() {
     wipe( $kek );
     if ( false === $plain ) {
         return new \WP_Error( 'hr_pqsig_decrypt', 'constant' === $doc['kek']
-            ? 'The signing key could not be decrypted: HR_SIGNING_KEK in wp-config.php has changed, or the site address changed. Import or generate the key again.'
-            : 'The signing key could not be decrypted: the WordPress security keys (salts) in wp-config.php have changed, or the site address changed. Import or generate the key again.' );
+            ? 'The signing key could not be decrypted: HR_SIGNING_KEK in wp-config.php or the site address has changed, or the key file was altered. Import or generate the key again.'
+            : 'The signing key could not be decrypted: the WordPress security keys (salts) in wp-config.php or the site address have changed, or the key file was altered. Import or generate the key again.' );
     }
     $secret = json_decode( $plain, true );
     wipe( $plain );

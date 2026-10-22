@@ -169,10 +169,11 @@ function attachment_in_use( int $attachment_id, int $deleted_post_id ): bool {
     if ( in_array( $attachment_id, array( (int) setting( 'podcast_cover' ), (int) get_option( 'site_icon' ), (int) get_theme_mod( 'custom_logo' ) ), true ) ) {
         return true;
     }
-    // Embedded in any other post's content (image block class or the file name of the upload).
-    $file    = (string) get_post_meta( $attachment_id, '_wp_attached_file', true );
+    // Embedded in any other post's content (image block class or the file name of the upload). The name is matched
+    // without its extension so resized copies (photo-1024x768.jpg) count too; a false match only keeps the file.
+    $file    = (string) preg_replace( '/\.[A-Za-z0-9]{1,5}$/', '', (string) get_post_meta( $attachment_id, '_wp_attached_file', true ) );
     $needles = array( 'wp-image-' . $attachment_id . '"', 'wp-image-' . $attachment_id . ' ', '"id":' . $attachment_id . ',', '"id":' . $attachment_id . '}' );
-    if ( '' !== $file ) {
+    if ( strlen( $file ) >= 4 ) {
         $needles[] = $file;
     }
     foreach ( $needles as $needle ) {

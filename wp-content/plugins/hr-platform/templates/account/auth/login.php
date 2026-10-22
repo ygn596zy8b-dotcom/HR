@@ -62,4 +62,4 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 </button>
 <p class="hra-inline-error hrp-error" data-hra-passkey-error role="alert" hidden></p>
 
-<p class="hra-switch">New to Headline Recorder? <a href="<?php echo esc_url( account_url( 'register' ) ); ?>">Create a free account</a></p>
+<p class="hra-switch">New to Headline Recorder? <a href="<?php echo esc_url( '' !== $redirect_to ? add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), account_url( 'register' ) ) : account_url( 'register' ) ); ?>">Create a free account</a></p>

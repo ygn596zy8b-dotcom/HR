@@ -272,6 +272,37 @@ add_action( 'pre_get_posts', function ( \WP_Query $query ) {
     }
 } );
 
+// Breadcrumbs say "Home / Podcast", not the post type's admin label "Episodes": the theme's breadcrumb trail uses the
+// archive title, Yoast's breadcrumbs (and its BreadcrumbList schema) go through wpseo_breadcrumb_links.
+add_filter( 'post_type_archive_title', static fn( $title, $post_type = '' ) => CPT === $post_type ? 'Podcast' : $title, 10, 2 );
+add_filter( 'wpseo_breadcrumb_links', function ( $links ) {
+    foreach ( (array) $links as $i => $link ) {
+        if ( is_array( $link ) && CPT === ( $link['ptarchive'] ?? '' ) ) {
+            $links[ $i ]['text'] = 'Podcast';
+        }
+    }
+    return $links;
+} );
+
+// Yoast's default archive templates ("%%pt_plural%% Archive") would name the page "Episodes Archive" in social cards and
+// in the WebPage schema; use the show name unless an editor set a social title.
+add_filter( 'wpseo_opengraph_title', function ( $title ) {
+    if ( is_post_type_archive( CPT ) && class_exists( '\WPSEO_Options' ) ) {
+        $configured = (string) \WPSEO_Options::get( 'social-title-ptarchive-' . CPT, '' );
+        if ( '' === $configured || str_contains( $configured, '%%pt_plural%%' ) ) {
+            $show = show_name();
+            return 'podcast' === strtolower( $show ) ? trim( wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ) . ' Podcast' ) : $show;
+        }
+    }
+    return $title;
+}, 20 );
+add_filter( 'wpseo_schema_webpage', function ( $piece ) {
+    if ( is_array( $piece ) && is_post_type_archive( CPT ) && str_contains( (string) ( $piece['name'] ?? '' ), 'Archive' ) ) {
+        $piece['name'] = wp_get_document_title();
+    }
+    return $piece;
+}, 20 );
+
 function is_podcast_page(): bool {
     return is_post_type_archive( CPT ) || is_singular( CPT );
 }
