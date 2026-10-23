@@ -70,13 +70,13 @@ get_header();
 .hr-stat-value { font-size: 28px; font-weight: 800; color: #0A0A0A; }
 
 /* --- OFFERINGS GRID --- */
-.hr-offer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 80px; }
+.hr-offer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px; margin-bottom: 80px; }
 .hr-offer-card { border: 1px solid #E5E7EB; padding: 28px 24px; transition: all 0.2s ease; display: flex; flex-direction: column; background: #FFFFFF; }
 .hr-offer-card:hover { border-color: #C0001A; box-shadow: 0 8px 24px rgba(192,0,26,0.08); }
 .hr-offer-icon { font-size: 32px; margin-bottom: 16px; }
 .hr-offer-card h3 { font-size: 16px; font-weight: 700; color: #0A0A0A; margin: 0 0 10px 0; }
 .hr-offer-card p { font-size: 13px; color: #6B7280; line-height: 1.6; margin: 0 0 16px 0; flex: 1; }
-.hr-offer-price { font-size: 12px; font-weight: 700; color: #C0001A; border-top: 1px solid #E5E7EB; paddingTop: 12px; }
+.hr-offer-price { font-size: 12px; font-weight: 700; color: #C0001A; border-top: 1px solid #E5E7EB; padding-top: 12px; }
 
 /* --- EDITORIAL INTEGRITY --- */
 .hr-integrity-box { background: #F9F9F9; padding: 60px 48px; margin-left: -48px; margin-right: -48px; margin-bottom: 80px; }

@@ -41,14 +41,33 @@ const BYPASS_ROUTES = array( 'account', 'thank-you', 'reading' );
 /** Query arguments that do not change the page (campaign and click tags). Anything else bypasses the cache. */
 const IGNORED_QUERY_ARGS = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id', 'fbclid', 'gclid', 'gbraid', 'wbraid', 'msclkid', 'twclid', 'igshid', 'mc_cid', 'mc_eid', 'ref' );
 
+// Contact forms on edge-cached pages: the CF7 honeypot add-on signs a time token into the form HTML (valid two
+// hours, tied to the calendar day). Always let its script fetch a fresh token from the REST API on load, even when
+// WP_CACHE is not defined, so a form served from Cloudflare can always be sent. (CF7 itself adds no nonce for guests;
+// MC4WP's timestamp field accepts pages up to 90 days old.)
+add_filter( 'honeypot4cf7_force_refill', static fn( $force ) => headers_enabled() ? true : $force );
+
 // no_store() (includes/core/helpers.php) announces itself through LiteSpeed Cache's action; remember it here too.
 add_action( 'litespeed_control_set_nocache', static function () {
     $GLOBALS['hr_edge_no_store'] = true;
 } );
 
+/**
+ * Request cookies that change the shared markup without being personal. The parent theme (CoverNews) copies
+ * "covernews-stored-site-mode" straight into the body class and its dark-mode button, so one visitor with a crafted
+ * cookie could get any class list cached for every reader (at LiteSpeed and at Cloudflare). The child theme does not
+ * show that toggle, so the server simply never sees these cookies: every guest gets the same HTML.
+ */
+const IGNORED_MARKUP_COOKIES = array( 'covernews-stored-site-mode' );
+
 // Registered as soon as the request is parsed (sitemaps are served from parse_request). The callback leaves REST,
 // AJAX, cron and wp-admin responses alone.
 add_action( 'parse_request', static function () {
+    if ( ! is_admin() ) {
+        foreach ( (array) apply_filters( 'hr_edge_ignored_markup_cookies', IGNORED_MARKUP_COOKIES ) as $name ) {
+            unset( $_COOKIE[ (string) $name ] );
+        }
+    }
     if ( ! is_admin() && 'cli' !== PHP_SAPI && ! headers_sent() ) {
         header_register_callback( __NAMESPACE__ . '\\on_send_headers' );
     }
