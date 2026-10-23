@@ -131,11 +131,17 @@ with the "Content signer" role and an application password. Uploads go through t
 ## For developers
 
 - Code: `wp-content/plugins/hr-platform/includes/signing/` (`signer.php` automatic signing, `keystore.php` key at
-  rest, `crypto.php` signature documents, `admin.php` the screen, `cli.php` WP-CLI, `rest.php` the queue and the
+  rest, `crypto.php` signature documents, `admin.php` the screen, `cli.php` WP-CLI, `store.php` the signature table and its migration, `rest.php` the queue and the
   shared store functions, `pq/` the pure-PHP ML-DSA-87 and Ed448).
 - Header format, byte for byte as `security/pq/pq.mjs` writes it: `{"v":1,"alg":"ML-DSA-87+Ed448","kid":...,
   "type":"article"|"feed","url":...,"sha512":...,"signedAt":"YYYY-MM-DDTHH:MM:SS.mmmZ"}`, both algorithms signing
   the header bytes with context `pqsig-v1`.
+- Storage: article signatures live in the table `{prefix}hr_pqsig` (post_id, kid, sha512, signed_at, doc), not in
+  post meta, because WordPress loads all meta of every post in every archive, home page and feed loop (a document
+  is about 11 KB). Only the small stale marker `_hr_pqsig_stale` stays in post meta. Older installs are migrated once,
+  automatically (WP-Cron event `hr_pqsig_migrate`, in batches, safe to interrupt) or with `wp hr sign migrate`; until
+  it finishes, reads fall back to the old meta. Option `hr_pqsig_migrated` records when it finished. Every stored
+  signature fires `do_action( 'hr_pqsig_stored', $post_id, $kid )` plus the LiteSpeed purges the edge module follows.
 - Options: `hr_pqsig_server_key` (non-secret key facts), `hr_pqsig_autosign_status`, `hr_pqsig_autosign_errors`,
   `hr_pqsig_selftest`, `hr_pqsig_autosign_lock`. Cron hooks: `hr_pqsig_autosign` (every 5 minutes) and
   `hr_pqsig_autosign_retry`. Sentry cron monitor slug: `pq-autosign`.

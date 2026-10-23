@@ -11,6 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 /** Parameter/header names whose values never leave the server. */
 const SENSITIVE = '/pass|pwd|token|key|nonce|secret|sig|code|email|auth|login/i';
+/** Short names matched exactly (verification, unsubscribe and reset links: ?u=12&t=..., ?k=..., ?key=...&login=...). */
+const SENSITIVE_EXACT = array( 't', 'u', 'k', 'key', 'login' );
+
+function is_sensitive( string $name ): bool {
+    return in_array( strtolower( $name ), SENSITIVE_EXACT, true ) || 1 === preg_match( SENSITIVE, $name );
+}
 /** Plain and URL-encoded email addresses. */
 const EMAIL = '/[A-Z0-9._%+\-]+(?:@|%40)[A-Z0-9.\-]+\.[A-Z]{2,}/i';
 const DROP_HEADERS = array( 'authorization', 'proxy-authorization', 'cookie', 'set-cookie', 'x-wp-nonce', 'x-forwarded-for', 'x-real-ip', 'cf-connecting-ip', 'true-client-ip', 'x-client-ip', 'forwarded' );
@@ -398,7 +404,7 @@ function scrub_request( array $request ): array {
 function scrub_text( string $text ): string {
     $text = (string) preg_replace( EMAIL, '[email]', $text );
     return (string) preg_replace_callback( '/([?&;])([^=&#\s;?]+)=([^&#\s;?]*)/', static function ( $m ) {
-        return preg_match( SENSITIVE, rawurldecode( $m[2] ) ) ? $m[1] . $m[2] . '=[Filtered]' : $m[0];
+        return is_sensitive( rawurldecode( $m[2] ) ) ? $m[1] . $m[2] . '=[Filtered]' : $m[0];
     }, $text );
 }
 
@@ -413,7 +419,7 @@ function scrub_value( $value, bool $mask_keys, int $depth = 0 ) {
         return '[Filtered]';
     }
     foreach ( $value as $key => $item ) {
-        $value[ $key ] = $mask_keys && is_string( $key ) && preg_match( SENSITIVE, $key ) ? '[Filtered]' : scrub_value( $item, $mask_keys, $depth + 1 );
+        $value[ $key ] = $mask_keys && is_string( $key ) && is_sensitive( $key ) ? '[Filtered]' : scrub_value( $item, $mask_keys, $depth + 1 );
     }
     return $value;
 }

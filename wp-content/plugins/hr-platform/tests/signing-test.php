@@ -63,7 +63,29 @@ try {
     $ok( 'bad_signature' === store_article_signature( $post_id, $bad ), 'corrupted Ed448 signature refused' );
     $ok( 'stale' === store_article_signature( $post_id, make_signature( $bytes . ' ', $key, 'article', post_path( $post ), true ) ), 'signature over other bytes refused' );
     $ok( 'stored' === store_article_signature( $post_id, $doc ), 'genuine signature stored' );
-    $ok( $kid === get_post_meta( $post_id, META_KID, true ) && '' === (string) get_post_meta( $post_id, META_STALE, true ), 'meta and stale flag as the upload path sets them' );
+    $rec = signature_record( $post_id );
+    $ok( $rec && $kid === $rec['kid'] && '' === (string) get_post_meta( $post_id, META_STALE, true ), 'table row and stale flag as the upload path sets them' );
+    $ok( '' === (string) get_post_meta( $post_id, META_SIG, true ) && '' !== signature_doc( $post_id ), 'document in the table, not in post meta' );
+
+    // Migration from the old post meta: fallback reads while pending, then a verified move.
+    $served = signature_doc( $post_id );
+    $was    = get_option( MIGRATED_OPTION );
+    delete_signature( $post_id );
+    add_post_meta( $post_id, META_SIG, wp_slash( $served ) );
+    add_post_meta( $post_id, META_SHA, $rec['sha512'] );
+    add_post_meta( $post_id, META_KID, $rec['kid'] );
+    add_post_meta( $post_id, META_AT, $rec['at'] );
+    set_migration_state( false );
+    wp_cache_delete( $post_id, CACHE_GROUP );
+    $ok( $served === signature_doc( $post_id ) && $rec === signature_record( $post_id ), 'old meta is read while the migration is pending' );
+    $ok( 'current' === sign_post( $post_id ) && 0 === queue_candidate_ids( 0, 0, true ) - queue_candidate_ids( 0, 0, true ), 'queue and signer see old meta' );
+    $m = run_migration( 20.0 );
+    $ok( is_array( $m ) && $m['done'] && ! $m['failed'] && migration_done(), 'migration finishes' );
+    $ok( $served === signature_doc( $post_id ) && $rec === signature_record( $post_id ) && '' === (string) get_post_meta( $post_id, META_SIG, true ), 'migrated row identical, old meta gone' );
+    $ok( is_array( run_migration() ) && migration_done(), 'migration is idempotent' );
+    if ( '0' === (string) $was ) {
+        set_migration_state( false );
+    }
     $ok( 'current' === sign_post( $post_id ), 'sign_post() leaves a current signature alone' );
 
     $feed = '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>t</title></channel></rss>';

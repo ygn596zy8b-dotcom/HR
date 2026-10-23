@@ -182,18 +182,36 @@ add_filter( 'auth_cookie_expiration', static function ( $length, $user_id, $reme
     return $length;
 }, 10, 3 );
 
-// Throttle wp-login.php as well as our own forms (uses the platform plugin's shared limiter when present).
+// Throttle wp-login.php as well as our own forms (the platform plugin's shared limiter, when present). Only FAILED
+// attempts count, so readers sharing a mobile-carrier IP are never locked out by each other's successful sign-ins:
+// 20 failures per IP and 10 per username in 15 minutes.
+function hr_login_limits( string $username ): array {
+    return array(
+        array( 'login-ip', function_exists( 'HR\\Platform\\client_ip' ) ? \HR\Platform\client_ip() : (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ), 20 ),
+        array( 'login-user', strtolower( $username ), 10 ),
+    );
+}
 add_filter( 'authenticate', static function ( $user, $username ) {
     if ( empty( $username ) || ! function_exists( 'HR\\Platform\\rate_limit' ) ) {
         return $user;
     }
-    $ip = \HR\Platform\client_ip();
-    if ( ! \HR\Platform\rate_limit( 'login-ip', $ip, 20, 15 * MINUTE_IN_SECONDS )
-        || ! \HR\Platform\rate_limit( 'login-user', strtolower( (string) $username ), 10, 15 * MINUTE_IN_SECONDS ) ) {
-        return new WP_Error( 'hr_rate_limited', '<strong>Error:</strong> Too many sign-in attempts. Please wait 15 minutes and try again.' );
+    foreach ( hr_login_limits( (string) $username ) as [ $bucket, $key, $max ] ) {
+        // Read-only look at the counter HR\Platform\rate_limit() keeps (same transient name as in core/helpers.php).
+        $hit = get_transient( 'hr_rl_' . substr( hash( 'sha256', $bucket . '|' . $key ), 0, 32 ) );
+        if ( is_array( $hit ) && (int) ( $hit['count'] ?? 0 ) >= $max && (int) ( $hit['reset'] ?? 0 ) > time() ) {
+            return new WP_Error( 'hr_rate_limited', '<strong>Error:</strong> Too many sign-in attempts. Please wait 15 minutes and try again.' );
+        }
     }
     return $user;
 }, 1, 2 );
+add_action( 'wp_login_failed', static function ( $username ) {
+    if ( ! function_exists( 'HR\\Platform\\rate_limit' ) || '' === (string) $username ) {
+        return;
+    }
+    foreach ( hr_login_limits( (string) $username ) as [ $bucket, $key, $max ] ) {
+        \HR\Platform\rate_limit( $bucket, $key, $max, 15 * MINUTE_IN_SECONDS );
+    }
+} );
 
 // Password policy for every path that sets a password (profile, wp-login reset, our account forms).
 function hr_password_problem( string $password, ?WP_User $user = null ): ?string {
@@ -227,13 +245,13 @@ function hr_csp_sources(): array {
     $sources = array(
         'default-src'     => array( "'self'" ),
         // Inline scripts are still needed by WordPress core and plugins; external scripts are allowlisted by host.
-        'script-src'      => array( "'self'", "'unsafe-inline'", 'https://s3.tradingview.com', 'https://www.google.com', 'https://www.gstatic.com', 'https://www.googletagmanager.com', 'https://*.google-analytics.com' , 'https://challenges.cloudflare.com'),
+        'script-src'      => array( "'self'", "'unsafe-inline'", 'https://s3.tradingview.com', 'https://www.google.com', 'https://www.gstatic.com', 'https://www.googletagmanager.com', 'https://*.google-analytics.com', 'https://challenges.cloudflare.com' ),
         'style-src'       => array( "'self'", "'unsafe-inline'" ),
         'img-src'         => array( "'self'", 'data:', 'blob:', 'https:' ),
         'font-src'        => array( "'self'", 'data:' ),
-        'connect-src'     => array( "'self'", 'https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://www.google.com', 'https://*.tradingview.com' , 'https://challenges.cloudflare.com'),
+        'connect-src'     => array( "'self'", 'https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://www.google.com', 'https://*.tradingview.com', 'https://*.googletagmanager.com', 'https://challenges.cloudflare.com' ),
         'media-src'       => array( "'self'", 'blob:' ),
-        'frame-src'       => array( "'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://www.google.com', 'https://*.tradingview.com', 'https://www.tradingview-widget.com' , 'https://challenges.cloudflare.com'),
+        'frame-src'       => array( "'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://www.google.com', 'https://*.tradingview.com', 'https://www.tradingview-widget.com', 'https://challenges.cloudflare.com' ),
         'worker-src'      => array( "'self'", 'blob:' ),
         'manifest-src'    => array( "'self'" ),
         'object-src'      => array( "'none'" ),
