@@ -20,6 +20,10 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
  *
  * ## OPTIONS
  *
+ * [<action>]
+ * : `migrate` moves signatures stored by older versions in post meta into the signature table (batched, safe to
+ * interrupt and to run again) and signs nothing.
+ *
  * [--all]
  * : Keep going until every pending article is signed.
  *
@@ -31,10 +35,18 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
  *     wp hr sign
  *     wp hr sign --all
  *     wp hr sign --limit=50
+ *     wp hr sign migrate
  *
  * @when after_wp_load
  */
 function cli_sign( array $args, array $assoc ): void {
+    if ( $args ) {
+        if ( 'migrate' !== $args[0] ) {
+            \WP_CLI::error( 'Unknown action. Use `wp hr sign` or `wp hr sign migrate`.' );
+        }
+        cli_migrate();
+        return;
+    }
     $all   = ! empty( $assoc['all'] );
     $limit = isset( $assoc['limit'] ) ? (int) $assoc['limit'] : 0;
     if ( isset( $assoc['limit'] ) && $limit < 1 ) {
@@ -105,6 +117,33 @@ function cli_sign( array $args, array $assoc ): void {
         \WP_CLI::halt( 1 );
     }
     \WP_CLI::success( $summary );
+}
+
+function cli_migrate(): void {
+    if ( (int) get_option( STORE_DB_OPTION ) !== STORE_DB_VERSION ) {
+        install_store();
+    }
+    if ( ! table_exists() ) {
+        \WP_CLI::error( 'The signature table could not be created (check the database user can CREATE TABLE).' );
+    }
+    if ( migration_done() && legacy_rows_exist() ) {
+        set_migration_state( false );
+    }
+    $total = array( 'moved' => 0, 'kept' => 0, 'failed' => array() );
+    do {
+        $r = run_migration( 30.0 );
+        if ( null === $r ) {
+            \WP_CLI::error( 'Another migration run is in progress. Try again in a minute.' );
+        }
+        $total['moved'] += $r['moved'];
+        $total['kept']  += $r['kept'];
+        $total['failed'] = array_merge( $total['failed'], $r['failed'] );
+        \WP_CLI::log( sprintf( '  moved %d, kept %d so far', $total['moved'], $total['kept'] ) );
+    } while ( ! $r['done'] && ! $r['failed'] );
+    if ( $total['failed'] ) {
+        \WP_CLI::error( 'Could not move the signatures of posts ' . implode( ', ', array_unique( $total['failed'] ) ) . '; their old meta is kept and still used.' );
+    }
+    \WP_CLI::success( sprintf( 'Migration finished: %d signature(s) moved, %d superseded or empty.', $total['moved'], $total['kept'] ) );
 }
 
 \WP_CLI::add_command( 'hr sign', __NAMESPACE__ . '\\cli_sign' );

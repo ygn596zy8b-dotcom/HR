@@ -843,8 +843,10 @@ function hr_maintenance_admin_page(): void {
                 <button type="submit" class="button-link" name="do" value="remove">Remove the rules from .htaccess</button>
             <?php endif; ?>
         </form>
-        <p class="description" style="max-width:760px">Uses mod_rewrite and mod_headers (LiteSpeed and Apache). WordPress checks the site right after writing
-            .htaccess and puts the old file back if the server answers with an error. The local PHP development server ignores .htaccess.</p>
+        <p class="description" style="max-width:760px">Uses mod_rewrite and mod_headers (LiteSpeed and Apache). Right after writing .htaccess WordPress asks the server
+            for a file; unless the server provably still answers, the block is taken out again at once and nothing changes (on hosts
+            that block such self-checks, use the manual steps in docs/MAINTENANCE.md). wp-admin and wp-login.php are never closed by it.
+            The local PHP development server ignores .htaccess.</p>
     </div>
     <?php
 }
