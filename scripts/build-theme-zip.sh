@@ -14,7 +14,7 @@ cp wp-content/mu-plugins/*.php "$T/bundled/mu-plugins/"
 # Web-root files, dotfiles included: robots.txt, .well-known/, and .user.ini (PHP settings the installer merges).
 rsync -a deploy/webroot/ "$T/bundled/webroot/"
 [ -f "$T/bundled/webroot/.user.ini" ] || { echo "deploy/webroot/.user.ini missing"; exit 1; }
-cp infra/litespeed/htaccess-hardening.conf deploy/wp-config.sample.php "$T/bundled/"
+cp infra/litespeed/htaccess-hardening.conf infra/litespeed/multipart-guard.conf deploy/wp-config.sample.php "$T/bundled/"
 # Maintenance: the update-time drop-in (bundled/wp-content/maintenance.php), the static page (bundled/webroot/
 # maintenance.html, copied above) and the opt-in .htaccess block. The static page must be the current output of
 # hr_maintenance_document() in the hr-maintenance mu-plugin (docs/MAINTENANCE.md: "Changing the design").

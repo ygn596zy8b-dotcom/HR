@@ -144,3 +144,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://headlinerecorder.com/wp-content
 curl -s -o /dev/null -w '%{http_code}\n' https://headlinerecorder.com/wp-content/uploads/hr-sealed/ # 403
 curl -sI -H 'Origin: https://evil.example' https://headlinerecorder.com/wp-json/ | grep -i access-control-allow-origin  # nothing
 ```
+
+### Optional: multipart guard (extra php2shell protection)
+`infra/litespeed/multipart-guard.conf` (also in the theme zip as `bundled/multipart-guard.conf`) blocks file-upload style
+requests from visitors who are not signed in, except on wp-admin, wp-login, Contact Form 7, Contact Us and PR & Media.
+Paste it at the top of `.htaccess` in cPanel File Manager until PHP is updated to 8.4.27 or newer. To undo, delete the block.
