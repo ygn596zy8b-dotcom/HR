@@ -406,21 +406,25 @@ function hr_maintenance_paths(): array {
     );
 }
 
-/** IP addresses of the current administrator, as the web server sees them (directly or through Cloudflare). */
+/**
+ * The current administrator's address as visitors' requests will carry it: Cloudflare's CF-Connecting-IP when the
+ * request came through Cloudflare, otherwise REMOTE_ADDR. Never both: behind Cloudflare REMOTE_ADDR is a Cloudflare
+ * edge address shared by thousands of readers, and allowlisting it would show them the real site.
+ */
 function hr_maintenance_admin_ips(): array {
-    $ips = array();
-    foreach ( array( 'REMOTE_ADDR', 'HTTP_CF_CONNECTING_IP' ) as $key ) {
+    foreach ( array( 'HTTP_CF_CONNECTING_IP', 'REMOTE_ADDR' ) as $key ) {
         $ip = trim( (string) ( $_SERVER[ $key ] ?? '' ) );
-        if ( false !== filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-            $ips[] = $ip;
+        if ( false !== filter_var( $ip, FILTER_VALIDATE_IP ) && 1 === preg_match( '/^[0-9A-Fa-f:.]+$/', $ip ) ) {
+            return array( strtolower( $ip ) );
         }
     }
-    return array_values( array_unique( $ips ) );
+    return array();
 }
 
 /**
  * The .htaccess block (without BEGIN/END markers). Inert unless the flag file exists. Same rules as
- * infra/litespeed/maintenance-mode.conf, with this site's absolute flag path and the administrator's IPs.
+ * infra/litespeed/maintenance-mode.conf, with this site's absolute flag path and the administrator's IP.
+ * Only plain directives that LiteSpeed and every Apache 2.2/2.4 accept (no "expr=", no <If>).
  */
 function hr_maintenance_htaccess_lines( array $ips, int $retry, string $flag, string $base = '/' ): array {
     $base  = '/' . trim( $base, '/' );
@@ -435,39 +439,56 @@ function hr_maintenance_htaccess_lines( array $ips, int $retry, string $flag, st
         'RewriteEngine On',
         'RewriteRule ^maintenance\.html$ - [L]',
         'RewriteCond ' . $flag . ' -f',
-        'RewriteCond %{REQUEST_URI} !^' . $q . '(wp-admin|wp-includes|wp-content|\.well-known)/',
-        'RewriteCond %{REQUEST_URI} !^' . $q . 'wp-login\.php',
+        'RewriteCond %{REQUEST_URI} !^' . $q . '(wp-admin/|wp-includes/|wp-content/|\.well-known/|signed/|wp-json/hr/v1/(signing/|canonical)|wp-login\.php|wp-cron\.php|robots\.txt)',
     );
     foreach ( $ips as $ip ) {
-        $re      = '^' . str_replace( '.', '\\.', $ip ) . '$'; // validated IP: only hex digits, dots and colons
-        $lines[] = 'RewriteCond %{REMOTE_ADDR} !' . $re;
-        $lines[] = 'RewriteCond %{HTTP:CF-Connecting-IP} !' . $re;
+        $ip = (string) $ip;
+        if ( 1 !== preg_match( '/^[0-9A-Fa-f:.]+$/', $ip ) || false === filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+            continue; // only hex digits, dots and colons ever reach .htaccess
+        }
+        $re      = '^' . str_replace( '.', '\\.', $ip ) . '$';
+        $lines[] = 'RewriteCond %{REMOTE_ADDR} !' . $re . ' [NC]';
+        $lines[] = 'RewriteCond %{HTTP:CF-Connecting-IP} !' . $re . ' [NC]';
     }
     return array_merge( $lines, array(
         'RewriteRule ^ - [R=503,L]',
         '</IfModule>',
         'ErrorDocument 503 ' . $base . 'maintenance.html',
         '<IfModule mod_headers.c>',
-        'Header always set Retry-After "' . (int) $retry . '" "expr=%{REQUEST_STATUS} == 503"',
-        'Header always set Cache-Control "no-store" "expr=%{REQUEST_STATUS} == 503"',
+        '<Files "maintenance.html">',
+        'Header always set Retry-After "' . max( 60, (int) $retry ) . '"',
+        'Header always set Cache-Control "no-store"',
+        'Header always set X-Robots-Tag "noindex"',
+        '</Files>',
         '</IfModule>',
     ) );
 }
 
-/** Pure: puts the marked block at the very top (rules below "# BEGIN WordPress" would never run). */
+/** Splits a leading UTF-8 byte order mark off, so it stays the first thing in the file. */
+function hr_maintenance_split_bom( string $text ): array {
+    return str_starts_with( $text, "\xEF\xBB\xBF" ) ? array( "\xEF\xBB\xBF", substr( $text, 3 ) ) : array( '', $text );
+}
+
+/**
+ * Pure: puts the marked block at the very top (rules below "# BEGIN WordPress" would never run). Everything else in
+ * the file (LiteSpeed Cache, All-In-One WP Security, WordPress blocks) is kept byte for byte, a byte order mark stays
+ * first and the block uses the file's own line endings. hr_maintenance_htaccess_without_block() undoes it exactly.
+ */
 function hr_maintenance_htaccess_with_block( string $existing, array $lines ): string {
-    $begin    = '# BEGIN ' . HR_MAINTENANCE_MARKER;
-    $end      = '# END ' . HR_MAINTENANCE_MARKER;
-    $stripped = hr_maintenance_htaccess_without_block( $existing );
-    return $begin . "\n" . implode( "\n", $lines ) . "\n" . $end . "\n\n" . $stripped;
+    [ $bom, $body ] = hr_maintenance_split_bom( $existing );
+    $body = hr_maintenance_htaccess_without_block( $body );
+    $eol  = str_contains( $body, "\r\n" ) ? "\r\n" : "\n";
+    return $bom . '# BEGIN ' . HR_MAINTENANCE_MARKER . $eol . implode( $eol, $lines ) . $eol . '# END ' . HR_MAINTENANCE_MARKER . $eol . $eol . $body;
 }
 
 function hr_maintenance_htaccess_without_block( string $existing ): string {
-    $re = '/^# BEGIN ' . preg_quote( HR_MAINTENANCE_MARKER, '/' ) . '\R.*?^# END ' . preg_quote( HR_MAINTENANCE_MARKER, '/' ) . '(?:\R\R?|$)/sm'; // the block and the blank line we added
-    return (string) preg_replace( $re, '', $existing );
+    [ $bom, $body ] = hr_maintenance_split_bom( $existing );
+    $m  = preg_quote( HR_MAINTENANCE_MARKER, '/' );
+    $re = '/^# BEGIN ' . $m . '[ \t]*\R.*?^# END ' . $m . '[ \t]*(?:\R\R?|\z)/sm'; // the block and the blank line we added
+    return $bom . (string) preg_replace( $re, '', $body, 1 );
 }
 
-/** Writes a file atomically. */
+/** Writes a file atomically (static page). */
 function hr_maintenance_write( string $file, string $content ): bool {
     $tmp = $file . '.hr-tmp-' . wp_generate_password( 8, false );
     if ( false === @file_put_contents( $tmp, $content, LOCK_EX ) || ! @rename( $tmp, $file ) ) {
@@ -478,60 +499,187 @@ function hr_maintenance_write( string $file, string $content ): bool {
     return true;
 }
 
-/** True when the file is absent or one we wrote (never overwrite someone else's page). */
-function hr_maintenance_is_ours( string $file, string $marker ): bool {
-    return ! file_exists( $file ) || str_contains( (string) @file_get_contents( $file, false, null, 0, 4096 ), $marker );
+/**
+ * Read-modify-write of .htaccess in place under an exclusive flock, the way WordPress core (insert_with_markers),
+ * LiteSpeed Cache and All-In-One WP Security write it, so concurrent writers wait for each other instead of losing
+ * changes. Follows a symlink, keeps owner and permissions. Returns array( old, new ) or an error string.
+ */
+function hr_maintenance_edit_htaccess( string $file, callable $change ) {
+    if ( file_exists( $file ) && ( ! is_readable( $file ) || ! is_writable( $file ) ) ) {
+        return 'WordPress cannot write .htaccess (its permissions do not allow it).';
+    }
+    $fp = @fopen( $file, 'c+' ); // creates it when missing, never truncates on open
+    if ( ! $fp ) {
+        return 'Could not open .htaccess for writing.';
+    }
+    if ( ! flock( $fp, LOCK_EX ) ) {
+        fclose( $fp );
+        return 'Could not lock .htaccess.';
+    }
+    $old = (string) stream_get_contents( $fp );
+    $new = (string) $change( $old );
+    $ok  = true;
+    if ( $new !== $old ) {
+        $put = static function ( string $data ) use ( $fp ): bool {
+            if ( ! rewind( $fp ) || ! ftruncate( $fp, 0 ) ) {
+                return false;
+            }
+            for ( $done = 0, $len = strlen( $data ); $done < $len; $done += $n ) {
+                $n = fwrite( $fp, substr( $data, $done ) );
+                if ( ! $n ) {
+                    return false;
+                }
+            }
+            return fflush( $fp );
+        };
+        $ok = $put( $new );
+        if ( ! $ok ) {
+            $put( $old ); // disk full or quota: put the previous text back
+        }
+    }
+    flock( $fp, LOCK_UN );
+    fclose( $fp );
+    return $ok ? array( $old, $new ) : 'Could not write .htaccess (disk full or quota reached?). It was left as it was.';
 }
 
-function hr_maintenance_server_state(): array {
-    $p   = hr_maintenance_paths();
-    $ht  = is_readable( $p['htaccess'] ) ? (string) file_get_contents( $p['htaccess'] ) : '';
-    return array(
-        'rules'  => str_contains( $ht, '# BEGIN ' . HR_MAINTENANCE_MARKER ),
-        'flag'   => file_exists( $p['flag'] ),
-        'static' => is_readable( $p['static'] ),
-        'ours'   => hr_maintenance_is_ours( $p['static'], 'hr-maintenance-page' ),
-    );
+/** One server-level change at a time (two administrators, or a double click). */
+function hr_maintenance_lock() {
+    $fp = @fopen( trailingslashit( get_temp_dir() ) . 'hr-maintenance-' . md5( ABSPATH ) . '.lock', 'c' );
+    if ( $fp && flock( $fp, LOCK_EX | LOCK_NB ) ) {
+        return $fp;
+    }
+    if ( $fp ) {
+        fclose( $fp );
+    }
+    return false;
 }
 
-/** Turns the server-level page on: static page, rules at the top of .htaccess, then the flag file. */
+/**
+ * Requests $path from this web server and returns the answers: 'origin' straight to this server's own address
+ * (Cloudflare, its cache and its bot checks are not in the way) and 'public' through the site's address. A random
+ * query string keeps every cache out. 0 = no answer (loopback blocked, timeout, DNS).
+ */
+function hr_maintenance_probe( string $path ): array {
+    $url  = add_query_arg( 'hr-maint-check', wp_generate_password( 12, false ), site_url( $path ) );
+    $args = array( 'timeout' => 5, 'redirection' => 0, 'sslverify' => false, 'reject_unsafe_urls' => false, 'headers' => array( 'Cache-Control' => 'no-cache' ) );
+    $code = static function ( $r ): int {
+        return is_wp_error( $r ) ? 0 : (int) wp_remote_retrieve_response_code( $r );
+    };
+    $out  = array( 'origin' => 0, 'public' => 0, 'body' => '' );
+    $addr = trim( (string) ( $_SERVER['SERVER_ADDR'] ?? '' ) );
+    $host = (string) wp_parse_url( $url, PHP_URL_HOST );
+    if ( '' !== $host && false !== filter_var( $addr, FILTER_VALIDATE_IP ) && defined( 'CURLOPT_RESOLVE' ) ) {
+        $port    = (int) ( wp_parse_url( $url, PHP_URL_PORT ) ?: ( 'https' === wp_parse_url( $url, PHP_URL_SCHEME ) ? 443 : 80 ) );
+        $resolve = static function ( $handle ) use ( $host, $port, $addr ) {
+            curl_setopt( $handle, CURLOPT_RESOLVE, array( $host . ':' . $port . ':' . ( str_contains( $addr, ':' ) ? '[' . $addr . ']' : $addr ) ) );
+        };
+        add_action( 'http_api_curl', $resolve );
+        $r = wp_remote_get( $url, $args );
+        remove_action( 'http_api_curl', $resolve );
+        $out['origin'] = $code( $r );
+        $out['body']   = is_wp_error( $r ) ? '' : (string) wp_remote_retrieve_body( $r );
+    }
+    $r = wp_remote_get( $url, $args );
+    $out['public'] = $code( $r );
+    if ( '' === $out['body'] && ! is_wp_error( $r ) ) {
+        $out['body'] = (string) wp_remote_retrieve_body( $r );
+    }
+    return $out;
+}
+
+/**
+ * Did the server read the new .htaccess without complaint? 'ok' only on proof: the origin answered a static file
+ * with anything but a server error, or the public address answered it with 200. 'broken' on a 500. Anything else
+ * (loopback blocked, Cloudflare challenge, timeouts) is 'unknown', and unknown is treated like broken.
+ */
+function hr_maintenance_verdict( array $probe ): string {
+    if ( 500 === $probe['origin'] || 500 === $probe['public'] ) {
+        return 'broken';
+    }
+    if ( ( $probe['origin'] >= 200 && $probe['origin'] < 500 ) || 200 === $probe['public'] ) {
+        return 'ok';
+    }
+    return 'unknown';
+}
+
+/** Takes our block out again (used when the self-check fails). Other writers' changes since then are kept. */
+function hr_maintenance_revert_rules( string $file ): bool {
+    return is_array( hr_maintenance_edit_htaccess( $file, 'hr_maintenance_htaccess_without_block' ) );
+}
+
+/**
+ * Turns the server-level page on: static page, rules at the top of .htaccess (self-checked, removed again unless
+ * the server provably still works), then the flag file (checked again: removed if the site answers 500 or ignores it).
+ */
 function hr_maintenance_server_on(): string {
     $p = hr_maintenance_paths();
     if ( 1 !== preg_match( '#^[A-Za-z0-9_./\-]+$#', $p['flag'] ) ) {
         return 'error:The site path contains characters .htaccess cannot use safely. Use the manual steps in docs/MAINTENANCE.md.';
     }
-    if ( hr_maintenance_is_ours( $p['static'], 'hr-maintenance-page' ) ) {
-        if ( ! hr_maintenance_write( $p['static'], hr_maintenance_document( hr_maintenance_settings() ) ) ) {
-            return 'error:Could not write ' . $p['static'] . '.';
-        }
+    $lock = hr_maintenance_lock();
+    if ( ! $lock ) {
+        return 'error:Another maintenance change is running. Wait a minute and reload this page.';
     }
-    $old = file_exists( $p['htaccess'] ) ? (string) file_get_contents( $p['htaccess'] ) : '';
-    if ( file_exists( $p['htaccess'] ) && ! is_writable( $p['htaccess'] ) ) {
-        return 'error:WordPress cannot write .htaccess. Paste bundled/maintenance-mode.conf from the theme at the top of .htaccess in cPanel File Manager instead.';
-    }
-    $base = (string) wp_parse_url( site_url( '/' ), PHP_URL_PATH );
-    $new  = hr_maintenance_htaccess_with_block( $old, hr_maintenance_htaccess_lines( hr_maintenance_admin_ips(), (int) hr_maintenance_settings()['retry'], $p['flag'], $base ?: '/' ) );
-    if ( $new !== $old ) {
-        if ( '' !== $old && ! file_exists( $p['htaccess'] . '.hr-maintenance-backup' ) ) {
-            @copy( $p['htaccess'], $p['htaccess'] . '.hr-maintenance-backup' );
+    try {
+        if ( hr_maintenance_is_ours( $p['static'], 'hr-maintenance-page' ) && ! hr_maintenance_write( $p['static'], hr_maintenance_document( hr_maintenance_settings() ) ) ) {
+            return 'error:Could not write ' . $p['static'] . '. Nothing changed.';
         }
-        if ( ! hr_maintenance_write( $p['htaccess'], $new ) ) {
-            return 'error:Could not write .htaccess.';
+        $base   = (string) wp_parse_url( site_url( '/' ), PHP_URL_PATH );
+        $lines  = hr_maintenance_htaccess_lines( hr_maintenance_admin_ips(), (int) hr_maintenance_settings()['retry'], $p['flag'], $base ?: '/' );
+        $backup = $p['htaccess'] . '.hr-maintenance-backup';
+        $saved  = true;
+        $edit   = hr_maintenance_edit_htaccess( $p['htaccess'], static function ( string $old ) use ( $lines, $backup, &$saved ) {
+            $new = hr_maintenance_htaccess_with_block( $old, $lines );
+            if ( $new !== $old && '' !== $old ) {
+                // The file exactly as it was before this change; overwritten on each change, readable by the owner only.
+                $saved = false !== @file_put_contents( $backup, $old, LOCK_EX );
+                @chmod( $backup, 0600 );
+                if ( ! $saved ) {
+                    return $old;
+                }
+            }
+            return $new;
+        } );
+        if ( ! $saved ) {
+            return 'error:Could not save the backup ' . $backup . ', so .htaccess was not changed.';
         }
-        // Safety net: if the server now answers 500 for a static file, put the old .htaccess back at once.
-        $probe = wp_remote_get( site_url( '/wp-includes/images/blank.gif' ), array( 'timeout' => 8, 'redirection' => 0, 'sslverify' => false ) );
-        if ( ! is_wp_error( $probe ) && 500 === (int) wp_remote_retrieve_response_code( $probe ) ) {
-            hr_maintenance_write( $p['htaccess'], $old );
-            hr_maintenance_log( 'maintenance_server_rules_reverted' );
-            return 'error:The server rejected the new .htaccess rules (HTTP 500), so the previous .htaccess was restored. Nothing changed.';
+        if ( ! is_array( $edit ) ) {
+            return 'error:' . $edit . ' Nothing changed. Paste bundled/maintenance-mode.conf from the theme at the top of .htaccess in cPanel File Manager instead (docs/MAINTENANCE.md).';
         }
+        if ( $edit[0] !== $edit[1] ) {
+            // Self-check on a static file the block never touches: the server must still answer it.
+            $verdict = hr_maintenance_verdict( hr_maintenance_probe( '/wp-includes/images/blank.gif' ) );
+            if ( 'ok' !== $verdict ) {
+                $undone = hr_maintenance_revert_rules( $p['htaccess'] );
+                hr_maintenance_log( 'maintenance_server_rules_reverted', array( 'verdict' => $verdict, 'undone' => $undone ) );
+                if ( ! $undone ) {
+                    return 'error:The server could not be checked after the change and the block could not be taken out again. In cPanel File Manager, open .htaccess now and delete everything from "# BEGIN ' . HR_MAINTENANCE_MARKER . '" to "# END ' . HR_MAINTENANCE_MARKER . '" (a copy of the previous file is .htaccess.hr-maintenance-backup).';
+                }
+                return 'broken' === $verdict
+                    ? 'error:The server rejected the new .htaccess rules (HTTP 500), so they were taken out again at once. Nothing changed.'
+                    : 'error:WordPress could not confirm that the server still works after the change (this server does not answer requests from itself, or Cloudflare stopped them), so the rules were taken out again. Nothing changed. Use the manual steps in docs/MAINTENANCE.md ("With cPanel only") instead.';
+            }
+        }
+        if ( ! @touch( $p['flag'] ) ) {
+            return 'error:The rules are in place, but ' . $p['flag'] . ' could not be created. Create that empty file in cPanel File Manager to switch the page on.';
+        }
+        // Second check, now that the page is on: the home page must answer 503 (and never 500).
+        $live = hr_maintenance_probe( '/' );
+        if ( 500 === $live['origin'] || 500 === $live['public'] || 200 === $live['origin'] ) {
+            @unlink( $p['flag'] );
+            hr_maintenance_log( 'maintenance_server_on_failed', array( 'origin' => $live['origin'], 'public' => $live['public'] ) );
+            return 500 === $live['origin'] || 500 === $live['public']
+                ? 'error:With the page switched on the server answered HTTP 500, so it was switched off again at once. The site is open as before.'
+                : 'error:This server ignores the rules (the home page still opened normally), so the switch was turned off again. Use the WordPress switch above instead.';
+        }
+        hr_maintenance_purge_caches();
+        hr_maintenance_log( 'maintenance_server_on', array( 'allowlisted_ips' => count( hr_maintenance_admin_ips() ), 'checked' => 503 === $live['origin'] || 503 === $live['public'] ) );
+        $note = 503 === $live['origin'] || 503 === $live['public'] ? '' : ' WordPress could not double-check it from the server: open the site in a private window to confirm.';
+        return 'ok:Server-level maintenance page is ON. It stays up even if PHP stops working. Your current IP address still sees the site; wp-admin and wp-login.php stay reachable for everyone.' . $note;
+    } finally {
+        flock( $lock, LOCK_UN );
+        fclose( $lock );
     }
-    if ( ! @touch( $p['flag'] ) ) {
-        return 'error:Could not create ' . $p['flag'] . '.';
-    }
-    hr_maintenance_purge_caches();
-    hr_maintenance_log( 'maintenance_server_on', array( 'allowlisted_ips' => count( hr_maintenance_admin_ips() ) ) );
-    return 'ok:Server-level maintenance page is ON. It stays up even if PHP stops working. Your current IP address still sees the site; wp-admin and wp-login.php stay reachable for everyone.';
 }
 
 function hr_maintenance_server_off(): string {
@@ -546,16 +694,26 @@ function hr_maintenance_server_off(): string {
 
 function hr_maintenance_server_remove(): string {
     $p = hr_maintenance_paths();
-    if ( file_exists( $p['flag'] ) ) {
-        @unlink( $p['flag'] );
+    $lock = hr_maintenance_lock();
+    if ( ! $lock ) {
+        return 'error:Another maintenance change is running. Wait a minute and reload this page.';
     }
-    $old = file_exists( $p['htaccess'] ) ? (string) file_get_contents( $p['htaccess'] ) : '';
-    $new = hr_maintenance_htaccess_without_block( $old );
-    if ( $new !== $old && ! hr_maintenance_write( $p['htaccess'], $new ) ) {
-        return 'error:Could not write .htaccess.';
+    try {
+        if ( file_exists( $p['flag'] ) && ! @unlink( $p['flag'] ) ) {
+            return 'error:Could not delete ' . $p['flag'] . '. Delete it in cPanel File Manager first.';
+        }
+        if ( file_exists( $p['htaccess'] ) ) {
+            $edit = hr_maintenance_edit_htaccess( $p['htaccess'], 'hr_maintenance_htaccess_without_block' );
+            if ( ! is_array( $edit ) ) {
+                return 'error:' . $edit;
+            }
+        }
+        hr_maintenance_log( 'maintenance_server_rules_removed' );
+        return 'ok:The server-level rules were removed from .htaccess.';
+    } finally {
+        flock( $lock, LOCK_UN );
+        fclose( $lock );
     }
-    hr_maintenance_log( 'maintenance_server_rules_removed' );
-    return 'ok:The server-level rules were removed from .htaccess.';
 }
 
 add_action( 'admin_post_hr_maintenance_server', static function () {

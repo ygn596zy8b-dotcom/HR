@@ -81,8 +81,9 @@ function signature_state( int $post_id ): ?array {
     if ( ! $post ) {
         return $cache[ $post_id ] = null;
     }
-    $stored  = (string) get_post_meta( $post_id, META_SHA, true );
-    $kid     = (string) get_post_meta( $post_id, META_KID, true );
+    $record  = signature_record( $post_id );
+    $stored  = $record ? $record['sha512'] : '';
+    $kid     = $record ? $record['kid'] : '';
     $current = hash( 'sha512', canonical_bytes( $post ) );
     $changed = '' !== $stored && ! hash_equals( $stored, $current );
     if ( '' === $stored ) {
@@ -99,7 +100,7 @@ function signature_state( int $post_id ): ?array {
         'state'   => $state,
         'changed' => $changed, // false for a stale signature whose key was revoked or removed
         'kid'     => $kid,
-        'at'      => (int) get_post_meta( $post_id, META_AT, true ),
+        'at'      => $record ? (int) $record['at'] : 0,
         'sha512'  => $current,
     );
 }
@@ -109,7 +110,8 @@ function signature_state( int $post_id ): ?array {
 // ---------------------------------------------------------------------------------------------------------------
 
 function refresh_stale_flag( int $post_id ): void {
-    $stored = (string) get_post_meta( $post_id, META_SHA, true );
+    $record = signature_record( $post_id );
+    $stored = $record ? $record['sha512'] : '';
     if ( '' === $stored ) {
         delete_post_meta( $post_id, META_STALE ); // never signed: the queue finds it by the missing hash
         return;
@@ -151,15 +153,13 @@ unset( $hr_pqsig_meta_changed );
 /** Flag signed posts as needing a fresh signature; the queue re-checks the hash and clears false alarms. */
 function flag_signed_posts_stale( int $author_id = 0 ): void {
     global $wpdb;
-    $sql = "SELECT DISTINCT p.ID FROM {$wpdb->posts} p
-        INNER JOIN {$wpdb->postmeta} h ON h.post_id = p.ID AND h.meta_key = %s
-        WHERE p.post_type = 'post' AND p.post_status = 'publish'";
-    $args = array( META_SHA );
+    [ $join, $sha ] = signature_sql();
+    $sql = "SELECT DISTINCT p.ID FROM {$wpdb->posts} p {$join}
+        WHERE p.post_type = 'post' AND p.post_status = 'publish' AND {$sha} IS NOT NULL";
     if ( $author_id > 0 ) {
-        $sql   .= ' AND p.post_author = %d';
-        $args[] = $author_id;
+        $sql .= $wpdb->prepare( ' AND p.post_author = %d', $author_id );
     }
-    foreach ( (array) $wpdb->get_col( $wpdb->prepare( $sql, $args ) ) as $id ) {
+    foreach ( (array) $wpdb->get_col( $sql ) as $id ) { // phpcs:ignore WordPress.DB.PreparedSQL -- constants and a prepared clause
         update_post_meta( (int) $id, META_STALE, '1' );
     }
 }
@@ -193,19 +193,19 @@ function schedule_sweep(): void {
 add_action( 'hr_pqsig_sweep', function () {
     global $wpdb;
     $last = 0;
+    [ $join, $sha ] = signature_sql();
     for ( $round = 0; $round < 50; $round++ ) {
-        $ids = $wpdb->get_col( $wpdb->prepare(
-            "SELECT p.ID FROM {$wpdb->posts} p
-             INNER JOIN {$wpdb->postmeta} h ON h.post_id = p.ID AND h.meta_key = %s
-             WHERE p.post_type = 'post' AND p.post_status = 'publish' AND p.ID > %d
+        $ids = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL -- the join is constants
+            "SELECT p.ID FROM {$wpdb->posts} p {$join}
+             WHERE p.post_type = 'post' AND p.post_status = 'publish' AND p.ID > %d AND {$sha} IS NOT NULL
              ORDER BY p.ID ASC LIMIT 200",
-            META_SHA,
             $last
         ) );
         if ( ! $ids ) {
             break;
         }
         update_meta_cache( 'post', $ids );
+        prime_signature_records( $ids );
         foreach ( $ids as $id ) {
             refresh_stale_flag( (int) $id );
             $last = (int) $id;

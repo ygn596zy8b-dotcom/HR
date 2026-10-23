@@ -1,0 +1,53 @@
+# Headline Recorder robots.txt (copy to the web root; a static file wins over WordPress's virtual robots.txt).
+#
+# Policy (owner decision): search engines and AI search, answer and citation services may crawl and quote our
+# journalism, so readers who ask ChatGPT, Perplexity, Claude, Gemini, Copilot or Apple Intelligence about Pakistan's
+# economy are pointed to Headline Recorder. Google-Extended, GPTBot, ClaudeBot and Applebot-Extended (the AI training
+# tokens) are allowed as well, which keeps the newsroom eligible for grounding in Gemini and other assistants.
+# Bulk dataset builders and unattributed scrapers are refused.
+#
+# Every crawler named in the first group follows the same rules as "*" (a crawler obeys only the most specific group
+# that names it, so each one is listed here rather than in a group of its own without the exclusions).
+User-agent: *
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: GPTBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: ClaudeBot
+User-agent: Google-Extended
+User-agent: Applebot
+User-agent: Applebot-Extended
+User-agent: DuckAssistBot
+User-agent: MistralAI-User
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+Disallow: /readme.html
+Disallow: /license.txt
+# Internal search results and comment-reply duplicates. Other query strings (e.g. utm_ tags) stay crawlable: their
+# canonical tag points at the clean URL, and CSS/JS with ?ver= must stay fetchable for rendering.
+Disallow: /?s=
+Disallow: /*?s=
+Disallow: /*&s=
+Disallow: /search/
+Disallow: /*?replytocom=
+# Signature checks use query strings (/verify/?sig=...); the page itself is public.
+Disallow: /verify/?
+Allow: /signed/
+Allow: /.well-known/pqsig-keys.json
+# Account pages (/account/...) and the reading dashboard are not blocked on purpose: they send "noindex", and a
+# crawler has to fetch a page to see that. Blocking them here would let their bare URLs show up in results.
+
+# Bulk dataset builders and scrapers that do not send readers back.
+User-agent: CCBot
+User-agent: Bytespider
+User-agent: FirecrawlAgent
+User-agent: ApifyBot
+Disallow: /
+
+Sitemap: https://headlinerecorder.com/wp-sitemap.xml
+Sitemap: https://headlinerecorder.com/sitemap-news.xml
