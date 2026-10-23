@@ -29,7 +29,7 @@ jobs:
       - name: PHP syntax (theme, plugin, mu-plugins)
         run: |
           php --version
-          find wp-content -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+          find wp-content deploy -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
 
       - name: Install build tools (scripts disabled)
         run: npm ci --ignore-scripts

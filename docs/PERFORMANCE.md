@@ -200,7 +200,8 @@ visitor IPs) is in `infra/cloudflare/README.md`; do both.
    The site never marks a response that sets a cookie as shareable (it sends no `s-maxage` then), so with "bypass
    cache if not" Cloudflare does not store it. Rule 3 is a second lock: even if a personal page ever sent a public
    header by mistake, Cloudflare would still not store it.
-9. **Security > WAF > Managed rules:** keep the **Cloudflare Free Managed Ruleset** on. Custom and rate-limiting rules:
+9. **Security > WAF > Managed rules:** keep the **Cloudflare Free Managed Ruleset** on (since 21 October 2026 it
+   also blocks php2shell attempts, CVE-2026-109618/109619; keep `session.upload_progress.enabled` Off regardless). Custom and rate-limiting rules:
    `infra/cloudflare/README.md` steps 6 and 7.
 10. **Security > Bots: Bot Fight Mode OFF.** On the Free plan it cannot be told to let anyone through, and it
     challenges exactly the visitors this site needs: feed readers, Apple Podcasts / Spotify fetching

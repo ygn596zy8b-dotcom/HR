@@ -21,6 +21,7 @@ rsync -a --exclude 'assets/src' wp-content/themes/headlinerec-child "$STAGE/depl
 rsync -a -L --exclude 'assets/src' --exclude 'tests' wp-content/plugins/hr-platform "$STAGE/deploy/wp-content/plugins/"
 rsync -a wp-content/mu-plugins/ "$STAGE/deploy/wp-content/mu-plugins/"
 rsync -a deploy/webroot/ "$STAGE/deploy/"
+cp deploy/wp-content/maintenance.php "$STAGE/deploy/wp-content/maintenance.php"
 mkdir -p "$STAGE/deploy/_docs"
 cp -r docs infra SECURITY.md "$STAGE/deploy/_docs/"
 mkdir -p "$STAGE/deploy/_docs/signer"

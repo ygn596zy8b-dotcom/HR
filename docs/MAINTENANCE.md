@@ -61,15 +61,24 @@ If an update is interrupted and the site stays on this page, delete the file `.m
 block in `.htaccess` lets the web server (LiteSpeed or Apache) show it with 503 to every visitor while a switch
 file named `hr-maintenance.on` exists. The block does nothing while that file is missing.
 
-Who still gets through: your own IP address, wp-admin and the sign-in page (useful when PHP works), and
-`/.well-known/`.
+Who still gets through: your own IP address, wp-admin and the sign-in page (useful when PHP works), `/.well-known/`,
+`/signed/`, the signing API, `wp-cron.php` and `robots.txt`. The IP check also trusts Cloudflare's `CF-Connecting-IP`
+header; if the server can be reached without Cloudflare, someone who knows your IP could forge it and see the normal
+site, nothing more. The page is not a security shield: wp-login.php and wp-admin still run PHP, so patch PHP first.
 
 ### With wp-admin (easiest)
 
 wp-admin > **Maintenance** > **Server-level page** > **Turn server-level page on**. This writes `maintenance.html`
-with your current headline and message, adds the block at the top of `.htaccess` (the original is saved once as
+with your current headline and message, adds the block at the top of `.htaccess` (the file as it was before is saved as
 `.htaccess.hr-maintenance-backup`), adds your current IP address to the allowlist and creates the switch file.
-WordPress checks the site straight away and puts the old `.htaccess` back if the server reports an error. Press
+Right after writing, WordPress asks the server for a static file (straight from the server, and through the public
+address with Cloudflare's cache bypassed). Unless the server provably still answers, the block is taken out again at
+once and nothing changes: an HTTP 500 or no answer at all both count as failure. It then switches the page on and
+checks the home page again; on a 500, or if the server ignores the rules, the switch file is deleted at once. The
+block never closes wp-admin or wp-login.php, so you cannot be locked out. `.htaccess` is edited in place under a
+file lock (as WordPress, LiteSpeed Cache and AIOS do), every other block stays byte for byte, and the file's line
+endings and byte order mark are kept. On hosts that do not let a site request itself, the button refuses and you use
+the cPanel steps below. Press
 **Turn server-level page off** to reopen the site; the block stays but does nothing.
 
 ### With cPanel only (when wp-admin does not open)

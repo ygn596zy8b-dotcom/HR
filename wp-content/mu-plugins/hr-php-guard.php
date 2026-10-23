@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Headline Recorder PHP Guard
- * Description: Tells administrators whether this server's PHP is patched against php2shell (CVE-2026-109618, CVE-2026-109619) and whether WordPress itself is current. Admin notice plus Site Health checks. Makes no external requests.
+ * Description: Tells administrators whether this server's PHP is patched against php2shell (CVE-2026-109618, CVE-2026-109619), whether WordPress is current, whether any installed plugin is a version with a known flaw, and which unused plugins should be deleted. Admin notice plus Site Health checks. Makes no external requests.
  * Version:     1.0.0
  * Author:      MSBJ
  */
@@ -56,6 +56,7 @@ function hr_php_guard_steps_html( array $s ): string {
         . '<li>In cPanel open <strong>Select PHP Version</strong> (CloudLinux) or <strong>MultiPHP Manager</strong> and pick PHP 8.4, newest build: it must be <strong>8.4.27 or later</strong>.' . $stay . '</li>'
         . '<li>If no patched build is listed yet, open a ticket with the host: "Please install the PHP release that fixes CVE-2026-109618 and CVE-2026-109619 (php2shell) for our lsphp / ea-php / alt-php 8.4 (8.4.27 or later)."</li>'
         . '<li>Until then keep <code>session.upload_progress.enabled = Off</code> (the theme installer writes it to <code>.user.ini</code>; cPanel: <strong>MultiPHP INI Editor</strong> or <strong>Select PHP Version &gt; Options</strong>). This blocks the upload-progress path of CVE-2026-109618 only, not the multipart parser flaw.</li>'
+        . '<li>Put the site behind Cloudflare (proxied, orange cloud) with the Managed Ruleset on: it has blocked php2shell attempts since 21 October (docs/DEPLOY.md).</li>'
         . '<li>Check again under <strong>Tools &gt; Site Health</strong>. Some hosts backport fixes without changing the version number; if yours says so in writing, the warning can be dismissed.</li>'
         . '</ol>';
 }
@@ -121,6 +122,8 @@ add_filter( 'site_status_tests', static function ( $tests ) {
     $tests['direct']['hr_php2shell'] = array( 'label' => 'PHP is patched against php2shell', 'test' => 'hr_php_guard_test_php' );
     $tests['direct']['hr_upload_progress'] = array( 'label' => 'PHP session upload progress is off', 'test' => 'hr_php_guard_test_upload_progress' );
     $tests['direct']['hr_wp_core_current'] = array( 'label' => 'WordPress core is current', 'test' => 'hr_php_guard_test_wp_core' );
+    $tests['direct']['hr_vulnerable_plugins'] = array( 'label' => 'No plugin has a known security flaw', 'test' => 'hr_php_guard_test_plugins' );
+    $tests['direct']['hr_unused_plugins'] = array( 'label' => 'No unused plugins are left on the server', 'test' => 'hr_php_guard_test_unused_plugins' );
     return $tests;
 } );
 
@@ -132,7 +135,7 @@ function hr_php_guard_test_php(): array {
             'label'       => sprintf( 'PHP %s is patched against php2shell', $s['version'] ),
             'status'      => 'good',
             'badge'       => $badge,
-            'description' => '<p>CVE-2026-109618 and CVE-2026-109619 (php2shell) were fixed on 21 October 2026 in PHP 8.2.35, 8.3.36, 8.4.27 and 8.5.12. This server\'s PHP includes the fix.</p>',
+            'description' => '<p>CVE-2026-109618 and CVE-2026-109619 (php2shell) were fixed on 21 October 2026 in PHP 8.2.35, 8.3.36, 8.4.27 and 8.5.12. This server\'s PHP includes the fix.</p><p>As of 22 October 2026 there are unverified claims of a bypass on 8.5.12 and no new PHP advisory. Keep <code>session.upload_progress.enabled</code> Off anyway, and keep the site behind Cloudflare: its Managed Ruleset (on by default, Free plan included) has blocked php2shell attempts since 21 October.</p>',
             'test'        => 'hr_php2shell',
         );
     }
@@ -143,7 +146,7 @@ function hr_php_guard_test_php(): array {
         'label'       => sprintf( 'PHP %s is exposed to php2shell (CVE-2026-109618, CVE-2026-109619)', $s['version'] ),
         'status'      => 'critical',
         'badge'       => $badge,
-        'description' => '<p>php2shell is two use-after-free flaws in how PHP parses file uploads (multipart/form-data) and in the session upload-progress hook. An attacker needs no account; public exploits exist and were used before the fix. Only a PHP upgrade fixes both.</p>' . $why,
+        'description' => '<p>php2shell is two use-after-free flaws in how PHP parses file uploads (multipart/form-data) and in the session upload-progress hook. An attacker needs no account; public exploits exist and attacks have been seen since 17 October. Only a PHP upgrade fixes both. Meanwhile, Cloudflare in front of the site (its Managed Ruleset is on by default, Free plan included) blocks known attempts.</p>' . $why,
         'actions'     => hr_php_guard_steps_html( $s ),
         'test'        => 'hr_php2shell',
     );
@@ -217,3 +220,160 @@ function hr_php_guard_test_wp_core(): array {
         'test'        => 'hr_wp_core_current',
     );
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Plugins with known flaws (compared with the installed versions; no request leaves the server). Add a row when a
+// new advisory affects a plugin this site has or might install: slug (folder name), first fixed version, CVEs, what
+// it means in plain words. Then bump HR_PHP_GUARD_PLUGIN_ADVISORY so a dismissed notice shows once more.
+// ---------------------------------------------------------------------------------------------------------------
+const HR_PHP_GUARD_PLUGIN_ADVISORY = 'plugins-2026-10-23';
+
+function hr_php_guard_plugin_advisories(): array {
+    return array(
+        array( 'slug' => 'litespeed-cache', 'name' => 'LiteSpeed Cache', 'fixed' => '7.9.2', 'cves' => 'CVE-2026-113499, CVE-2026-113500, CVE-2026-113501',
+            'risk' => 'Anyone who can post a comment can plant script that runs in visitors\' and administrators\' browsers through its HTML optimisation, and a missing permission check lets other accounts change its notices.' ),
+        array( 'slug' => 'bricksforge', 'name' => 'Bricksforge', 'fixed' => '3.1.9', 'cves' => 'CVE-2026-85097',
+            'risk' => 'A serious flaw that attackers can use without an account.' ),
+        array( 'slug' => 'user-registration', 'name' => 'User Registration & Membership', 'fixed' => '5.1.3', 'cves' => 'CVE-2026-1492',
+            'risk' => 'A serious flaw that attackers can use without an account.' ),
+    );
+}
+
+/** Installed plugins with a known flaw: array of advisory + 'version', 'active'. $plugins: get_plugins() shape. */
+function hr_php_guard_vulnerable_plugins( ?array $plugins = null, ?array $active = null ): array {
+    if ( null === $plugins ) {
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+        $plugins = get_plugins();
+        $active  = (array) get_option( 'active_plugins', array() );
+    }
+    $out = array();
+    foreach ( $plugins as $file => $data ) {
+        $slug = dirname( (string) $file );
+        foreach ( hr_php_guard_plugin_advisories() as $a ) {
+            $version = (string) ( $data['Version'] ?? '' );
+            if ( $a['slug'] === $slug && '' !== $version && version_compare( hr_php_guard_normalise( $version ), $a['fixed'], '<' ) ) {
+                $out[] = $a + array( 'version' => $version, 'active' => in_array( $file, (array) $active, true ) );
+            }
+        }
+    }
+    return $out;
+}
+
+function hr_php_guard_plugins_html( array $found ): string {
+    $rows = '';
+    foreach ( $found as $f ) {
+        $rows .= '<li><strong>' . esc_html( $f['name'] ) . ' ' . esc_html( $f['version'] ) . '</strong>' . ( $f['active'] ? '' : ' (inactive, but its files are still on the server)' )
+            . ': update to ' . esc_html( $f['fixed'] ) . ' or later (' . esc_html( $f['cves'] ) . '). ' . esc_html( $f['risk'] ) . '</li>';
+    }
+    return '<ul style="list-style:disc;margin-left:20px">' . $rows . '</ul><p><a class="button button-primary" href="' . esc_url( admin_url( 'plugins.php?plugin_status=upgrade' ) ) . '">Update now</a> '
+        . 'Plugins &gt; Installed Plugins, then "update now" under each one (or delete it if the site does not use it).'
+        . ( array_filter( $found, static fn( $f ) => 'litespeed-cache' === $f['slug'] ) ? ' Until LiteSpeed Cache is updated, switch off LiteSpeed Cache &gt; Page Optimization &gt; HTML Settings &gt; HTML Minify and hold new comments for approval (Settings &gt; Discussion).' : '' ) . '</p>';
+}
+
+function hr_php_guard_test_plugins(): array {
+    $found = hr_php_guard_vulnerable_plugins();
+    if ( ! $found ) {
+        return array(
+            'label'       => 'No installed plugin is on a version with a known security flaw',
+            'status'      => 'good',
+            'badge'       => array( 'label' => 'Security', 'color' => 'blue' ),
+            'description' => '<p>Checked against the advisories built into the Headline Recorder PHP Guard (October 2026), on this server only.</p>',
+            'test'        => 'hr_vulnerable_plugins',
+        );
+    }
+    return array(
+        'label'       => sprintf( '%d plugin(s) need a security update', count( $found ) ),
+        'status'      => 'critical',
+        'badge'       => array( 'label' => 'Security', 'color' => 'red' ),
+        'description' => '<p>These versions have published security flaws that attackers look for.</p>',
+        'actions'     => hr_php_guard_plugins_html( $found ),
+        'test'        => 'hr_vulnerable_plugins',
+    );
+}
+
+/** Inactive plugins (and must-delete backup/migration tools) still on disk. */
+function hr_php_guard_unused_plugins(): array {
+    if ( ! function_exists( 'get_plugins' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+    $active = (array) get_option( 'active_plugins', array() );
+    $out    = array();
+    foreach ( get_plugins() as $file => $data ) {
+        if ( ! in_array( $file, $active, true ) && ! is_plugin_active_for_network( $file ) ) {
+            $slug  = dirname( (string) $file );
+            $out[] = array( 'name' => (string) ( $data['Name'] ?? $slug ), 'version' => (string) ( $data['Version'] ?? '' ), 'backup' => 1 === preg_match( '/migration|duplicator|backup|updraft|wpvivid|ai1wm/i', $slug ) );
+        }
+    }
+    return $out;
+}
+
+function hr_php_guard_test_unused_plugins(): array {
+    $unused = hr_php_guard_unused_plugins();
+    if ( ! $unused ) {
+        return array(
+            'label'       => 'No unused plugins are left on the server',
+            'status'      => 'good',
+            'badge'       => array( 'label' => 'Security', 'color' => 'blue' ),
+            'description' => '<p>Every installed plugin is active.</p>',
+            'test'        => 'hr_unused_plugins',
+        );
+    }
+    $items  = '';
+    $backup = false;
+    foreach ( $unused as $u ) {
+        $backup = $backup || $u['backup'];
+        $items .= '<li>' . esc_html( trim( $u['name'] . ' ' . $u['version'] ) ) . ( $u['backup'] ? ' <strong>(backup/migration tool: delete it and its backup folder)</strong>' : '' ) . '</li>';
+    }
+    return array(
+        'label'       => sprintf( 'Delete %d unused plugin(s)', count( $unused ) ),
+        'status'      => $backup ? 'critical' : 'recommended',
+        'badge'       => array( 'label' => 'Security', 'color' => $backup ? 'red' : 'blue' ),
+        'description' => '<p>A deactivated plugin still has its files on the server, and attackers can call many of them directly. Backup and migration plugins are the worst case: their files and the archives they made (the whole site, wp-config.php included) stay reachable.</p><ul style="list-style:disc;margin-left:20px">' . $items . '</ul>',
+        'actions'     => '<p><a href="' . esc_url( admin_url( 'plugins.php?plugin_status=inactive' ) ) . '">Plugins &gt; Inactive</a>: tick them, choose Delete. Then remove <code>wp-content/ai1wm-backups/</code> and <code>wp-content/duplicator-backups/</code> in cPanel File Manager (docs/DEPLOY.md).</p>',
+        'test'        => 'hr_unused_plugins',
+    );
+}
+
+// Admin notice for plugin advisories (administrators only), dismissible until the advisory list or the versions change.
+add_action( 'admin_notices', static function () {
+    if ( ! current_user_can( 'update_plugins' ) && ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+    $found = hr_php_guard_vulnerable_plugins();
+    if ( ! $found ) {
+        return;
+    }
+    $key = HR_PHP_GUARD_PLUGIN_ADVISORY . '|' . md5( wp_json_encode( array_map( static fn( $f ) => $f['slug'] . $f['version'], $found ) ) );
+    if ( get_user_meta( get_current_user_id(), 'hr_php_guard_plugins_dismissed', true ) === $key ) {
+        return;
+    }
+    ?>
+    <div class="notice notice-error">
+        <p><strong>Security update needed:</strong> <?php echo esc_html( sprintf( '%d installed plugin(s) have known security flaws.', count( $found ) ) ); ?></p>
+        <?php echo wp_kses_post( hr_php_guard_plugins_html( $found ) ); ?>
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0 0 10px">
+            <input type="hidden" name="action" value="hr_php_guard_dismiss_plugins">
+            <?php wp_nonce_field( 'hr_php_guard_dismiss_plugins', '_hr_php_guard_nonce' ); ?>
+            <button type="submit" class="button button-secondary">Hide until this changes</button>
+        </form>
+    </div>
+    <?php
+} );
+
+add_action( 'admin_post_hr_php_guard_dismiss_plugins', static function () {
+    if ( ! current_user_can( 'update_plugins' ) && ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'Not allowed.', 403 );
+    }
+    check_admin_referer( 'hr_php_guard_dismiss_plugins', '_hr_php_guard_nonce' );
+    $from  = wp_parse_url( (string) ( $_SERVER['HTTP_ORIGIN'] ?? ( $_SERVER['HTTP_REFERER'] ?? '' ) ) );
+    $admin = wp_parse_url( admin_url() );
+    if ( ! is_array( $from ) || strtolower( (string) ( $from['host'] ?? '' ) ) !== strtolower( (string) ( $admin['host'] ?? '' ) ) || ( $from['scheme'] ?? '' ) !== ( $admin['scheme'] ?? '' ) ) {
+        wp_die( 'This request did not come from this site.', 403 );
+    }
+    $found = hr_php_guard_vulnerable_plugins();
+    update_user_meta( get_current_user_id(), 'hr_php_guard_plugins_dismissed', HR_PHP_GUARD_PLUGIN_ADVISORY . '|' . md5( wp_json_encode( array_map( static fn( $f ) => $f['slug'] . $f['version'], $found ) ) ) );
+    wp_safe_redirect( wp_get_referer() ?: admin_url() );
+    exit;
+} );

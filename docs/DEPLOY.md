@@ -6,7 +6,8 @@ Maintained by MSBJ. Security background: `SECURITY.md`; leaked-archive clean-up:
 
 **What it is.** "php2shell" is two flaws in PHP itself (CVE-2026-109618 and CVE-2026-109619), fixed on 21 October 2026.
 A specially built file upload can make PHP reuse memory it has already freed, which lets an attacker run their own code
-on the server without any account. Exploits are public and were used before the fix. Every PHP version before
+on the server without any account. Exploits are public (watchTowr published the details) and attacks have been seen
+since 17 October. Every PHP version before
 **8.2.35, 8.3.36, 8.4.27 and 8.5.12** is affected, and PHP 8.1 or older will never be fixed. Only a PHP update closes
 both flaws.
 
@@ -34,6 +35,33 @@ without raising the version number should confirm that in writing; then the noti
   ever causes HTTP 500 on LiteSpeed, remove the LiteSpeed block and rely on `.user.ini`.
 - The mitigation only blocks the upload-progress path of CVE-2026-109618; the multipart parser flaw (CVE-2026-109619)
   needs the PHP update.
+- **Keep `session.upload_progress.enabled = Off` even after patching.** As of 22 October there are unverified claims
+  (on X) of a bypass on 8.5.12, and no new PHP advisory. Nothing on the site needs the setting.
+- **Put Cloudflare in front** (`docs/PERFORMANCE.md`, "Cloudflare setup"). Since 21 October Cloudflare's Managed
+  Ruleset blocks php2shell attempts, and it is on by default for Free plan sites (Security > WAF > Managed rules).
+  It only helps when the site is proxied (orange cloud) and the server accepts visitors through Cloudflare only.
+- On PHP update day, show readers the maintenance page first: `docs/MAINTENANCE.md`, "PHP update day".
+
+**Plugins with known flaws (23 October 2026).** **LiteSpeed Cache 7.9.1 and older** (this site runs 7.9.1) has three:
+CVE-2026-113499 (anyone who can post a comment can plant script through its HTML rewriting, including in an
+administrator's browser), CVE-2026-113500 (HTML injection through its HTML optimisation, no account needed) and
+CVE-2026-113501 (a missing permission check on dismissing its admin notices). **Update it to 7.9.2 or later now**
+(Plugins > Installed Plugins > "update now"). Until it is updated: LiteSpeed Cache > Page Optimization > HTML Settings
+> **HTML Minify Off**, and Settings > Discussion > **Comment must be manually approved** on. Also watch for Bricksforge
+3.1.8.9 or older (CVE-2026-85097) and User Registration & Membership 5.1.2 or older (CVE-2026-1492); neither is
+installed here. `hr-php-guard.php` compares the installed versions with this list on the server itself (no outside
+requests), shows a red "Security update needed" notice with an **Update now** button, and adds two Site Health checks:
+"No plugin has a known security flaw" and "No unused plugins are left on the server". To add a future advisory, add
+one row to `hr_php_guard_plugin_advisories()` and bump `HR_PHP_GUARD_PLUGIN_ADVISORY`.
+
+**Delete unused plugins.** A deactivated plugin keeps its files on the server, and attackers call them directly.
+Delete (Plugins > Inactive > tick > Delete): **All-in-One WP Migration 7.112 + Unlimited Extension 2.42** and
+**Duplicator 5.0.6** first (then remove `wp-content/ai1wm-backups/` and `wp-content/duplicator-backups/`: those
+archives hold the whole site, `wp-config.php` included), then IndexNow 1.0.4, Easy Login WooCommerce 4.0.4 and
+Headers Security Advanced & HSTS WP 5.3.5. Site Health lists whatever is still inactive.
+
+**Debug log.** In production set `WP_DEBUG_LOG` to `false` (or to a path outside `public_html`, e.g.
+`'/home/esofkogo/logs/wp-debug.log'`) and delete `public_html/wp-content/debug.log`.
 
 **WordPress itself.** "wp2shell" (CVE-2026-63030, REST API batch endpoint) affected WordPress 6.9.0 to 6.9.4 and 7.0.0
 to 7.0.1 and was fixed in 6.9.5 and 7.0.2. This site runs **WordPress 7.1.3: not affected**. The same Site Health
@@ -94,7 +122,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, CREATE TEMPORA
   Extension and `wp-content/ai1wm-backups/`, Headers Security Advanced & HSTS WP (replaced by the hardening mu-plugin),
   Easy Login WooCommerce (no WooCommerce), IndexNow, and any of Google Site Kit / WP Mail SMTP you will not reconnect
   (deleting them also drops their stored, leaked credentials). Delete the inactive theme **NewSquare**.
-- All-in-One WP Security is inactive but its firewall loader still runs from `mu-plugins/aios-firewall-loader.php` and
+- If All-in-One WP Security is inactive, its firewall loader still runs from `mu-plugins/aios-firewall-loader.php` and
   `wp-config.php`: either reactivate AIOS or remove both includes.
 - Code Snippets: delete snippet #8 "SBP data fetch" (it still holds the old SBP API key in its disabled code).
 - Then update everything: `wp core update && wp plugin update --all && wp theme update --all` (or Dashboard → Updates).
