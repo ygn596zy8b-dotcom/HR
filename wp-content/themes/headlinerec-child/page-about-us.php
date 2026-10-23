@@ -94,7 +94,7 @@ get_header();
 
 /* --- LEADERSHIP --- */
 .hr-leader-wrap { margin-bottom: 80px; }
-.hr-leader-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; }
+.hr-leader-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 32px; }
 .hr-leader-card { border: 1px solid #E5E7EB; padding: 28px 24px; text-align: center; }
 .hr-leader-avatar { width: 100px; height: 100px; background: #0A0A0A; border-radius: 50%; margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #6B7280; }
 .hr-leader-card h3 { font-size: 16px; font-weight: 700; color: #0A0A0A; margin: 0 0 6px 0; }
@@ -104,7 +104,7 @@ get_header();
 /* --- STANDARDS --- */
 .hr-standards-section { background: #F9F9F9; padding: 60px 48px; margin-left: -48px; margin-right: -48px; margin-bottom: 80px; }
 .hr-standards-inner { max-width: 1200px; margin: 0 auto; }
-.hr-standards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; }
+.hr-standards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 40px; }
 .hr-std-icon { font-size: 32px; margin-bottom: 16px; }
 .hr-std-card h3 { font-size: 16px; font-weight: 700; color: #0A0A0A; margin: 0 0 10px 0; }
 .hr-std-card p { font-size: 14px; color: #6B7280; margin: 0; line-height: 1.6; }

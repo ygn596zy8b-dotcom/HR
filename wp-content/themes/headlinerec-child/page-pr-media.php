@@ -64,7 +64,7 @@ get_header();
 .hr-main-content { max-width: 1200px; margin: 0 auto; padding: 80px 48px; }
 
 /* --- AUDIENCE SNAPSHOT GRID --- */
-.hr-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px; margin-bottom: 80px; }
+.hr-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 28px; margin-bottom: 80px; }
 .hr-stat-card { background: #F9F9F9; padding: 28px 24px; border-top: 3px solid #C0001A; }
 .hr-stat-label { font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #6B7280; text-transform: uppercase; margin-bottom: 8px; }
 .hr-stat-value { font-size: 28px; font-weight: 800; color: #0A0A0A; }
@@ -81,7 +81,7 @@ get_header();
 /* --- EDITORIAL INTEGRITY --- */
 .hr-integrity-box { background: #F9F9F9; padding: 60px 48px; margin-left: -48px; margin-right: -48px; margin-bottom: 80px; }
 .hr-integrity-inner { max-width: 1200px; margin: 0 auto; }
-.hr-integrity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; }
+.hr-integrity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 32px; }
 .hr-integrity-card h3 { font-size: 15px; font-weight: 700; color: #0A0A0A; margin: 0 0 10px 0; }
 .hr-integrity-card p { font-size: 13px; color: #6B7280; margin: 0; line-height: 1.6; }
 
