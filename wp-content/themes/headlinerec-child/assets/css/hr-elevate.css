@@ -857,7 +857,7 @@ body.home header#masthead { margin-bottom: 0; }
 
 /* ==========================================================================
    11. Plain pages (the parent's page.php, e.g. Editorial & Corrections Policy): one white reading panel,
-       an editorial header and a 72ch measure. Pages with their own template or a plugin route are left alone.
+       an editorial header and a 760px (about 70 characters) measure. Pages with their own template or a plugin route are left alone.
    ========================================================================== */
 body.page:not(.hr-virtual) .section-block-upper:has(#main > article.page > .entry-content-wrap) #primary { float: none; width: 100%; max-width: none; }
 body.page:not(.hr-virtual) .section-block-upper:has(#main > article.page > .entry-content-wrap) #secondary:not(:has(*)) { display: none; }
@@ -878,3 +878,16 @@ body.page:not(.hr-virtual) #main > article.page .entry-content li { margin-botto
 body.page:not(.hr-virtual) #main > article.page .entry-content li::marker { color: var(--hr-red-deep); }
 body.page:not(.hr-virtual) #main > article.page .entry-content a { color: var(--hr-red-deep); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 body.page:not(.hr-virtual) #main > article.page .entry-content code { padding: 0; background: none; color: inherit; font: inherit; }
+
+/* ==========================================================================
+   12. Home section headers: one system. Red rule + label left, "view all" right, one hairline under every header
+       (ink on light sections, a visible grey on dark ones), 32px to the content.
+   ========================================================================== */
+body #page :is(.sbp-section-header, .sbp-exec-header) {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 0;
+    margin-bottom: var(--hr-s6) !important;
+    padding-bottom: 14px !important;
+    border-bottom: 1px solid var(--hr-ink) !important;
+}
+body #page :is(.sbp-executive-spotlight-section, .sbp-dark-terminal-section) .sbp-exec-header { border-bottom-color: #2a2a2f !important; }
