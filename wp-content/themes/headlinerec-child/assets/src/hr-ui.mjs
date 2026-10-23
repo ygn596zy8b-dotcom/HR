@@ -142,11 +142,27 @@ if (tvFrames.length) {
     io.unobserve(entry.target);
     startTv(entry.target);
   }), { rootMargin: '400px 0px' });
+  // TradingView is ~1 MB of third-party script. Keep it off the critical path: widgets start only once the page has
+  // finished loading and the browser is idle, or at the reader's first interaction, whichever comes first. Until then
+  // each frame shows its same-size placeholder (the latest figures), so nothing shifts.
+  let settled = false;
+  const queued = [];
+  const settle = () => {
+    if (settled) return;
+    settled = true;
+    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach((t) => window.removeEventListener(t, settle, true));
+    queued.splice(0).forEach((frame) => io.observe(frame));
+  };
+  ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach((t) => window.addEventListener(t, settle, { capture: true, passive: true, once: true }));
+  const idle = () => (window.requestIdleCallback ? requestIdleCallback(settle, { timeout: 4000 }) : setTimeout(settle, 2500));
+  if (document.readyState === 'complete') setTimeout(idle, 1500);
+  else window.addEventListener('load', () => setTimeout(idle, 1500), { once: true });
   const watch = (frame) => {
     if (frame.dataset.hrTvState && frame.dataset.hrTvState !== 'idle' && frame.dataset.hrTvState !== 'off') return;
     if (embedsAllowed()) {
       tvState(frame, 'idle');
-      io.observe(frame);
+      if (settled) io.observe(frame);
+      else queued.push(frame);
     } else {
       tvState(frame, 'off');
     }

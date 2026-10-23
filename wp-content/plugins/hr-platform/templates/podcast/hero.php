@@ -33,7 +33,6 @@ $about = preg_split( '/(?<=[.!?])\s+/', trim( (string) setting( 'podcast_descrip
 
         <div class="hr-podcast-hero__actions">
             <a class="hrp-btn hrp-btn--ghost hr-podcast-hero__all" href="<?php echo esc_url( $archive ); ?>">All episodes<?php echo icon( 'arrow-right' ); // phpcs:ignore -- static SVG ?></a>
-            <?php render( 'podcast/subscribe' ); ?>
         </div>
 
         <div class="hr-podcast-hero__episode">
