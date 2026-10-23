@@ -1,6 +1,6 @@
 <?php
 /**
- * NewsArticle JSON-LD for single posts and Executive Spotlight posts (MSBJ). Yoast's graph is switched off on
+ * NewsArticle (OpinionNewsArticle for Opinion) JSON-LD for single posts and Executive Spotlight posts (MSBJ). Yoast's graph is switched off on
  * singles (functions.php), so this is the only article schema. Built as an array and printed with wp_json_encode.
  */
 
@@ -11,9 +11,10 @@ function hr_schema_text( $text ): string {
     return trim( html_entity_decode( wp_strip_all_tags( (string) $text ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 }
 
-/** Publisher logo: the Customizer logo, else the site icon. */
+/** Publisher logo: Yoast's organisation logo (the same image as the site-wide graph), else the Customizer logo, else the site icon. */
 function hr_publisher_logo(): ?array {
-    $id  = (int) get_theme_mod( 'custom_logo' ) ?: (int) get_option( 'site_icon' );
+    $yoast = class_exists( 'WPSEO_Options' ) ? (int) WPSEO_Options::get( 'company_logo_id' ) : 0;
+    $id    = $yoast ?: ( (int) get_theme_mod( 'custom_logo' ) ?: (int) get_option( 'site_icon' ) );
     $src = $id ? wp_get_attachment_image_src( $id, 'full' ) : false;
     return $src ? array( '@type' => 'ImageObject', 'url' => $src[0], 'width' => (int) $src[1], 'height' => (int) $src[2] ) : null;
 }
@@ -29,14 +30,24 @@ function hr_schema_image( int $attachment_id ): array {
  * @param array  $author    name, url and (optional) description and same_as profile URLs of the byline shown on the page.
  * @param string $scope     CSS class of the template's headline/body ("hr" → .hr-headline / .hr-body).
  */
+/** The post's SEO meta description (Yoast, variables replaced), else its excerpt. */
+function hr_schema_description( int $post_id ): string {
+    $meta = (string) get_post_meta( $post_id, '_yoast_wpseo_metadesc', true );
+    if ( '' !== trim( $meta ) && function_exists( 'wpseo_replace_vars' ) ) {
+        $meta = wpseo_replace_vars( $meta, get_post( $post_id ) );
+    }
+    $meta = hr_schema_text( $meta );
+    return '' !== $meta ? $meta : hr_schema_text( get_the_excerpt( $post_id ) );
+}
+
 function hr_print_article_schema( int $post_id, array $author, string $scope ) {
     $summary = hr_schema_text( get_post_meta( $post_id, '_hr_geo_summary', true ) );
     $schema  = array(
         '@context'            => 'https://schema.org',
-        '@type'               => 'NewsArticle',
+        '@type'               => has_category( 'opinion', $post_id ) ? 'OpinionNewsArticle' : 'NewsArticle',
         'mainEntityOfPage'    => array( '@type' => 'WebPage', '@id' => get_permalink( $post_id ) ),
         'headline'            => hr_schema_text( get_the_title( $post_id ) ),
-        'description'         => hr_schema_text( get_the_excerpt( $post_id ) ),
+        'description'         => hr_schema_description( $post_id ),
         'datePublished'       => get_the_date( 'c', $post_id ),
         'dateModified'        => get_the_modified_date( 'c', $post_id ),
         'image'               => hr_schema_image( (int) get_post_thumbnail_id( $post_id ) ),
