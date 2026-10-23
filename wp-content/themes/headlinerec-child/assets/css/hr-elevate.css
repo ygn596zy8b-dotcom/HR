@@ -866,13 +866,10 @@ body.page:not(.hr-virtual) #main > article.page:has(> .entry-content-wrap) {
     padding: clamp(28px, 5vw, 64px) clamp(16px, 5vw, 64px) clamp(32px, 5vw, 72px);
     background: var(--hr-paper);
 }
-body.page:not(.hr-virtual) #main > article.page > .entry-header { max-width: 72ch; margin: 0 auto var(--hr-s6); padding: 0 0 var(--hr-s5); border-bottom: 1px solid var(--hr-ink); }
-body.page:not(.hr-virtual) #main > article.page > .entry-header::before {
-    content: ""; display: block; width: 18px; height: 2px; margin: 0 0 var(--hr-s4); background: var(--hr-red);
-}
+body.page:not(.hr-virtual) #main > article.page > .entry-header { max-width: 760px; margin: 0 auto var(--hr-s6); padding: 0 0 var(--hr-s5); border-bottom: 1px solid var(--hr-ink); }
 body.page:not(.hr-virtual) #main > article.page > .entry-header h1.entry-title { margin: 0; color: var(--hr-ink); font: 700 clamp(2rem, 1.4rem + 2.4vw, 3.25rem)/1.05 var(--hr-font-head); letter-spacing: -0.02em; }
-body.page:not(.hr-virtual) #main > article.page > .entry-content-wrap { float: none; width: auto; max-width: 72ch; margin: 0 auto; padding: 0; background: none; box-shadow: none; }
-body.page:not(.hr-virtual) #main > article.page .entry-content { color: #2c2c2e; font-size: clamp(1.0625rem, 1rem + 0.2vw, 1.125rem); line-height: 1.75; }
+body.page:not(.hr-virtual) #main > article.page > .entry-content-wrap { float: none; width: auto; max-width: 760px; margin: 0 auto; padding: 0; background: none; box-shadow: none; }
+body.page:not(.hr-virtual) #main > article.page .entry-content { margin: 0; padding: 0; color: #2c2c2e; font-size: clamp(1.0625rem, 1rem + 0.2vw, 1.125rem); line-height: 1.75; }
 body.page:not(.hr-virtual) #main > article.page .entry-content :is(h2, h3) { margin: 2em 0 0.6em; color: var(--hr-ink); font-family: var(--hr-font-head); line-height: 1.2; letter-spacing: -0.015em; }
 body.page:not(.hr-virtual) #main > article.page .entry-content h2 { font-size: clamp(1.375rem, 1.2rem + 0.6vw, 1.625rem); }
 body.page:not(.hr-virtual) #main > article.page .entry-content h3 { font-size: clamp(1.1875rem, 1.1rem + 0.4vw, 1.375rem); }

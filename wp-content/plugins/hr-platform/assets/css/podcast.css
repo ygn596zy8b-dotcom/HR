@@ -116,6 +116,8 @@
 .hrp-podcast-featured .hrp-player { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--hrp-line); }
 .hrp-podcast-featured__title { font-size: clamp(24px, 3.2vw, 36px); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 8px; overflow-wrap: anywhere; }
 .hrp-podcast-featured__title a, .hrp-ep__title a { color: inherit; text-decoration: none; }
+/* Headline links: 44 px tall tap targets without changing the line spacing. */
+.hrp-podcast-featured__title a, .hrp-ep__title a, .hr-podcast-hero__ep a { display: inline-block; padding-block: 8px; margin-block: -8px; }
 .hrp-podcast-featured__title a:hover, .hrp-ep__title a:hover { color: var(--hrp-red-deep); }
 /* Small red text on white uses the deep red (AA contrast); the bright red stays for large type and the dark bands. */
 .hrp-podcast-featured .hrp-eyebrow { color: var(--hrp-red-deep); }
