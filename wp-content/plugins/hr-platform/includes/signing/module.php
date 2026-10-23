@@ -16,6 +16,8 @@ const ALG          = 'ML-DSA-87+Ed448';
 const NS_URI       = 'https://headlinerecorder.com/ns/pqsig/1';
 const ROLE         = 'hr_signer';
 const CAP          = 'hr_sign_content';
+// Signatures live in their own table (store.php). These four meta keys are where older versions kept them; they are
+// read only until the one-time migration has moved them. META_STALE is still post meta (a small queue marker).
 const META_SIG     = '_hr_pqsig';
 const META_SHA     = '_hr_pqsig_sha512';
 const META_KID     = '_hr_pqsig_kid';
@@ -34,6 +36,7 @@ require_once __DIR__ . '/keyset.php';
 require_once __DIR__ . '/canonical.php';
 require_once __DIR__ . '/crypto.php';
 require_once __DIR__ . '/keystore.php';
+require_once __DIR__ . '/store.php';
 require_once __DIR__ . '/rest.php';
 require_once __DIR__ . '/signer.php';
 require_once __DIR__ . '/routes.php';

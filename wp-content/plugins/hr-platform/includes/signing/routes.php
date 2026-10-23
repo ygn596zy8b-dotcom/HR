@@ -45,7 +45,7 @@ function send_not_found(): void {
 
 function serve_signed( string $sub ): void {
     if ( 1 === preg_match( '/^([0-9]{1,20})\.sig\.json$/', $sub, $m ) ) {
-        $doc = signable_post( (int) $m[1] ) ? (string) get_post_meta( (int) $m[1], META_SIG, true ) : '';
+        $doc = signable_post( (int) $m[1] ) ? signature_doc( (int) $m[1] ) : '';
         '' === $doc ? send_not_found() : send_file( $doc, 'application/json; charset=utf-8' );
         return;
     }

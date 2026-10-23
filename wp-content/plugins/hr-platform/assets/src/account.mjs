@@ -443,8 +443,14 @@ function initPasskeyLogin() {
         await finish(cred);
       }
     } catch (err) {
-      if (err && err.name !== 'AbortError' && err.name !== 'NotAllowedError' && !(conditional && conditional.signal.aborted)) showError(passkeyMessage(err, ''));
-      setBusy(button, false);
+      // The button took over (it aborts this request): leave its busy state and messages alone.
+      if (conditional && conditional.signal.aborted) return;
+      // Autofill runs in the background: only a failed sign-in after the reader picked a passkey is worth showing
+      // (not a rate limit or network error on the options call they never asked for).
+      if (button?.getAttribute('aria-busy') === 'true') {
+        showError(passkeyMessage(err, 'We could not sign you in with that passkey.'));
+        setBusy(button, false);
+      }
     }
   })();
 

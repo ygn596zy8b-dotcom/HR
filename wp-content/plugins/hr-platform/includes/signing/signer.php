@@ -72,8 +72,8 @@ function sign_post( int $id ): string {
     if ( ! $post ) {
         return 'not_found';
     }
-    $stored = (string) get_post_meta( $id, META_SHA, true );
-    if ( '' !== $stored && hash_equals( $stored, hash( 'sha512', canonical_bytes( $post ) ) ) && kid_is_valid( (string) get_post_meta( $id, META_KID, true ) ) ) {
+    $record = signature_record( $id );
+    if ( $record && '' !== $record['sha512'] && hash_equals( $record['sha512'], hash( 'sha512', canonical_bytes( $post ) ) ) && kid_is_valid( $record['kid'] ) ) {
         if ( '' !== (string) get_post_meta( $id, META_STALE, true ) ) {
             delete_post_meta( $id, META_STALE ); // a false alarm
         }
@@ -102,6 +102,7 @@ function status_message( string $status ): string {
         'bad_key'       => 'The signing key is not in the published keyset (or was revoked).',
         'invalid'       => 'The signature was malformed, so it was not stored.',
         'not_found'     => 'The article is not public.',
+        'store_failed'  => 'The signature could not be written to the database; it will be tried again shortly.',
     );
     return $map[ $status ] ?? 'Unknown problem (' . $status . ').';
 }
@@ -230,6 +231,7 @@ function sign_pending( float $budget, int $limit = 0, ?array $cursor = null ): a
             break;
         }
         _prime_post_caches( $ids, false, true );
+        prime_signature_records( $ids );
         foreach ( $ids as $id ) {
             if ( microtime( true ) - $start >= $budget || ( $limit > 0 && $out['signed'] >= $limit ) ) {
                 break 2;
@@ -255,33 +257,36 @@ function sign_pending( float $budget, int $limit = 0, ?array $cursor = null ): a
     return $out;
 }
 
-/** An expiring lock (a row in wp_options, claimed with one atomic INSERT or UPDATE). Returns the token or ''. */
-function acquire_lock( int $ttl ): string {
+/**
+ * An expiring lock (a row in wp_options, claimed with one atomic INSERT or UPDATE). Returns the token or ''.
+ * $name defaults to the signing lock; the storage migration (store.php) uses its own.
+ */
+function acquire_lock( int $ttl, string $name = LOCK_OPTION ): string {
     global $wpdb;
     $now   = time();
     $token = ( $now + $ttl ) . '.' . bin2hex( random_bytes( 6 ) );
-    $ok    = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')", LOCK_OPTION, $token ) );
+    $ok    = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')", $name, $token ) );
     if ( ! $ok ) {
-        $ok = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND CAST(SUBSTRING_INDEX(option_value, '.', 1) AS UNSIGNED) < %d", $token, LOCK_OPTION, $now ) );
+        $ok = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND CAST(SUBSTRING_INDEX(option_value, '.', 1) AS UNSIGNED) < %d", $token, $name, $now ) );
     }
-    wp_cache_delete( LOCK_OPTION, 'options' );
+    wp_cache_delete( $name, 'options' );
     return $ok ? $token : '';
 }
 
 /** Extend a lock this process holds (no gap in which another run could start). Returns the new token or ''. */
-function refresh_lock( string $token, int $ttl ): string {
+function refresh_lock( string $token, int $ttl, string $name = LOCK_OPTION ): string {
     global $wpdb;
     $next = ( time() + $ttl ) . '.' . bin2hex( random_bytes( 6 ) );
-    $ok   = '' !== $token && $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $next, LOCK_OPTION, $token ) );
-    wp_cache_delete( LOCK_OPTION, 'options' );
+    $ok   = '' !== $token && $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $next, $name, $token ) );
+    wp_cache_delete( $name, 'options' );
     return $ok ? $next : '';
 }
 
-function release_lock( string $token ): void {
+function release_lock( string $token, string $name = LOCK_OPTION ): void {
     global $wpdb;
     if ( '' !== $token ) {
-        $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", LOCK_OPTION, $token ) );
-        wp_cache_delete( LOCK_OPTION, 'options' );
+        $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", $name, $token ) );
+        wp_cache_delete( $name, 'options' );
     }
 }
 

@@ -142,20 +142,20 @@ add_filter( 'rest_pre_serve_request', function ( $served, $result, $request ) {
 function queue_candidate_ids( int $limit, int $offset, bool $count = false, ?array $before = null ) {
     global $wpdb;
     $kids = valid_kids();
-    $args = array( META_SHA, META_STALE, META_KID );
+    $args = array( META_STALE );
+    [ $join, $sha, $kid ] = signature_sql();
     $kid_clause = '';
     if ( $kids ) {
-        $kid_clause = ' OR k.meta_value NOT IN (' . implode( ',', array_fill( 0, count( $kids ), '%s' ) ) . ')';
+        $kid_clause = " OR {$kid} NOT IN (" . implode( ',', array_fill( 0, count( $kids ), '%s' ) ) . ')';
         $args       = array_merge( $args, $kids );
     } else {
         $kid_clause = ' OR 1 = 1';
     }
     $from = "FROM {$wpdb->posts} p
-        LEFT JOIN {$wpdb->postmeta} h ON h.post_id = p.ID AND h.meta_key = %s
+        {$join}
         LEFT JOIN {$wpdb->postmeta} s ON s.post_id = p.ID AND s.meta_key = %s
-        LEFT JOIN {$wpdb->postmeta} k ON k.post_id = p.ID AND k.meta_key = %s
         WHERE p.post_type = 'post' AND p.post_status = 'publish' AND p.post_password = ''
-          AND ( h.meta_id IS NULL OR s.meta_value = '1' OR k.meta_id IS NULL{$kid_clause} )";
+          AND ( {$sha} IS NULL OR s.meta_value = '1' OR {$kid} IS NULL{$kid_clause} )";
     if ( $before && ! $count ) {
         $from  .= ' AND ( p.post_date_gmt < %s OR ( p.post_date_gmt = %s AND p.ID < %d ) )';
         $args[] = (string) $before[0];
@@ -209,6 +209,7 @@ function rest_queue( \WP_REST_Request $request ) {
             break;
         }
         _prime_post_caches( $ids, false, true );
+        prime_signature_records( $ids );
         $cleared = 0;
         foreach ( $ids as $id ) {
             $post = signable_post( $id );
@@ -217,9 +218,9 @@ function rest_queue( \WP_REST_Request $request ) {
             }
             $canonical = canonical_bytes( $post );
             $sha       = hash( 'sha512', $canonical );
-            $stored    = (string) get_post_meta( $id, META_SHA, true );
+            $record    = signature_record( $id );
             // The stale flag is a hint; the hash decides. A false alarm (e.g. an edit that was undone) is cleared here.
-            if ( '' !== $stored && hash_equals( $stored, $sha ) && kid_is_valid( (string) get_post_meta( $id, META_KID, true ) ) ) {
+            if ( $record && '' !== $record['sha512'] && hash_equals( $record['sha512'], $sha ) && kid_is_valid( $record['kid'] ) ) {
                 delete_post_meta( $id, META_STALE );
                 $cleared++;
                 continue;
@@ -337,7 +338,7 @@ function rest_signatures( \WP_REST_Request $request ) {
 
 /**
  * The one place an article signature is stored, for uploads and for the server's own signer.
- * Returns 'stored', 'not_found', 'invalid', 'bad_key', 'stale' or 'bad_signature'.
+ * Returns 'stored', 'not_found', 'invalid', 'bad_key', 'stale', 'bad_signature' or 'store_failed' (database error).
  */
 function store_article_signature( int $id, $sig ): string {
     $post = $id > 0 ? signable_post( $id ) : null;
@@ -369,13 +370,22 @@ function store_article_signature( int $id, $sig ): string {
         'ed448'     => $sig['ed448'],
         'payload'   => $sig['payload'],
     ), JSON_UNESCAPED_SLASHES );
-    update_post_meta( $id, META_SIG, wp_slash( $doc ) );
-    update_post_meta( $id, META_SHA, $sha );
-    update_post_meta( $id, META_KID, $header['kid'] );
-    update_post_meta( $id, META_AT, (int) $header['signedAtTs'] );
+    // The table, not post meta (store.php): WordPress loads all meta of every post in every loop.
+    if ( ! put_signature( $id, $header['kid'], $sha, (int) $header['signedAtTs'], (string) $doc ) ) {
+        return 'store_failed';
+    }
     delete_post_meta( $id, META_STALE );
+    // The page (its badge) and the signature file changed. The edge module (includes/edge/purge.php) turns these
+    // LiteSpeed purges into Cloudflare purges as well.
     do_action( 'litespeed_purge_post', $id );
     do_action( 'litespeed_purge_url', signature_url( $id ) );
+    /**
+     * A verified article signature was stored.
+     *
+     * @param int    $id  Post ID.
+     * @param string $kid Key ID that signed it.
+     */
+    do_action( 'hr_pqsig_stored', $id, $header['kid'] );
     return 'stored';
 }
 

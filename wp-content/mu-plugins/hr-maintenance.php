@@ -156,6 +156,9 @@ function hr_maintenance_request_path(): string {
 
 /** Machine endpoints that keep answering during maintenance (signing and ACME/security.txt). */
 function hr_maintenance_path_allowed( string $path ): bool {
+    if ( str_contains( $path, '..' ) || str_contains( $path, "\0" ) ) {
+        return false; // "/.well-known/../2026/story/" must not borrow the allowlist
+    }
     $allowed = (array) apply_filters( 'hr_maintenance_allowed_paths', array( '/.well-known/', '/signed/', '/robots.txt' ) );
     foreach ( $allowed as $prefix ) {
         $prefix = (string) $prefix;

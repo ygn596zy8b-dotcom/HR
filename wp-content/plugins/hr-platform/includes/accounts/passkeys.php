@@ -320,7 +320,9 @@ function rest_register_verify( \WP_REST_Request $request ) {
 
 function rest_login_options( \WP_REST_Request $request ) {
     no_store();
-    if ( ! rate_limit( 'pk-login-options', client_ip(), 30, 10 * MINUTE_IN_SECONDS ) ) {
+    // Every sign-in page view asks for options (passkey autofill), and many readers share one carrier-grade NAT
+    // address, so this cheap call gets a roomier limit than the verify step below.
+    if ( ! rate_limit( 'pk-login-options', client_ip(), 60, 10 * MINUTE_IN_SECONDS ) ) {
         return rest_error( 'hr_rate_limited', 'Too many attempts. Please wait a few minutes.', 429 );
     }
     $wa = webauthn();

@@ -4,13 +4,13 @@
 .hr-account-slot .hr-icon{width:16px;height:16px;flex:none}
 .hr-account-slot__guest{display:flex;align-items:center;gap:4px}
 .hr-li .hr-account-slot__guest{visibility:hidden}
-.hr-account-slot__signin{display:inline-flex;align-items:center;gap:6px;padding:10px 10px;color:rgba(255,255,255,.92)!important}
+.hr-account-slot__signin{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:10px;color:rgba(255,255,255,.92)!important}
 .hr-account-slot__signin:hover{color:#fff!important;text-decoration:underline!important;text-underline-offset:4px}
-.hr-account-slot__join{display:inline-flex;align-items:center;padding:7px 12px;border:1.5px solid rgba(255,255,255,.9);color:#fff!important;transition:background-color .2s,color .2s}
+.hr-account-slot__join{position:relative;display:inline-flex;align-items:center;padding:7px 12px;border:1.5px solid rgba(255,255,255,.9);color:#fff!important;transition:background-color .2s,color .2s}
 .hr-account-slot__join:hover{background:#fff;color:#c0001a!important}
 .hr-account-slot a:focus-visible,.hr-acct__btn:focus-visible,.hr-acct-menu a:focus-visible,.hr-acct-menu button:focus-visible{outline:2px solid #fff;outline-offset:2px}
 @media (min-width:769px) and (max-width:1279px){.hr-account-slot__join{display:none}}
-.hr-acct__btn{display:inline-flex;align-items:stretch;gap:0;height:36px;padding:0;margin:0;border:1px solid rgba(255,255,255,.4);background:#050505;color:#fff;cursor:pointer;font:inherit;border-radius:0;transition:border-color .2s}
+.hr-acct__btn{position:relative;display:inline-flex;align-items:stretch;gap:0;height:36px;padding:0;margin:0;border:1px solid rgba(255,255,255,.4);background:#050505;color:#fff;cursor:pointer;font:inherit;border-radius:0;transition:border-color .2s}
 .hr-acct__btn:hover,.hr-acct__btn[aria-expanded=true]{border-color:#fff}
 .hr-acct__avatar{display:grid;place-items:center;width:34px;background:#fff;color:#050505;font:800 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.5px}
 .hr-acct__streak{display:inline-flex;align-items:center;gap:4px;padding:0 10px 0 8px;font-variant-numeric:tabular-nums;font-size:14px}
@@ -21,6 +21,8 @@
 .hr-acct__chev{display:grid;place-items:center;padding:0 8px 0 6px;opacity:.8}
 .hr-acct__chev svg{width:14px;height:14px;transition:transform .2s}
 .hr-acct__btn[aria-expanded=true] .hr-acct__chev svg{transform:rotate(90deg)}
+/* Invisible hit area: 44px tall tap targets without making the boxes heavier on the red bar. */
+.hr-account-slot__join::after,.hr-acct__btn::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
 @keyframes hr-acct-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.18);opacity:.75}}
 .hr-acct-menu{position:fixed;z-index:100000;width:288px;max-width:calc(100vw - 24px);background:#fff;color:#111;border-top:3px solid #ff001c;box-shadow:0 18px 48px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.12);font:15px/1.4 "Source Sans 3","Source Sans Pro",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:left}
 .hr-acct-menu[hidden]{display:none}

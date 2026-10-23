@@ -891,3 +891,48 @@ body #page :is(.sbp-section-header, .sbp-exec-header) {
     border-bottom: 1px solid var(--hr-ink) !important;
 }
 body #page :is(.sbp-executive-spotlight-section, .sbp-dark-terminal-section) .sbp-exec-header { border-bottom-color: #2a2a2f !important; }
+
+/* ==========================================================================
+   13. Whole-card targets: the headline link of a story card stretches over its card (image, labels, date), so
+       every card is one large tap target with a single link in the tab order. Cards hold no other links.
+   ========================================================================== */
+body #page :is(.hr-rail-item, .sbp-remaining-item, .sbp-list-item, .hr-biz-item, .sbp-biz-main), .hr-arc-card { position: relative; }
+body #page :is(.hr-rail-item .sbp-story-title, .sbp-remaining-item .sbp-card-title, .sbp-list-item .sbp-list-title, .hr-biz-item .sbp-card-title, .sbp-biz-main .sbp-biz-main-title) a::after,
+.hr-arc-card .hr-arc-card-title a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+body #page :is(.sbp-biz-main, .hr-biz-item):hover .sbp-card-title a, body #page .sbp-biz-main:hover .sbp-biz-main-title a { background-size: 100% 1px; }
+
+/* Small stand-alone links get at least a 24 x 24 px target on mouse screens too (WCAG 2.5.8); touch keeps 44 (5o). */
+@media (pointer: fine) {
+    :is(.sbp-readmore, .sbp-read-interview, .hr-macro-link, .hr-spotlight-link, .hr-bio-toggle, .hr-cat-toggle, .hr-feat-read,
+        .hr-dn-link, .es-info-link, .trail-item a, .hr-cat-sidebar a[href$="/markets"], .hr-breadcrumb a, .esa-breadcrumb a, .es-top-nav-path a) { position: relative; }
+    :is(.sbp-readmore, .sbp-read-interview, .hr-macro-link, .hr-spotlight-link, .hr-bio-toggle, .hr-cat-toggle, .hr-feat-read,
+        .hr-dn-link, .es-info-link, .trail-item a, .hr-cat-sidebar a[href$="/markets"], .hr-breadcrumb a, .esa-breadcrumb a, .es-top-nav-path a)::before {
+        content: ""; position: absolute; top: 50%; left: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%);
+    }
+    body .hr-footer-wrapper .hr-bottom-socials a { display: inline-grid; place-items: center; min-width: 24px; min-height: 24px; }
+}
+@media (pointer: coarse) {
+    :is(.es-info-link, .hr-author-name a, .hr-meta-author-link, .hr-pqsig-pill) { position: relative; }
+    :is(.es-info-link, .hr-author-name a, .hr-meta-author-link, .hr-pqsig-pill)::before { content: ""; position: absolute; top: 50%; left: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
+    :is(.esa-cta-btn, .hr-sb-link) { min-height: 44px; }
+}
+
+/* ==========================================================================
+   14. Navigation: where am I. The section of the page being read is marked in the red bar (white rule under the
+       label) and in the mobile menu (red rule at the left); hover previews the same rule at half strength.
+   ========================================================================== */
+@media (min-width: 769px) {
+    #site-navigation ul.menu > li > a::after, #site-navigation ul.nav-menu > li > a::after {
+        content: ""; position: absolute; left: 12px; right: 12px; bottom: 6px; height: 2px;
+        background: #ffffff; transform: scaleX(0); transform-origin: 50% 50%;
+        transition: transform var(--hr-dur-2) var(--hr-ease-out), opacity var(--hr-dur-2) var(--hr-ease);
+        pointer-events: none;
+    }
+    #site-navigation ul > li > a:is(:hover, :focus-visible)::after { transform: scaleX(1); opacity: 0.5; }
+    #site-navigation ul > li:is(.current-menu-item, .current-menu-parent, .current-post-parent, .current-category-ancestor, .current-menu-ancestor) > a { color: #ffffff !important; }
+    #site-navigation ul > li:is(.current-menu-item, .current-menu-parent, .current-post-parent, .current-category-ancestor, .current-menu-ancestor) > a::after { transform: scaleX(1); opacity: 1; }
+}
+@media (max-width: 768px) {
+    #site-navigation ul > li:is(.current-menu-item, .current-menu-parent, .current-post-parent, .current-category-ancestor, .current-menu-ancestor) > a { box-shadow: inset 3px 0 0 var(--hr-red); }
+}
+@media (prefers-reduced-motion: reduce) { #site-navigation ul > li > a::after { transition: none; } }

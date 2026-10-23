@@ -97,7 +97,7 @@
     <div class="hr-footer-bottom">
         <div class="hr-bottom-inner">
             <div class="hr-copyright">
-                Copyright &copy; <?php echo esc_html( date( 'Y' ) ); ?> All rights reserved. | Headline Recorder
+                &copy; <?php echo esc_html( wp_date( 'Y' ) ); ?> Headline Recorder. All rights reserved.
             </div>
             <div class="hr-footer-trust"><?php do_action( 'hr_footer_trust' ); ?></div>
             <div class="hr-bottom-socials">

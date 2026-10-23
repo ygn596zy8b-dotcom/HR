@@ -40,7 +40,7 @@
   .hra-inline-fields > .hrp-btn { margin-top: 28px; }
 }
 .hra-field-row { position: relative; }
-.hra-aside-link { position: absolute; top: 0; right: 0; font-size: 14px; font-weight: 600; }
+.hra-aside-link { position: absolute; top: -11px; right: 0; display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; } /* 44px tap target, text still level with the label */
 .hra-or { display: flex; align-items: center; gap: 14px; margin: 22px 0; color: var(--hrp-muted); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
 .hra-or::before, .hra-or::after { content: ""; flex: 1; height: 1px; background: var(--hrp-line); }
 .hra-switch { margin: 28px 0 0; padding-top: 20px; border-top: 1px solid var(--hrp-line); text-align: center; color: var(--hrp-muted); }
@@ -193,12 +193,12 @@
 .hra-card__body { font-size: 15px; color: var(--hrp-muted); }
 .hra-card__body > :first-child { margin-top: 0; }
 .hra-card__body > :last-child { margin-bottom: 0; }
-.hra-card__link { margin-top: auto; display: inline-flex; gap: 6px; align-items: center; font-weight: 700; text-decoration: none; }
+.hra-card__link { margin-top: auto; display: inline-flex; gap: 6px; align-items: center; min-height: 44px; font-weight: 700; text-decoration: none; }
 
 .hra-overview-grid { display: grid; gap: 24px; }
 @media (min-width: 1100px) { .hra-overview-grid { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); align-items: start; } }
 .hra-panel__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 16px; }
-.hra-panel__more { display: inline-flex; gap: 6px; align-items: center; font-weight: 700; text-decoration: none; font-size: 15px; }
+.hra-panel__more { display: inline-flex; gap: 6px; align-items: center; min-height: 44px; font-weight: 700; text-decoration: none; font-size: 15px; }
 .hra-quick .hra-h2 { margin-bottom: 8px; }
 .hra-quick__list { list-style: none; margin: 0; padding: 0; }
 .hra-quick__list li + li { border-top: 1px solid var(--hrp-line); }
@@ -229,8 +229,13 @@
 .hra-checklist__item.is-done .hra-checklist__mark { background: var(--hrp-ink); border-color: var(--hrp-ink); color: #fff; }
 .hra-checklist__text { flex: 1; min-width: 0; display: grid; }
 .hra-checklist__detail { font-size: 14px; color: var(--hrp-muted); }
-.hra .hra-checklist__cta { flex: none; padding: 6px 12px; border: 1.5px solid var(--hrp-red); color: var(--hrp-red-deep); font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; }
+.hra .hra-checklist__cta { flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 6px 12px; border: 1.5px solid var(--hrp-red); color: var(--hrp-red-deep); font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; }
 .hra .hra-checklist__cta:hover { background: var(--hrp-red); color: #fff; }
+@media (max-width: 479px) { /* phones: the action moves under its text instead of squeezing it */
+  .hra-checklist__item { flex-wrap: wrap; }
+  .hra-checklist__text { flex-basis: calc(100% - 42px); }
+  .hra .hra-checklist__cta { margin-left: 42px; }
+}
 
 /* ------------------------------------------------------------------ settings */
 .hra-subnav { margin: 0 0 8px; border-bottom: 1px solid var(--hrp-line); }
@@ -279,7 +284,7 @@
 .hra-stepup__text { margin: 2px 0 0; color: var(--hrp-muted); font-size: 15px; }
 .hra-stepup .hra-or { margin: 16px 0; max-width: 560px; }
 .hra-stepup__alt { margin-top: 14px; }
-.hra-stepup__alt summary { cursor: pointer; color: var(--hrp-red-deep); font-weight: 700; font-size: 15px; }
+.hra-stepup__alt summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--hrp-red-deep); font-weight: 700; font-size: 15px; }
 .hra-stepup__alt .hra-form { margin-top: 12px; }
 
 .hra-codes { margin: 18px 0 0; padding: 20px; border: 2px dashed var(--hrp-ink); background: #fffdf3; }
@@ -332,4 +337,4 @@
 /* Programmatic focus targets (moved to after a page load) do not need a ring; real controls keep theirs. */
 .hra .hra-welcome:focus-visible, .hra .hra-title:focus-visible, .hra .hra-codes:focus-visible { outline: none; box-shadow: none; }
 .hra-alt-methods { list-style: none; margin: 24px 0 0; padding: 18px 0 0; border-top: 1px solid var(--hrp-line); display: grid; gap: 10px; text-align: center; }
-.hra-alt-methods a { font-weight: 700; }
+.hra-alt-methods a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; }

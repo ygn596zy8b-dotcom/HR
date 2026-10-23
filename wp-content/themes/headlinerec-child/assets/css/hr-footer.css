@@ -285,8 +285,9 @@
     }
     .hr-bottom-inner {
         flex-direction: column;
-        gap: 15px;
+        gap: 16px;
         text-align: center;
+        line-height: 1.6;
     }
 }
 

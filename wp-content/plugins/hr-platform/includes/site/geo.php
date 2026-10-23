@@ -2,7 +2,8 @@
 /**
  * Generative-engine optimisation (MSBJ). Yoast writes /llms.txt (a short index); this adds /llms-full.txt (who
  * publishes the site, how to cite it, and the latest articles with their editor-written summaries) so answer
- * engines can quote Headline Recorder accurately and link back. Summaries also become the llms.txt link text.
+ * engines can quote Headline Recorder accurately and link back. Summaries also become the llms.txt link text, and
+ * /llms.txt itself is served by a route here with cache headers (see below).
  */
 
 namespace HR\Platform\Site;
@@ -86,10 +87,73 @@ add_route( 'llms-full', '^llms-full\.txt$', function () {
         $text = llms_full();
         set_transient( 'hr_llms_full', $text, DAY_IN_SECONDS );
     }
-    header( 'Content-Type: text/markdown; charset=utf-8' );
-    header( 'Cache-Control: public, max-age=3600, stale-while-revalidate=86400' );
-    header( 'X-Robots-Tag: noindex' );
+    llms_headers();
     echo $text; // phpcs:ignore WordPress.Security.EscapeOutput -- plain-text Markdown response, not HTML
+} );
+
+/** Response headers for /llms.txt and /llms-full.txt: plain text, cacheable for an hour at the edge and in browsers. */
+function llms_headers(): void {
+    header( 'Content-Type: text/plain; charset=utf-8' );
+    header( 'Cache-Control: public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400' );
+    header( 'X-Robots-Tag: noindex' ); // for answer engines, not a page for search results
+    header( 'X-Content-Type-Options: nosniff' );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// /llms.txt: Yoast writes it as a static file in the web root, which the web server sends with no Cache-Control
+// (so the edge never caches it) and a guessed content type. Yoast writes it to uploads/hr-llms/ instead, and the
+// route below serves it with proper headers. A copy Yoast left in the web root is removed once (only when it is
+// still exactly what Yoast wrote; a hand-made llms.txt is never touched and keeps winning, as static files do).
+// ---------------------------------------------------------------------------------------------------------------
+
+function llms_dir(): string {
+    $uploads = wp_upload_dir( null, false );
+    return trailingslashit( $uploads['basedir'] ) . 'hr-llms';
+}
+
+add_filter( 'wpseo_llmstxt_filesystem_path', static function ( $path ) {
+    $dir = llms_dir();
+    if ( wp_mkdir_p( $dir ) ) {
+        if ( ! file_exists( $dir . '/index.php' ) ) {
+            @file_put_contents( $dir . '/index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+        return $dir;
+    }
+    return $path; // uploads not writable: Yoast keeps its own location
+}, 20 );
+
+add_route( 'llms', '^llms\.txt$', static function () {
+    $file = llms_dir() . '/llms.txt';
+    if ( ! is_readable( $file ) ) {
+        status_header( 404 );
+        nocache_headers();
+        header( 'Content-Type: text/plain; charset=utf-8' );
+        echo 'Not found';
+        return;
+    }
+    llms_headers();
+    header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', (int) filemtime( $file ) ) . ' GMT' );
+    readfile( $file );
+} );
+
+add_action( 'admin_init', static function () {
+    if ( 'v1' === get_option( 'hr_site_llms_moved' ) || ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+    update_option( 'hr_site_llms_moved', 'v1', false );
+    if ( ! function_exists( 'get_home_path' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+    }
+    $old  = trailingslashit( get_home_path() ) . 'llms.txt';
+    $hash = (string) get_option( 'wpseo_llms_txt_content_hash', '' );
+    $new  = apply_filters( 'wpseo_llmstxt_filesystem_path', '' ) . '/llms.txt'; // creates the folder
+    if ( '' !== $hash && $old !== $new && is_readable( $old ) && md5( (string) file_get_contents( $old ) ) === $hash ) {
+        // Copy first, so /llms.txt never goes missing, then drop the root copy that would shadow the route.
+        if ( is_readable( $new ) || @copy( $old, $new ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors
+            @unlink( $old ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+        }
+    }
+    wp_schedule_single_event( time() + 30, 'wpseo_llms_txt_population' ); // Yoast refreshes it in the new place
 } );
 
 foreach ( array( 'clean_post_cache', 'clean_term_cache', 'update_option_hr_platform_settings', 'update_option_blogdescription' ) as $hr_hook ) {
