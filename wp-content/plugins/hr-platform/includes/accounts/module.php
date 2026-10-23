@@ -1,13 +1,13 @@
 <?php
 /**
- * Accounts — reader accounts under /account/: register, verify email, sign in (password, passkeys, two-step
+ * Accounts: reader accounts under /account/: register, verify email, sign in (password, passkeys, two-step
  * verification), forgot/reset, settings, sessions, data export and deletion, the header account chip.
  *
  * ---------------------------------------------------------------------------------------------------------------
  * EXTENSION CONTRACT (for the streaks, submissions and other modules)
  * ---------------------------------------------------------------------------------------------------------------
  *
- * Account pages — apply_filters( 'hr_account_pages', array $pages ):
+ * Account pages: apply_filters( 'hr_account_pages', array $pages ):
  *
  *     add_filter( 'hr_account_pages', function ( array $pages ) {
  *         $pages['submit'] = array(
@@ -28,20 +28,20 @@
  *   reset, logout, two-factor, settings, overview. Logged-out visitors are sent to
  *   /account/login/?redirect_to=<that page>. Every account response is no-store and noindex.
  *
- * Overview cards — apply_filters( 'hr_account_overview_cards', array $cards, WP_User $user ):
+ * Overview cards: apply_filters( 'hr_account_overview_cards', array $cards, WP_User $user ):
  *   each card: array( 'title' => string, 'value' => string, 'body_html' => string (passed through wp_kses_post),
  *   'link' => array( 'label' => string, 'url' => string ) | string URL, 'icon' => icon name, 'order' => int ).
  *
- * Session payload — apply_filters( 'hr_session_payload', array $payload, WP_User $user ): add keys to the JSON that
+ * Session payload: apply_filters( 'hr_session_payload', array $payload, WP_User $user ): add keys to the JSON that
  *   admin-ajax.php?action=hr_session returns to account-chip.js (e.g. 'streak' => array( current, best, today, goal,
  *   met_today, at_risk, freezes )). In the browser: window.HR.session (Promise<payload|null>), event 'hr:session'
  *   on document; dispatch 'hr:streak' (detail = streak object) to update the chip live.
  *
- * Account deletion — do_action( 'hr_account_deleted', int $user_id ): fired once, BEFORE the user is deleted, both when
+ * Account deletion: do_action( 'hr_account_deleted', int $user_id ): fired once, BEFORE the user is deleted, both when
  *   readers delete their own account and when an administrator deletes a user; purge your module's rows for that user.
  *   (Self-service deletion then deletes the reader's unpublished posts/uploads; published ones go to an administrator.)
  *
- * Data export — apply_filters( 'hr_account_export', array $data, int $user_id ): add a top-level key with that
+ * Data export: apply_filters( 'hr_account_export', array $data, int $user_id ): add a top-level key with that
  *   user's data (no secrets). Returned to the reader as a JSON download.
  *
  * Helpers (namespace HR\Platform\Accounts):
@@ -60,9 +60,9 @@
  * Browser (assets/js/account-chip.js, loaded site-wide): window.HR.session is a Promise of the hr_session payload
  *   (or null when signed out) and document fires 'hr:session' once with the same detail. Dispatch
  *   document.dispatchEvent( new CustomEvent( 'hr:streak', { detail: streak } ) ) to update the header chip.
- *   The REST nonce in the payload lives in memory only — never copy it to localStorage/sessionStorage.
+ *   The REST nonce in the payload lives in memory only; never copy it to localStorage/sessionStorage.
  *
- * Staff sign-in policy — apply_filters( 'hr_enforce_staff_mfa', bool $on, ?WP_User $user ): anyone who can
+ * Staff sign-in policy: apply_filters( 'hr_enforce_staff_mfa', bool $on, ?WP_User $user ): anyone who can
  *   edit_posts must have a passkey or two-step verification before using wp-admin. On by default; off with
  *   define( 'HR_ENFORCE_STAFF_MFA', false ); opt-in (filter) on WP_ENVIRONMENT_TYPE 'local' copies.
  *

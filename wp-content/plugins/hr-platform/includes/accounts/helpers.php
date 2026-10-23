@@ -109,7 +109,7 @@ function mark_recent_auth( int $uid ): void {
     update_user_meta( $uid, 'hr_stepup', array_slice( $map, 0, 10, true ) );
 }
 
-// Any successful sign-in (our forms, passkeys, wp-login.php) counts as a fresh authentication for that session —
+// Any successful sign-in (our forms, passkeys, wp-login.php) counts as a fresh authentication for that session,
 // except the email confirmation link, which proves the inbox, not a password, passkey or code.
 add_action( 'wp_login', function ( $login, $user ) {
     if ( $user instanceof \WP_User && 'email-link' !== ( $GLOBALS['hr_accounts_login_method'] ?? '' ) ) {
@@ -299,7 +299,7 @@ function signed_time_age( string $value ): ?int {
 // Encryption at rest (TOTP secrets). Key derived from SECURE_AUTH_KEY/SALT and bound to the user, so a database
 // dump alone reveals nothing and a ciphertext copied to another user's row does not decrypt.
 // Rotating those salts invalidates every enrolment (users then sign in with a recovery code… which also depends on
-// the salts) — reset affected users from their wp-admin profile ("Security" section).
+// the salts). Reset affected users from their wp-admin profile ("Security" section).
 // ---------------------------------------------------------------------------------------------------------------
 
 function key_for( string $purpose, int $uid ): string {
@@ -382,7 +382,7 @@ function first_name( \WP_User $user ): string {
     return mb_substr( (string) $parts[0], 0, 40 );
 }
 
-/** "Chrome on macOS" — coarse on purpose; enough to recognise a device, too little to fingerprint it. */
+/** "Chrome on macOS": coarse on purpose; enough to recognise a device, too little to fingerprint it. */
 function describe_ua( string $ua ): string {
     $ua = substr( $ua, 0, 512 );
     if ( '' === $ua ) {
@@ -424,7 +424,7 @@ function current_ua(): string {
 
 /** "12 Oct 2026, 14:05" in the site's timezone. */
 function fmt_time( int $ts, bool $with_time = true ): string {
-    return $ts > 0 ? wp_date( $with_time ? 'j M Y, H:i' : 'j M Y', $ts ) : '—';
+    return $ts > 0 ? wp_date( $with_time ? 'j M Y, H:i' : 'j M Y', $ts ) : 'unknown';
 }
 
 function rel_time( int $ts ): string {

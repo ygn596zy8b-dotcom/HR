@@ -1,6 +1,6 @@
 <?php
 /**
- * Accounts: wp-admin integration — readers stay on the front end, staff must enrol a passkey or two-step
+ * Accounts: wp-admin integration. Readers stay on the front end, staff must enrol a passkey or two-step
  * verification, Users list columns, an admin-only "reset security" control for locked-out users, WordPress
  * privacy exporters/erasers, and core registration routed to /account/register/.
  */
@@ -107,7 +107,7 @@ add_action( 'admin_notices', function () {
     }
     if ( ! has_mfa( (int) $user->ID ) ) {
         printf(
-            '<div class="notice notice-warning"><p><strong>Protect your staff account.</strong> %s <a href="%s">Add a passkey or turn on two-step verification</a> — it takes about a minute.</p></div>',
+            '<div class="notice notice-warning"><p><strong>Protect your staff account.</strong> %s <a href="%s">Add a passkey or turn on two-step verification</a>. It takes about a minute.</p></div>',
             staff_mfa_enforced( $user ) ? 'Accounts that can edit content must use a passkey or two-step verification before using the dashboard.' : 'Passkeys and two-step verification stop anyone who learns your password.',
             esc_url( account_url( 'settings' ) . '#security' )
         );
@@ -158,7 +158,7 @@ add_filter( 'manage_users_custom_column', function ( $output, $column, $uid ) {
         if ( $count ) {
             $parts[] = sprintf( _n( '%d passkey', '%d passkeys', $count ), $count );
         }
-        return $parts ? esc_html( implode( ' + ', $parts ) ) : '<span aria-label="None">—</span>';
+        return $parts ? esc_html( implode( ' + ', $parts ) ) : 'None';
     }
     return $output;
 }, 10, 3 );

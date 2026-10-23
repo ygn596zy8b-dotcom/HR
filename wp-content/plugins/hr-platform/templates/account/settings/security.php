@@ -29,7 +29,7 @@ $hra_methods  = array( 'password' => 'password', 'passkey' => 'passkey', 'passwo
 
     <?php
     if ( $staff_notice ) {
-        notice( 'warn', 'Accounts that can edit the site must use a passkey or two-step verification before opening the dashboard. Add one below — it takes about a minute — then open the dashboard again.', 'One more step for staff' );
+        notice( 'warn', 'Accounts that can edit the site must use a passkey or two-step verification before opening the dashboard. Add one below (it takes about a minute), then open the dashboard again.', 'One more step for staff' );
     }
     render( 'account/checklist', array( 'checklist' => $checklist, 'score' => $score, 'level' => $level ) );
     ?>
@@ -38,7 +38,7 @@ $hra_methods  = array( 'password' => 'password', 'passkey' => 'passkey', 'passwo
         <p class="hrp-error hra-inline-error" role="alert"><?php echo icon( 'x' ); // phpcs:ignore -- static SVG ?><span><?php echo esc_html( $hra_sec_err['_form'] ); ?></span></p>
     <?php endif; ?>
     <?php if ( $recent ) : ?>
-        <p class="hra-unlocked" data-hra-countdown="<?php echo (int) $recent_left; ?>"><?php echo icon( 'shield-check' ); // phpcs:ignore -- static SVG ?><span>Identity confirmed — you can change security settings for <strong data-hra-countdown-text><?php echo esc_html( (string) max( 1, (int) ceil( $recent_left / 60 ) ) ); ?> min</strong>.</span></p>
+        <p class="hra-unlocked" data-hra-countdown="<?php echo (int) $recent_left; ?>"><?php echo icon( 'shield-check' ); // phpcs:ignore -- static SVG ?><span>Identity confirmed. You can change security settings for <strong data-hra-countdown-text><?php echo esc_html( (string) max( 1, (int) ceil( $recent_left / 60 ) ) ); ?> min</strong>.</span></p>
     <?php else : ?>
         <?php step_up_panel( 'security' ); ?>
     <?php endif; ?>
@@ -119,7 +119,7 @@ $hra_methods  = array( 'password' => 'password', 'passkey' => 'passkey', 'passwo
         <?php if ( null !== $codes ) : ?>
             <div class="hra-codes" data-hra-codes tabindex="-1" data-autofocus>
                 <p class="hra-codes__title"><?php echo icon( 'lock' ); // phpcs:ignore -- static SVG ?><?php echo $codes_new ? 'Two-step verification is on. Save your recovery codes.' : 'Your new recovery codes'; ?></p>
-                <p>If you lose your phone, each code lets you sign in once. <strong>This is the only time we will show them</strong> — store them in a password manager or print them.</p>
+                <p>If you lose your phone, each code lets you sign in once. <strong>This is the only time we will show them</strong>, so store them in a password manager or print them.</p>
                 <ol class="hra-codes__list" data-hra-code-list>
                     <?php foreach ( $codes as $hra_code ) : ?><li><code><?php echo esc_html( $hra_code ); ?></code></li><?php endforeach; ?>
                 </ol>
@@ -131,7 +131,7 @@ $hra_methods  = array( 'password' => 'password', 'passkey' => 'passkey', 'passwo
         <?php endif; ?>
 
         <?php if ( $totp_on ) : ?>
-            <p class="hra-status">On since <?php echo esc_html( fmt_time( $totp_since, false ) ); ?> · <strong><?php echo (int) $recovery_left; ?></strong> of 10 recovery codes left<?php echo $recovery_left <= 3 ? ' — generate a new set soon' : ''; ?>.</p>
+            <p class="hra-status">On since <?php echo esc_html( fmt_time( $totp_since, false ) ); ?> · <strong><?php echo (int) $recovery_left; ?></strong> of 10 recovery codes left<?php echo $recovery_left <= 3 ? '. Generate a new set soon' : ''; ?>.</p>
             <?php if ( $recent ) : ?>
                 <div class="hra-actions">
                     <form method="post" action="<?php echo esc_url( $hra_action . '#two-step' ); ?>" class="hra-inline-form" data-hra-form data-hra-confirm="Create new recovery codes? Your current codes will stop working.">

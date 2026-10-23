@@ -1,6 +1,6 @@
 <?php
 /**
- * Accounts: the small rendering kit the templates share — fields with inline errors, error summary, notices,
+ * Accounts: the small rendering kit the templates share: fields with inline errors, error summary, notices,
  * flash messages, page shells and asset loading.
  */
 
@@ -151,7 +151,7 @@ function flash_messages(): array {
         'email_sent'      => array( 'ok', 'We sent a confirmation link to the new address. Your email changes once you open it.', 'Check your inbox' ),
         'verify_sent'     => array( 'ok', 'We sent you a new confirmation link. It works for 48 hours.', 'Check your inbox' ),
         'verify_limited'  => array( 'warn', 'You have asked for several links already. Please wait an hour and try again.', '' ),
-        'stepup_ok'       => array( 'ok', 'Thanks — you can make security changes for the next 10 minutes.', '' ),
+        'stepup_ok'       => array( 'ok', 'Thanks. You can make security changes for the next 10 minutes.', '' ),
         'passkey_added'   => array( 'ok', 'Your passkey is ready. Next time, sign in with your fingerprint, face or screen lock.', 'Passkey added' ),
         'passkey_renamed' => array( 'ok', 'Passkey renamed.', '' ),
         'passkey_removed' => array( 'ok', 'Passkey removed.', '' ),
@@ -159,7 +159,7 @@ function flash_messages(): array {
         'totp_expired'    => array( 'warn', 'The setup took too long. Start again to get a fresh QR code.', '' ),
         'others_out'      => array( 'ok', 'Every other session has been signed out.', '' ),
         'session_out'     => array( 'ok', 'That session has been signed out.', '' ),
-        'staff_mfa'       => array( 'warn', 'Staff accounts need a passkey or two-step verification before opening the dashboard. Add one below — it takes a minute.', 'One more step' ),
+        'staff_mfa'       => array( 'warn', 'Staff accounts need a passkey or two-step verification before opening the dashboard. Add one below; it takes a minute.', 'One more step' ),
         'csrf'            => array( 'error', 'This page was open for too long or the request could not be verified. Please try again.', '' ),
         'rate_limited'    => array( 'error', 'Too many attempts. Please wait a while and try again.', '' ),
     );

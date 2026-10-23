@@ -286,7 +286,7 @@ function initReveal() {
 const WORDS = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'];
 const TIPS = [
   'Avoid common words and patterns. Try three or four random words.',
-  'Easy to guess. Add another word or two — uncommon words are best.',
+  'Easy to guess. Add another word or two. Uncommon words are best.',
   'Getting there. A few more characters will make it much stronger.',
   'Good password. Longer is even better.',
   'Excellent. This would take an attacker centuries.',
@@ -589,7 +589,7 @@ async function copyText(text, done = 'Copied to clipboard') {
     await navigator.clipboard.writeText(text);
     toast(done);
   } catch {
-    toast('Copy failed — select the text and copy it manually.');
+    toast('Copy failed. Select the text and copy it manually.');
   }
 }
 
@@ -599,7 +599,7 @@ function initCodes() {
   doc.querySelector('[data-hra-download-codes]')?.addEventListener('click', () => {
     const host = location.hostname;
     const text = [
-      'Headline Recorder — two-step verification recovery codes',
+      'Headline Recorder: two-step verification recovery codes',
       `Account site: ${host}`,
       `Created: ${new Date().toLocaleString()}`,
       '',

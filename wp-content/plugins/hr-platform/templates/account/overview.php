@@ -19,7 +19,9 @@ $hra_submit = page_url( 'submit' );
 ?>
 <header class="hra-hello" data-hra-reveal>
     <h1 class="hra-page-title"><?php echo esc_html( $greeting . ', ' . $first ); ?></h1>
-    <p class="hra-muted">Member since <?php echo esc_html( $since ? wp_date( 'F Y', $since ) : '—' ); ?></p>
+    <?php if ( $since ) : ?>
+        <p class="hra-muted">Member since <?php echo esc_html( wp_date( 'F Y', $since ) ); ?></p>
+    <?php endif; ?>
 </header>
 
 <?php if ( $welcome ) : ?>
@@ -36,7 +38,7 @@ $hra_submit = page_url( 'submit' );
             </li>
             <li>
                 <span class="hra-next__num">2</span>
-                <span class="hra-next__body"><strong>Add a passkey</strong> — sign in with your fingerprint or face. No password to forget, nothing to phish.</span>
+                <span class="hra-next__body"><strong>Add a passkey</strong> and sign in with your fingerprint or face. No password to forget, nothing to phish.</span>
                 <a class="hra-next__cta" href="<?php echo esc_url( account_url( 'settings' ) . '#passkeys' ); ?>">Add a passkey <?php echo icon( 'arrow-right' ); // phpcs:ignore -- static SVG ?></a>
             </li>
             <li>

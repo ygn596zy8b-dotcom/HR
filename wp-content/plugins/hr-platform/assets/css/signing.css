@@ -93,7 +93,7 @@
 .hr-verify-live[data-state="same"] { border-left-color: var(--hrp-ok, #00875a); }
 .hr-verify-live[data-state="changed"] { border-left-color: var(--hrp-warn, #b45309); }
 .hr-verify-live[data-state="checking"] { color: var(--hrp-muted, #5f5f66); font-weight: 400; }
-/* border: 0 first — the parent theme frames every <dl> (2px border, 2.5em padding). */
+/* border: 0 first: the parent theme frames every <dl> (2px border, 2.5em padding). */
 .hr-verify .hr-verify-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 20px; margin: 16px 0 0; padding: 16px 0 0; border: 0; border-top: 1px solid rgba(0, 0, 0, .08); background: none; }
 .hr-verify-dl dt { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--hrp-muted, #5f5f66); padding-top: 2px; }
 .hr-verify-dl dd { margin: 0; font-family: var(--hrp-mono, monospace); font-size: 13px; overflow-wrap: anywhere; color: var(--hrp-ink, #111); }

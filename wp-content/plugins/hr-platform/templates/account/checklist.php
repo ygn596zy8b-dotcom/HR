@@ -32,7 +32,7 @@ $hra_total = count( $checklist );
                     <span class="hra-checklist__detail"><?php echo esc_html( $hra_item['detail'] ); ?></span>
                 </span>
                 <?php if ( ! $hra_item['done'] ) : ?>
-                    <a class="hra-checklist__cta" href="<?php echo esc_url( $hra_item['url'] ); ?>"><?php echo esc_html( $hra_item['cta'] ); ?><span class="hrp-sr"> — <?php echo esc_html( $hra_item['title'] ); ?></span></a>
+                    <a class="hra-checklist__cta" href="<?php echo esc_url( $hra_item['url'] ); ?>"><?php echo esc_html( $hra_item['cta'] ); ?><span class="hrp-sr">: <?php echo esc_html( $hra_item['title'] ); ?></span></a>
                 <?php endif; ?>
             </li>
         <?php endforeach; ?>

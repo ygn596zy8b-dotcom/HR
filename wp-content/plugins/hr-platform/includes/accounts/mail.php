@@ -81,7 +81,7 @@ function text_version( array $c ): string {
         $lines[] = wordwrap( (string) $c['note'], 76 );
         $lines[] = '';
     }
-    $lines[] = '—';
+    $lines[] = '--';
     $lines[] = 'Headline Recorder · ' . home_url( '/' );
     return implode( "\n", $lines );
 }
@@ -105,7 +105,7 @@ function mail_verify( \WP_User $user, string $url ): void {
         ),
         'button'     => array( 'label' => 'Confirm my email', 'url' => $url ),
         'after'      => array( 'This link works once and expires in 48 hours.' ),
-        'note'       => 'If you did not create an account, you can ignore this email — nothing happens unless the link is opened and confirmed.',
+        'note'       => 'If you did not create an account, you can ignore this email. Nothing happens unless the link is opened and confirmed.',
     ) );
 }
 

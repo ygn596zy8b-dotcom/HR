@@ -1,6 +1,6 @@
 <?php
 /**
- * Accounts: /account/settings/ — profile, email change, password, security (passkeys, two-step verification,
+ * Accounts: /account/settings/: profile, email change, password, security (passkeys, two-step verification,
  * recovery codes, sessions, score) and privacy (export, delete). Every handler acts on the signed-in user only;
  * object ids from the form (passkey id, session id) are always matched together with that user's id.
  */
@@ -319,7 +319,7 @@ function revoke_session( int $uid, string $id ): void {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Security score — honest: each item is either verifiably done or not.
+// Security score, kept honest: each item is either verifiably done or not.
 // ---------------------------------------------------------------------------------------------------------------
 
 function security_checklist( \WP_User $user ): array {
@@ -342,7 +342,7 @@ function security_checklist( \WP_User $user ): array {
             'key'    => 'email',
             'done'   => is_verified( $uid ),
             'title'  => 'Confirm your email',
-            'detail' => is_verified( $uid ) ? 'Confirmed — you can always recover your account.' : 'So you can recover your account and get security alerts.',
+            'detail' => is_verified( $uid ) ? 'Confirmed, so you can always recover your account.' : 'So you can recover your account and get security alerts.',
             'url'    => $settings . '#email',
             'cta'    => 'Confirm',
         ),
@@ -358,7 +358,7 @@ function security_checklist( \WP_User $user ): array {
             'key'    => 'passkey',
             'done'   => passkey_count( $uid ) > 0,
             'title'  => 'Add a passkey',
-            'detail' => passkey_count( $uid ) > 0 ? sprintf( _n( '%d passkey — phishing-proof sign-in.', '%d passkeys — phishing-proof sign-in.', passkey_count( $uid ) ), passkey_count( $uid ) ) : 'Sign in with your fingerprint, face or screen lock. Cannot be phished.',
+            'detail' => passkey_count( $uid ) > 0 ? sprintf( _n( '%d passkey: phishing-proof sign-in.', '%d passkeys: phishing-proof sign-in.', passkey_count( $uid ) ), passkey_count( $uid ) ) : 'Sign in with your fingerprint, face or screen lock. Cannot be phished.',
             'url'    => $settings . '#passkeys',
             'cta'    => 'Add',
         ),
@@ -366,7 +366,7 @@ function security_checklist( \WP_User $user ): array {
             'key'    => 'totp',
             'done'   => has_totp( $uid ),
             'title'  => 'Two-step verification',
-            'detail' => has_totp( $uid ) ? 'On — a code from your phone protects password sign-ins.' : 'A code from your phone stops anyone who learns your password.',
+            'detail' => has_totp( $uid ) ? 'On. A code from your phone protects password sign-ins.' : 'A code from your phone stops anyone who learns your password.',
             'url'    => $settings . '#two-step',
             'cta'    => 'Turn on',
         ),
@@ -375,7 +375,7 @@ function security_checklist( \WP_User $user ): array {
 
 function security_level( int $score ): array {
     return array(
-        array( 'At risk', 'Start with the first step below — each one takes about a minute.' ),
+        array( 'At risk', 'Start with the first step below. Each one takes about a minute.' ),
         array( 'Basic', 'A good start. A passkey is the single biggest upgrade you can make.' ),
         array( 'Good', 'Solid. One or two more steps and your account is very hard to break into.' ),
         array( 'Strong', 'Excellent protection. One last step for a perfect score.' ),
@@ -458,8 +458,8 @@ function handle_delete( \WP_User $user ): array {
 
 /**
  * Before a reader's account is deleted: anything already published (e.g. an accepted op-ed, with its images) stays on
- * the site, credited to the publication; everything else they authored — drafts, pending submissions, uploads such as
- * a headshot — is deleted, as the deletion page promises. Returns the administrator to reassign the published posts
+ * the site, credited to the publication; everything else they authored (drafts, pending submissions, uploads such as
+ * a headshot) is deleted, as the deletion page promises. Returns the administrator to reassign the published posts
  * to, or null when nothing is kept (wp_delete_user() then deletes the rest).
  */
 function purge_unpublished_content( int $uid ): ?int {

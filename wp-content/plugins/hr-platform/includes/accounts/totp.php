@@ -1,6 +1,6 @@
 <?php
 /**
- * Accounts: two-step verification — TOTP (RFC 6238: SHA-1, 30 s, 6 digits, ±1 step, replay-protected), single-use
+ * Accounts: two-step verification: TOTP (RFC 6238: SHA-1, 30 s, 6 digits, ±1 step, replay-protected), single-use
  * recovery codes, and the "Authentication code" field on wp-login.php for staff.
  *
  * Storage (user meta): hr_totp = sealed secret (helpers.php seal()), hr_totp_on = enabled timestamp,
@@ -171,7 +171,7 @@ function verify_second_factor( int $uid, string $input ) {
         $user = get_userdata( $uid );
         if ( $user ) {
             $left = recovery_remaining( $uid );
-            mail_security_notice( $user, 'A recovery code was used', sprintf( 'A recovery code was just used to confirm a sign-in to your account. You have %d left%s.', $left, $left <= 3 ? ' — generate a new set in Settings → Security' : '' ) );
+            mail_security_notice( $user, 'A recovery code was used', sprintf( 'A recovery code was just used to confirm a sign-in to your account. You have %d left.%s', $left, $left <= 3 ? ' Generate a new set in Settings → Security.' : '' ) );
         }
         log_security( 'recovery_code_used', array( 'uid' => $uid ) );
         return 'recovery';
