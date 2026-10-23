@@ -19,8 +19,8 @@ const HR_PHP_GUARD_FIXED = array( '8.2' => '8.2.35', '8.3' => '8.3.36', '8.4' =>
  * status: patched | vulnerable | unsupported (branch older than 8.2, no fix exists).
  */
 function hr_php_guard_state( ?string $version = null, ?bool $upload_progress = null ): array {
-    $version = $version ?? sprintf( '%d.%d.%d', PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION );
-    $parts   = array_map( 'intval', explode( '.', $version ) + array( 0, 0, 0 ) );
+    $version = hr_php_guard_normalise( $version ?? sprintf( '%d.%d.%d', PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION ) );
+    $parts   = array_map( 'intval', explode( '.', $version ) );
     $branch  = $parts[0] . '.' . $parts[1];
     $fixed   = HR_PHP_GUARD_FIXED[ $branch ] ?? '';
     if ( '' !== $fixed ) {
@@ -36,6 +36,17 @@ function hr_php_guard_state( ?string $version = null, ?bool $upload_progress = n
         'status'          => $status,
         'upload_progress' => (bool) $upload_progress,
     );
+}
+
+/**
+ * "8.4.27-1+ubuntu24.04.1+deb.sury.org+1", "8.4.27RC1", "7.0" -> "8.4.27", "8.4.27", "7.0.0": only the numeric
+ * major.minor.release part counts (distribution suffixes would otherwise make version_compare() call a patched
+ * build older, and a bare "7.0" sorts before "7.0.0").
+ */
+function hr_php_guard_normalise( string $version ): string {
+    return preg_match( '/^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?/', $version, $m )
+        ? sprintf( '%d.%d.%d', $m[1], $m[2] ?? 0, $m[3] ?? 0 )
+        : '0.0.0';
 }
 
 /** Plain-language steps to get a patched PHP on cPanel / LiteSpeed hosting. */
@@ -162,6 +173,7 @@ function hr_php_guard_test_upload_progress(): array {
  * 7.0.0-7.0.1, fixed in 6.9.5 and 7.0.2) and any update WordPress already knows about (no request made here).
  */
 function hr_php_guard_wp_affected( string $version ): bool {
+    $version = hr_php_guard_normalise( $version );
     return ( version_compare( $version, '6.9.0', '>=' ) && version_compare( $version, '6.9.5', '<' ) )
         || ( version_compare( $version, '7.0.0', '>=' ) && version_compare( $version, '7.0.2', '<' ) );
 }

@@ -45,9 +45,12 @@ $created_posts[] = $id0;
 flush_pending();
 $check( array() === $pending() && array() === $calls && false === get_option( QUEUE_OPTION ), 'constants absent: nothing queued, no API call' );
 
+$check( ttl( 'single' ) === min( TTL_DEFAULTS['single'], ttl( 'list' ) ) && ttl( 'signed' ) <= ttl( 'list' ), 'constants absent: article and signature lifetimes capped at the home page value (' . ttl( 'single' ) . 's)' );
+
 define( 'HR_CF_ZONE_ID', str_repeat( 'ab12', 8 ) );
 define( 'HR_CF_API_TOKEN', 'edgeTestToken_0123456789abcdefABCDEF' );
 $check( purge_configured(), 'constants present: purge configured' );
+$check( ttl( 'single' ) === (int) ( is_numeric( \HR\Platform\setting( 'edge_ttl_single' ) ) ? \HR\Platform\setting( 'edge_ttl_single' ) : TTL_DEFAULTS['single'] ), 'constants present: full article lifetime (' . ttl( 'single' ) . 's)' );
 
 // ---- 2. Publish a post with a category and 40 tags: exact batches of <= 30 ----------------------------------------
 $reset();
@@ -100,6 +103,7 @@ wp_untrash_post( $id );
 wp_publish_post( $id );
 
 // ---- 4. Stored signature and signed feed snapshot -------------------------------------------------------------
+delete_post_meta( $id, '_hr_pqsig_at' ); // the signer may already have stored the same value this second
 $reset();
 update_post_meta( $id, '_hr_pqsig_at', time() );
 $check( in_array( home_url( "/signed/{$id}.sig.json" ), $pending(), true ) && in_array( get_permalink( $id ), $pending(), true ), 'signature meta: /signed/<id>.sig.json and the article queued' );
@@ -152,11 +156,12 @@ $check( 1 === count( $calls ) && array( 'purge_everything' => true ) === $calls[
 // ---- 9. Cache-header policy (decide) ----------------------------------------------------------------------------
 $base = array( 'method' => 'GET', 'path' => '/2026/10/17/story/', 'query' => '', 'cookies' => array(), 'logged_in' => false, 'login_page' => false, 'status' => 200,
     'headers' => array( 'content-type' => array( 'text/html; charset=UTF-8' ) ), 'no_store' => false, 'route' => '', 'search' => false, 'preview' => false,
-    'trackback' => false, 'password' => false, 'feed' => false, 'singular' => true, 'front' => false );
+    'trackback' => false, 'password' => false, 'feed' => false, 'singular' => true, 'front' => false, 'form' => false );
 $cases = array(
     'guest article'                => array( array(), true, 'single' ),
     'guest home'                   => array( array( 'singular' => false, 'front' => true, 'path' => '/' ), true, 'list' ),
     'utm link'                     => array( array( 'query' => 'utm_source=x&fbclid=y' ), true, 'single' ),
+    'contact form page'            => array( array( 'form' => true ), true, 'form' ),
     'other query'                  => array( array( 'query' => 'p=1' ), false, 'query' ),
     'logged-in cookie'             => array( array( 'cookies' => array( 'wordpress_logged_in_abc' ) ), false, 'cookie' ),
     'hr_li cookie'                 => array( array( 'cookies' => array( 'hr_li' ) ), false, 'cookie' ),
@@ -189,6 +194,8 @@ foreach ( $cases as $name => [ $over, $cache, $expect ] ) {
     $d = decide( array_merge( $base, $over ) );
     $check( $d['cache'] === $cache && ( $cache ? $d['kind'] : $d['reason'] ) === $expect, sprintf( 'policy: %s -> %s', $name, $cache ? "public ({$expect})" : "bypass ({$expect})" ) );
 }
+$check( decide( array_merge( $base, array( 'query' => 'utm_source=x' ) ) )['ttl'] <= ttl( 'list' ), 'policy: tracking-tagged copy (cannot be purged) lives no longer than a home page' );
+$check( decide( array_merge( $base, array( 'form' => true ) ) )['ttl'] === ttl( 'form' ), 'policy: contact form page gets the form lifetime (' . ttl( 'form' ) . 's)' );
 $cc = cache_control_values( array( 'kind' => 'single', 'ttl' => 3600 ) );
 $check( 'public, max-age=0, s-maxage=3600, stale-while-revalidate=' . ttl( 'swr' ) . ', stale-if-error=' . ttl( 'sie' ) === $cc['cache-control'], 'Cache-Control format: ' . $cc['cache-control'] );
 

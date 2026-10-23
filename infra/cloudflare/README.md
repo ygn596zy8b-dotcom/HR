@@ -32,10 +32,13 @@ Honest limit: browsers negotiate ML-KEM-768 hybrids today; no browser offers ML-
    or `digicert.com` entries if you use Universal SSL; Cloudflare lists the exact ones on the CAA page).
 6. **Security → WAF → Custom rules:**
    - Block `http.request.uri.path eq "/xmlrpc.php"`.
-   - Managed challenge on `/wp-login.php` and `/account/login/` when `cf.threat_score gt 10`.
+   - Managed challenge on `/wp-login.php` (every visitor; staff pass it once per session, usually without a click).
+     Do not build rules on `cf.threat_score`: Cloudflare has retired it and it is always 0.
    - Block `http.request.uri.path contains "/wp-content/duplicator-backups"` (defence in depth).
-7. **Security → WAF → Rate limiting rules:** `/account/login/`, `/account/register/`, `/account/forgot/`,
-   `/wp-login.php`: 10 requests / 1 minute per IP → block 10 minutes. (The application also rate-limits.)
+7. **Security → WAF → Rate limiting rules:** the Free plan allows one rule with a 10-second window and a
+   10-second block. Use it for `/account/login/`, `/account/register/`, `/account/forgot/` and `/wp-login.php`
+   (URI Path is in that list, method POST): 5 requests / 10 seconds per IP → block for 10 seconds. Longer windows and
+   blocks need a paid plan; the application also rate-limits these forms itself.
 8. **Caching:** follow `docs/PERFORMANCE.md`, "Cloudflare setup (exact clicks)": three Cache Rules (static files,
    anonymous HTML that respects the site's own `Cache-Control`, and a last rule that bypasses the cache for the
    `wordpress_logged_in_`, `wordpress_sec_`, `wp-postpass_`, `comment_author_` and `hr_li` cookies and for

@@ -4,7 +4,7 @@
 
 Turn it on at the DNS host, then add the DS record it gives you at the registrar.
 
-- Algorithm: **13 (ECDSA P-256/SHA-256)** — the most widely validated choice — or **15 (Ed25519)** if the host offers it.
+- Algorithm: **13 (ECDSA P-256/SHA-256)** (the most widely validated choice) or **15 (Ed25519)** if the host offers it.
 - There is **no post-quantum DNSSEC algorithm** standardised or deployable today. DNSSEC protects *integrity at query time*,
   not confidentiality, so it is not exposed to harvest-now-decrypt-later; migrate when a PQ algorithm is standardised.
 - Check: `delv example.com A` should print `; fully validated`, or use https://dnsviz.net.

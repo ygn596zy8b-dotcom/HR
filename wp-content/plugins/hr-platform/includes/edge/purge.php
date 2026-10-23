@@ -446,7 +446,8 @@ add_action( 'hr_settings_section_after', static function ( $section ) {
                         <strong>Zone &gt; Cache Purge &gt; Purge</strong> for this site's zone, then add to <code>wp-config.php</code>:<br>
                         <code>define( 'HR_CF_ZONE_ID', 'zone ID from the Cloudflare Overview page' );</code><br>
                         <code>define( 'HR_CF_API_TOKEN', 'the token' );</code><br>
-                        Step-by-step: docs/PERFORMANCE.md, "Connect the purge".
+                        Step-by-step: docs/PERFORMANCE.md, "Connect the purge".<br>
+                        Until then articles and signature files are kept at most <?php echo (int) ttl( 'list' ); ?> seconds at the edge, so a correction cannot get stuck there.
                     <?php endif; ?>
                 </td>
             </tr>

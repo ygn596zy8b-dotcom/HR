@@ -8,7 +8,7 @@ Find the real sending services first: cPanel mail (the host), WP Mail SMTP's con
 Google Workspace/Microsoft 365 if used. Every service that sends as `@headlinerecorder.com` must appear in SPF and
 sign with DKIM, or DMARC will (correctly) reject its mail.
 
-## 1. SPF — who may send
+## 1. SPF: who may send
 
 ```dns
 headlinerecorder.com.  TXT  "v=spf1 include:<host-or-provider-spf> include:servers.mcsv.net -all"
@@ -16,13 +16,13 @@ headlinerecorder.com.  TXT  "v=spf1 include:<host-or-provider-spf> include:serve
 
 `-all` (hard fail) once the list is complete. Keep the total DNS lookups under 10 (check with an SPF validator).
 
-## 2. DKIM — signatures on outgoing mail
+## 2. DKIM: signatures on outgoing mail
 
 Enable DKIM in cPanel (Email → Email Deliverability) and in each provider; publish the TXT/CNAME records they give.
 Use 2048-bit keys. (Post-quantum DKIM does not exist yet; DKIM protects integrity at delivery time, so harvest-now
 attacks do not apply.)
 
-## 3. DMARC — what receivers do with forgeries
+## 3. DMARC: what receivers do with forgeries
 
 Start in monitoring mode for two weeks, then enforce:
 
@@ -32,7 +32,7 @@ _dmarc.headlinerecorder.com.  TXT  "v=DMARC1; p=none; rua=mailto:dmarc@headliner
 _dmarc.headlinerecorder.com.  TXT  "v=DMARC1; p=reject; pct=100; rua=mailto:dmarc@headlinerecorder.com; fo=1; adkim=s; aspf=s; sp=reject"
 ```
 
-## 4. MTA-STS + TLS-RPT — encrypted, authenticated delivery to our mailboxes
+## 4. MTA-STS + TLS-RPT: encrypted, authenticated delivery to our mailboxes
 
 ```dns
 _mta-sts.headlinerecorder.com.   TXT  "v=STSv1; id=20261018"

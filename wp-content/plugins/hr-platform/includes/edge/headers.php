@@ -20,7 +20,7 @@
  * Shareable responses get:
  *   Cache-Control: public, max-age=<browser>, s-maxage=<edge>, stale-while-revalidate=<swr>, stale-if-error=<sie>
  *   CDN-Cache-Control: max-age=<edge>, stale-while-revalidate=<swr>, stale-if-error=<sie>
- *   X-HR-Cache: public; kind=<single|list|feed|signed|gone>; ttl=<edge>   (or "bypass; reason=<why>")
+ *   X-HR-Cache: public; kind=<single|form|list|feed|signed|gone>; ttl=<edge>   (or "bypass; reason=<why>")
  */
 
 namespace HR\Platform\Edge;
@@ -119,12 +119,33 @@ function request_context(): ?array {
         'feed'         => $sitemap || is_feed(),
         'singular'     => is_singular() && ! is_front_page(),
         'front'        => is_front_page() || is_home(),
+        'form'         => has_contact_form(),
     );
 }
 
 /**
+ * True on pages that print a Contact Form 7 form (the Contact and PR & Media templates, or content that embeds one).
+ * Their HTML carries a spam-check token that expires, so they get the short "form" lifetime.
+ */
+function has_contact_form(): bool {
+    if ( ! is_singular() ) {
+        return false;
+    }
+    $content = (string) get_post_field( 'post_content', get_queried_object_id() );
+    $form    = is_page( array( 'contact-us', 'pr-media' ) ) || has_shortcode( $content, 'contact-form-7' ) || str_contains( $content, '<!-- wp:contact-form-7/' );
+    return (bool) apply_filters( 'hr_edge_has_contact_form', $form );
+}
+
+// LiteSpeed Cache keeps pages for a week by default: give form pages the same short lifetime at the origin.
+add_action( 'wp', static function () {
+    if ( ! is_admin() && headers_enabled() && has_contact_form() && ttl( 'form' ) > 0 ) {
+        do_action( 'litespeed_control_set_ttl', ttl( 'form' ), 'hr-edge contact form page' );
+    }
+} );
+
+/**
  * Pure policy: returns array( 'cache' => bool, 'kind' => string, 'ttl' => int, 'reason' => string, 'personal' => bool,
- * 'html' => bool ). 'kind' is single|list|feed|signed|gone when cache is true.
+ * 'html' => bool ). 'kind' is single|form|list|feed|signed|gone when cache is true.
  */
 function decide( array $c ): array {
     $no  = static fn( string $reason, bool $personal = false ) => array( 'cache' => false, 'kind' => '', 'ttl' => 0, 'reason' => $reason, 'personal' => $personal, 'html' => is_html( $c ) );
@@ -183,12 +204,17 @@ function decide( array $c ): array {
         } elseif ( $c['feed'] || preg_match( '#^(application|text)/((rss|atom)\+)?xml\b#i', content_type( $c ) ) ) {
             $kind = 'feed';
         } elseif ( is_html( $c ) ) {
-            $kind = $c['singular'] && ! $c['front'] ? 'single' : 'list';
+            $kind = ! empty( $c['form'] ) ? 'form' : ( $c['singular'] && ! $c['front'] ? 'single' : 'list' );
         } else {
             return $no( 'type' ); // llms-full.txt, the manifest, share cards: they send their own public headers
         }
     }
     $ttl = ttl( $kind );
+    if ( '' !== $c['query'] ) {
+        // A tracking-tagged copy (?utm_source=..., ?fbclid=...) is a separate entry at Cloudflare that a purge by
+        // address cannot reach: never keep it longer than a home page.
+        $ttl = min( $ttl, ttl( 'list' ) );
+    }
     if ( $ttl <= 0 ) {
         return $no( 'ttl-zero' );
     }

@@ -25,6 +25,10 @@ without raising the version number should confirm that in writing; then the noti
   wp-admin > **Headline Recorder > Install** (or **Apply PHP settings** on the same page) merges it into
   `public_html/.user.ini`, keeps every other line and saves the original once as `.user.ini.hr-backup`. The page lists
   the live values; PHP rereads `.user.ini` every 5 minutes (`user_ini.cache_ttl`), so allow that long.
+  To undo it, open cPanel > File Manager (Settings > Show Hidden Files), delete `public_html/.user.ini` and rename
+  `.user.ini.hr-backup` to `.user.ini` (if there was no backup, the file did not exist before: just delete it).
+  Saving PHP options later in cPanel's **MultiPHP INI Editor** rewrites `.user.ini`: press **Apply PHP settings**
+  again afterwards.
 - `bundled/htaccess-hardening.conf` repeats the setting with `php_flag` only inside `<IfModule LiteSpeed>` and
   `<IfModule mod_php.c>` / `<IfModule php_module>` (outside those, Apache with PHP-FPM answers HTTP 500). If pasting it
   ever causes HTTP 500 on LiteSpeed, remove the LiteSpeed block and rely on `.user.ini`.

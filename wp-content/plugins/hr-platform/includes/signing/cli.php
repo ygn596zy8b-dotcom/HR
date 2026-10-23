@@ -77,9 +77,9 @@ function cli_sign( array $args, array $assoc ): void {
             $more = ! $batch['done'] && '' === $batch['stopped'] && ( $limit < 1 || $total['signed'] < $limit );
             // Refresh the lock between long batches so a cron run cannot start alongside.
             if ( $more ) {
-                release_lock( $token );
-                $token = acquire_lock( 600 );
+                $token = refresh_lock( $token, 600 );
                 if ( '' === $token ) {
+                    $total['stopped'] = 'The signing lock was lost (a run took longer than 10 minutes). Run the command again.';
                     break;
                 }
             }

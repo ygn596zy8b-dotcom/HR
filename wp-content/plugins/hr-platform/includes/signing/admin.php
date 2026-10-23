@@ -55,6 +55,7 @@ function reauthenticate( \WP_User $user ): string {
     if ( '' === $password || strlen( $password ) > 4096 ) {
         return 'Enter your WordPress password to confirm.';
     }
+    unset( $_POST['hr_pqsig_password'], $_REQUEST['hr_pqsig_password'] ); // nothing later in the request (error handlers included) sees it
     $ok = wp_check_password( $password, $user->user_pass, $user->ID );
     wipe( $password );
     if ( ! $ok ) {
@@ -106,6 +107,13 @@ add_action( 'admin_post_hr_pqsig_key', function () {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( 'You are not allowed to do that.', '', array( 'response' => 403 ) );
     }
+    // An uploaded key file is overwritten before PHP deletes it, on every path (wrong password, rate limit, error).
+    register_shutdown_function( static function () {
+        $tmp = $_FILES['hr_pqsig_file']['tmp_name'] ?? ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+        if ( is_string( $tmp ) && '' !== $tmp && is_uploaded_file( $tmp ) ) {
+            shred_file( $tmp );
+        }
+    } );
     $op = isset( $_POST['op'] ) && is_string( $_POST['op'] ) ? sanitize_key( wp_unslash( $_POST['op'] ) ) : '';
     if ( ! in_array( $op, KEY_ACTIONS, true ) ) {
         wp_die( 'Unknown action.', '', array( 'response' => 400 ) );
@@ -162,6 +170,8 @@ add_action( 'admin_post_hr_pqsig_key', function () {
 
 /** The pasted or uploaded signing.secret.json, or a WP_Error. */
 function read_import_input() {
+    $paste = isset( $_POST['hr_pqsig_paste'] ) && is_string( $_POST['hr_pqsig_paste'] ) ? trim( (string) wp_unslash( $_POST['hr_pqsig_paste'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- parsed as JSON and validated, never stored or shown
+    unset( $_POST['hr_pqsig_paste'], $_REQUEST['hr_pqsig_paste'] ); // nothing later in the request sees the secret
     $file = $_FILES['hr_pqsig_file'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- checked below
     if ( is_array( $file ) && isset( $file['error'], $file['tmp_name'] ) && UPLOAD_ERR_NO_FILE !== (int) $file['error'] ) {
         if ( UPLOAD_ERR_OK !== (int) $file['error'] || ! is_uploaded_file( (string) $file['tmp_name'] ) ) {
@@ -172,7 +182,7 @@ function read_import_input() {
         shred_file( (string) $file['tmp_name'] );
         return '' === $raw ? new \WP_Error( 'hr_pqsig_upload', 'That file is empty or too large to be a signing key.' ) : $raw;
     }
-    $raw = isset( $_POST['hr_pqsig_paste'] ) && is_string( $_POST['hr_pqsig_paste'] ) ? trim( (string) wp_unslash( $_POST['hr_pqsig_paste'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- parsed as JSON and validated, never stored or shown
+    $raw = $paste;
     if ( '' === $raw ) {
         return new \WP_Error( 'hr_pqsig_empty', 'Choose signing.secret.json or paste its contents.' );
     }

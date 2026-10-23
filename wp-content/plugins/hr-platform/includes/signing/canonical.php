@@ -172,8 +172,11 @@ add_action( 'profile_update', function ( $user_id, $old_user ) {
     }
 }, 20, 2 );
 
-// Every signed URL changes with the permalink structure.
+// Every signed URL changes with the permalink structure or the site address.
 add_action( 'update_option_permalink_structure', function () {
+    flag_signed_posts_stale();
+} );
+add_action( 'update_option_home', function () {
     flag_signed_posts_stale();
 } );
 

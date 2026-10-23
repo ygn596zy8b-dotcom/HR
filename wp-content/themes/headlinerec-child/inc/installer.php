@@ -262,6 +262,9 @@ function hr_installer_page() {
         <table class="widefat striped" style="max-width:760px">
             <thead><tr><th>Setting</th><th>Wanted</th><th>Live value now</th><th></th></tr></thead>
             <tbody>
+            <?php if ( ! $wanted ) : ?>
+                <tr><td colspan="4">The bundled settings file (bundled/webroot/.user.ini) is missing from this theme copy. Upload the theme zip built by scripts/build-theme-zip.sh.</td></tr>
+            <?php endif; ?>
             <?php foreach ( $wanted as $key => $d ) :
                 $live = ini_get( $key );
                 $ok   = false !== $live && ( in_array( strtolower( $d['value'] ), $flags, true ) ? $as_bool( $live ) === $as_bool( $d['value'] ) : strtolower( (string) $live ) === strtolower( $d['value'] ) );

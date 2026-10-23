@@ -71,8 +71,13 @@ function aes_available(): bool {
     return function_exists( 'openssl_encrypt' ) && in_array( 'aes-256-gcm', array_map( 'strtolower', (array) openssl_get_cipher_methods() ), true );
 }
 
+/**
+ * The stored site address (the "home" option), not home_url(): home_url() follows is_ssl() and per-request filters
+ * (language plugins, a proxy that sets HTTPS), so it can differ between an admin request, WP-Cron and WP-CLI, and the
+ * key would then fail to decrypt in some of them.
+ */
 function key_aad( string $kid, string $source, string $kek_kind ): string {
-    return implode( "\n", array( KEY_AAD_TAG, $kid, untrailingslashit( home_url() ), $source, $kek_kind ) );
+    return implode( "\n", array( KEY_AAD_TAG, $kid, untrailingslashit( (string) get_option( 'home' ) ), $source, $kek_kind ) );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -312,10 +317,15 @@ function read_server_key() {
     if ( '' === $raw ) {
         return new \WP_Error( 'hr_pqsig_missing', 'The signing key file is missing or cannot be read. Import or generate the key again.' );
     }
+    if ( ! aes_available() ) {
+        return new \WP_Error( 'hr_pqsig_aes', 'This server\'s PHP has no AES-256-GCM (the OpenSSL extension is missing), so the signing key cannot be decrypted.' );
+    }
     $doc = json_decode( $raw, true );
-    if ( ! is_array( $doc ) || 1 !== ( $doc['v'] ?? null ) || ! hash_equals( $meta['kid'], (string) ( $doc['kid'] ?? '' ) )
+    // Exact format: AES-256-GCM, 12-byte IV, full 16-byte tag (OpenSSL would accept a truncated tag).
+    if ( ! is_array( $doc ) || 1 !== ( $doc['v'] ?? null ) || 'AES-256-GCM' !== ( $doc['alg'] ?? null ) || ! hash_equals( $meta['kid'], (string) ( $doc['kid'] ?? '' ) )
         || ! in_array( $doc['source'] ?? '', array( 'imported', 'generated' ), true ) || ! in_array( $doc['kek'] ?? '', array( 'constant', 'salts' ), true )
-        || ! is_b64url( $doc['iv'] ?? null, 32 ) || ! is_b64url( $doc['tag'] ?? null, 32 ) || ! is_b64url( $doc['ct'] ?? null, 20000 ) ) {
+        || ! is_b64url( $doc['iv'] ?? null, 32 ) || ! is_b64url( $doc['tag'] ?? null, 32 ) || ! is_b64url( $doc['ct'] ?? null, 20000 )
+        || 12 !== strlen( b64url_decode( $doc['iv'] ) ) || 16 !== strlen( b64url_decode( $doc['tag'] ) ) ) {
         return new \WP_Error( 'hr_pqsig_corrupt', 'The signing key file is damaged. Import or generate the key again.' );
     }
     $kek = kek( $doc['kek'] );
@@ -373,7 +383,9 @@ function server_key( bool $reset = false ) {
     if ( ! pq_ready() ) {
         return $cache = new \WP_Error( 'hr_pqsig_php', 'This server cannot run the signer (it needs 64-bit PHP 8.2 or newer).' );
     }
-    if ( false === self_test_result( false ) ) {
+    // The known-answer test runs once per PHP and signer version (about 0.1 s), here in the first admin, cron or
+    // CLI request that needs the key, so a host's PHP upgrade is checked before anything is signed with it.
+    if ( ! self_test_result( true ) ) {
         return $cache = new \WP_Error( 'hr_pqsig_selftest', 'The signer\'s self-test failed on this server, so nothing is signed. Open Settings > Content signing for details.' );
     }
     $key = read_server_key();

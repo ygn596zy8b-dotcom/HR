@@ -136,6 +136,12 @@ function autosign_now( int $id ): void {
     if ( ! autosign_enabled() || ! pq_ready() ) {
         return;
     }
+    // Drafts, auto-drafts and private posts are never signed: return before the key is decrypted and checked, so
+    // "Add New", autosaves of drafts and submission drafts cost nothing.
+    if ( ! signable_post( $id ) ) {
+        forget_error( $id );
+        return;
+    }
     // Without a usable key nothing can be signed; the status screens report that once, not per article.
     if ( is_wp_error( server_key() ) ) {
         return;
@@ -262,6 +268,15 @@ function acquire_lock( int $ttl ): string {
     return $ok ? $token : '';
 }
 
+/** Extend a lock this process holds (no gap in which another run could start). Returns the new token or ''. */
+function refresh_lock( string $token, int $ttl ): string {
+    global $wpdb;
+    $next = ( time() + $ttl ) . '.' . bin2hex( random_bytes( 6 ) );
+    $ok   = '' !== $token && $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $next, LOCK_OPTION, $token ) );
+    wp_cache_delete( LOCK_OPTION, 'options' );
+    return $ok ? $next : '';
+}
+
 function release_lock( string $token ): void {
     global $wpdb;
     if ( '' !== $token ) {
@@ -329,7 +344,14 @@ function run_sweep( string $source = 'cron', float $budget = SWEEP_BUDGET, int $
 }
 
 function cron_sweep(): void {
-    if ( ! autosign_enabled() || ! pq_ready() ) {
+    if ( ! autosign_enabled() ) {
+        // Switched off on purpose (for example in favour of the offline signer): a quiet check-in, so the
+        // monitor does not report missed runs every five minutes.
+        do_action( 'hr_monitor_cron', 'pq-autosign', 'ok', SWEEP_CRONTAB );
+        return;
+    }
+    if ( ! pq_ready() ) {
+        do_action( 'hr_monitor_cron', 'pq-autosign', 'error', SWEEP_CRONTAB );
         return;
     }
     do_action( 'hr_monitor_cron', 'pq-autosign', 'in_progress', SWEEP_CRONTAB );

@@ -115,9 +115,10 @@ once a page is stored ("cached") in a city, the next reader there gets it straig
 | Response | Cache-Control sent by the site | Edge lifetime (default) |
 |---|---|---|
 | Home, sections, tags, authors, `/podcast/`, `/verify/` | `public, max-age=0, s-maxage=300, stale-while-revalidate=600, stale-if-error=86400` | 5 min |
-| Articles, pages, episodes | same, `s-maxage=3600` | 1 hour (purged on change) |
+| Articles, pages, episodes | same, `s-maxage=3600` | 1 hour once the purge is connected (purged on change); **5 min until then** |
+| Contact and PR & Media (pages with a contact form) | same, `s-maxage=300` (LiteSpeed Cache is told 300 s too) | 5 min |
 | RSS feeds (served as `application/xml`), `/podcast/feed/`, XML sitemaps | `public, max-age=300, s-maxage=600, ...` | 10 min |
-| `/signed/*` signature files | `public, max-age=300, s-maxage=3600, ...` | 1 hour (purged when the signer uploads) |
+| `/signed/*` signature files | `public, max-age=300, s-maxage=3600, ...` | 1 hour once the purge is connected; 5 min until then |
 | 404 / 410 for guests | `public, max-age=0, s-maxage=60, ...` | 1 min |
 | Anyone signed in, or with a personal cookie | WordPress `no-store, private` (or `private, no-cache`) | never cached |
 | `/account/*`, `/dashboard/`, `/thank-you/`, `/wp-json/*`, `/wp-admin/*`, `wp-login.php`, search, previews, POST | untouched (no-store where the module sets it) | never cached |
@@ -128,10 +129,14 @@ Cloudflare keeps, `stale-while-revalidate` lets Cloudflare answer instantly whil
 edge values and `X-HR-Cache` says what was decided (`public; kind=single; ttl=3600` or `bypass; reason=cookie`).
 
 Personal cookies that switch caching off: `wordpress_logged_in_*`, `wordpress_sec_*`, `wp-postpass_*`,
-`comment_author_*`, `hr_li`. A query string switches it off too, except campaign tags (`utm_*`, `fbclid`, `gclid` ...).
+`comment_author_*`, `hr_li`. A query string switches it off too, except campaign tags (`utm_*`, `fbclid`, `gclid` ...);
+a tagged copy is a separate entry at Cloudflare that a purge cannot reach, so it is kept 5 minutes at most. The parent
+theme's dark-mode cookie (`covernews-stored-site-mode`) is ignored by the server, so it can never change the shared page.
 Every place that prints personal data or a security token (account pages, the session endpoint
 `admin-ajax.php?action=hr_session`, the streak dashboard, submissions, Contact Form 7's nonce for signed-in users,
-comment forms for returning commenters) is covered by one of those rules; the header account chip and streak flame
+comment forms for returning commenters) is covered by one of those rules. Forms that guests see carry no nonce:
+Contact Form 7 adds none for guests, Mailchimp's timestamp field accepts pages up to 90 days old, and the spam-check
+token of the CF7 honeypot add-on (valid 2 hours) is why form pages get the short 5-minute lifetime; the header account chip and streak flame
 are filled in by the browser from the session endpoint, so cached pages carry no personal data.
 
 The lifetimes are in **Settings > Headline Recorder > Edge cache (Cloudflare)**; developers can also use the
@@ -192,19 +197,24 @@ visitor IPs) is in `infra/cloudflare/README.md`; do both.
    Cache eligibility: **Bypass cache**. If the editor refuses `starts_with`, build the same conditions in the visual
    builder with "URI Path" + "starts with".
 
-   Responses that carry `Set-Cookie` are never stored by Cloudflare. Rule 3 is a second lock: even if a personal page
-   ever sent a public header by mistake, Cloudflare would still not store it.
+   The site never marks a response that sets a cookie as shareable (it sends no `s-maxage` then), so with "bypass
+   cache if not" Cloudflare does not store it. Rule 3 is a second lock: even if a personal page ever sent a public
+   header by mistake, Cloudflare would still not store it.
 9. **Security > WAF > Managed rules:** keep the **Cloudflare Free Managed Ruleset** on. Custom and rate-limiting rules:
    `infra/cloudflare/README.md` steps 6 and 7.
 10. **Security > Bots: Bot Fight Mode OFF.** On the Free plan it cannot be told to let anyone through, and it
     challenges exactly the visitors this site needs: feed readers, Apple Podcasts / Spotify fetching
     `/podcast/feed/`, partners' tools fetching `/signed/*` and `/.well-known/pqsig-keys.json`, the GitHub signer calling
-    `/wp-json/hr/v1/signing/*`, and uptime checks. Use the WAF rules (managed challenge on `/wp-login.php` and
-    `/account/login/`) instead.
+    `/wp-json/hr/v1/signing/*`, and uptime checks. Use the WAF rules (managed challenge on `/wp-login.php`, the rate
+    limit on the login forms) instead.
 11. **Do not use** "Cache Everything" Page Rules or APO together with these Cache Rules. APO (paid add-on) is an
     alternative to steps 8 and "Connect the purge", not an addition.
 
-### Connect the purge (so corrections show at once)
+### Connect the purge (required: do this the same day Cloudflare goes live)
+
+Without it Cloudflare cannot be told that a story changed. The site protects itself by keeping articles and
+signature files only 5 minutes at the edge until the two lines below are in `wp-config.php`; once they are, articles
+get the full hour and every change is purged within seconds.
 
 1. Cloudflare > top-right profile icon > **My Profile > API Tokens > Create Token > Create Custom Token**.
 2. Name: `headlinerecorder cache purge`. Permissions: **Zone | Cache Purge | Purge**, nothing else.
