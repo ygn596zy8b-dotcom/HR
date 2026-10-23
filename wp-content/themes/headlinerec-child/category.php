@@ -93,7 +93,7 @@ echo '<script type="application/ld+json">' . wp_json_encode( $schema_data, JSON_
 
 
 /* ── MAIN GRID ── */
-.hr-cat-page-grid { max-width: 1200px; margin: 0 auto; padding: 56px 48px 80px; display: grid; grid-template-columns: 1fr 340px; gap: 64px; align-items: start; }
+.hr-cat-page-grid { max-width: 1200px; margin: 0 auto; padding: 56px 48px 80px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 64px; align-items: start; }
 
 /* ── SECTION LABELS ── */
 .hr-section-label { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; border-top: 1px solid #eee; padding-top: 24px; }
@@ -102,7 +102,7 @@ echo '<script type="application/ld+json">' . wp_json_encode( $schema_data, JSON_
 .hr-section-label.no-border { border-top: none; padding-top: 0; }
 
 /* ── FEATURED STORY ── */
-.hr-cat-featured { display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; margin-bottom: 48px; align-items: start; }
+.hr-cat-featured { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 40px; margin-bottom: 48px; align-items: start; }
 .hr-feat-img { position: relative; width: 100%; aspect-ratio: 16/9; background: #111; overflow: hidden; }
 .hr-feat-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .hr-feat-content { padding-right: 20px; }
@@ -115,7 +115,7 @@ echo '<script type="application/ld+json">' . wp_json_encode( $schema_data, JSON_
 .hr-feat-read { color: #C0001A; text-decoration: none; border-bottom: 1px solid #C0001A; padding-bottom: 2px; }
 
 /* ── LATEST GRID ── */
-.hr-latest-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 24px; }
+.hr-latest-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 24px; }
 .hr-grid-card { text-decoration: none; display: block; }
 .hr-grid-img { position: relative; width: 100%; aspect-ratio: 16/9; background: #111; margin-bottom: 16px; overflow: hidden; }
 .hr-grid-img img { width: 100%; height: 100%; object-fit: cover; }
@@ -126,7 +126,7 @@ echo '<script type="application/ld+json">' . wp_json_encode( $schema_data, JSON_
 
 /* ── PAGINATION ── */
 .hr-pagination { margin-top: 48px; display: flex; gap: 8px; justify-content: center; }
-.hr-pagination .page-numbers { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 1px solid #eaeaea; font-size: 13px; font-weight: 700; color: #111; text-decoration: none; transition: 0.2s; }
+.hr-pagination .page-numbers { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; height: 44px; padding: 0 12px; border: 1px solid #eaeaea; font-size: 13px; font-weight: 700; color: #111; text-decoration: none; transition: 0.2s; }
 .hr-pagination .page-numbers.current, .hr-pagination .page-numbers:hover { background: #C0001A; color: #fff; border-color: #C0001A; }
 
 /* ── SIDEBAR ── */
@@ -149,8 +149,9 @@ echo '<script type="application/ld+json">' . wp_json_encode( $schema_data, JSON_
 .hr-trending-date { font-size: 11px; color: #999; }
 
 /* Responsive */
-@media (max-width: 1024px) { .hr-cat-page-grid { grid-template-columns: 1fr; } .hr-cat-featured { grid-template-columns: 1fr; } }
-@media (max-width: 768px) { .hr-cat-hero { padding: 48px 24px; } .hr-cat-page-grid { padding: 32px 24px; } .hr-latest-grid { grid-template-columns: 1fr; } .hr-hero-title { font-size: 32px; } }
+@media (max-width: 1024px) { .hr-cat-page-grid { grid-template-columns: minmax(0, 1fr); } .hr-cat-featured { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 768px) { .hr-cat-hero { padding: 48px 24px; } .hr-cat-page-grid { padding: 32px 24px; } .hr-latest-grid { grid-template-columns: minmax(0, 1fr); } .hr-hero-title { font-size: 32px; } }
+@media (max-width: 400px) { .hr-cat-hero { padding: 40px 16px; } .hr-cat-page-grid { padding: 28px 16px; } }
 
 /* ================================================
    NUKE PARENT THEME INJECTIONS (SCORCHED EARTH)
@@ -201,8 +202,8 @@ div[class*="bottom-latest"],
                 <div class="hr-section-label no-border"><span>Featured Story</span></div>
                 <div class="hr-cat-featured">
                     <div class="hr-feat-img">
-                        <a href="<?php echo esc_url(get_permalink()); ?>">
-                            <?php if (has_post_thumbnail()) { the_post_thumbnail('large'); } ?>
+                        <a href="<?php echo esc_url(get_permalink()); ?>" tabindex="-1" aria-hidden="true">
+                            <?php echo hr_card_image( get_the_ID(), 'large', '(min-width: 1025px) 480px, calc(100vw - 48px)', array( 'alt' => '', 'loading' => 'eager', 'fetchpriority' => 'high' ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- built by wp_get_attachment_image() ?>
                         </a>
                     </div>
                     <div class="hr-feat-content">
@@ -224,7 +225,7 @@ div[class*="bottom-latest"],
                             <a href="<?php echo esc_url(get_permalink()); ?>" class="hr-grid-card">
                                 <div class="hr-grid-img">
                                     <span class="hr-grid-badge"><?php echo esc_html($cat_name); ?></span>
-                                    <?php if (has_post_thumbnail()) { the_post_thumbnail('medium_large'); } ?>
+                                    <?php echo hr_card_image( get_the_ID(), 'medium_large', '(min-width: 1025px) 380px, (min-width: 769px) 46vw, calc(100vw - 48px)', array( 'alt' => '' ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- built by wp_get_attachment_image() ?>
                                 </div>
                                 <h3 class="hr-grid-title"><?php echo esc_html(get_the_title()); ?></h3>
                                 <span class="hr-grid-date"><?php echo get_the_date('F j, Y'); ?></span>

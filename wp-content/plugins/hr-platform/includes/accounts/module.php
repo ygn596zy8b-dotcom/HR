@@ -98,12 +98,14 @@ unset( $hr_accounts_file );
 /** Tables. Versioned separately from the core so a deploy of this module alone still creates them. */
 function install(): void {
     passkeys_install_table();
-    update_option( 'hr_accounts_db_version', DB_VERSION, false );
+    update_option( 'hr_accounts_db_version', DB_VERSION, true ); // read on every request: keep it in the autoloaded set
 }
 add_action( 'hr_install', __NAMESPACE__ . '\\install' );
 add_action( 'init', function () {
     if ( (int) get_option( 'hr_accounts_db_version' ) !== DB_VERSION ) {
         install();
+    } elseif ( ! isset( wp_load_alloptions()['hr_accounts_db_version'] ) ) {
+        wp_set_option_autoload( 'hr_accounts_db_version', true ); // older installs stored it unautoloaded (one query per page)
     }
 }, 98 );
 

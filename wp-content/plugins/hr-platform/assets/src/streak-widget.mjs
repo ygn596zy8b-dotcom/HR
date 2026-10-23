@@ -179,8 +179,10 @@ function mount(cfg, data) {
   const onDashboard = !!dashboard && dashboard.pathname.replace(/\/+$/, '') === location.pathname.replace(/\/+$/, '');
   const key = reader ? 'hr_sw_reader' : 'hr_sw_guest';
   const saved = store.get(key);
-  let open = !onDashboard && (reader ? saved === null || saved === 'open' : saved !== 'min');
-  if (reader && saved === null && !onDashboard) store.set(key, 'min'); // only the first page of a session opens by itself
+  // Forms and the streaks page itself: start as the pill so the card never sits over fields on small screens.
+  const quiet = onDashboard || /^\/account(\/|$)/.test(location.pathname);
+  let open = !quiet && (reader ? saved === null || saved === 'open' : saved !== 'min');
+  if (reader && saved === null && !quiet) store.set(key, 'min'); // only the first page of a session opens by itself
 
   const root = h('aside', { class: `hrsw ${reader ? 'is-reader' : 'is-guest'}`, 'aria-label': 'Reading streak', 'data-open': String(open) });
   const live = h('p', { class: 'hrsw-sr', 'aria-live': 'polite', 'aria-atomic': 'true' });

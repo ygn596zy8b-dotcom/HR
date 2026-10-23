@@ -8,6 +8,8 @@
 .hrs a.hrp-btn, .hrs a.hrp-btn:hover, .hrs a.hrp-btn--ghost:hover { color: #fff; text-decoration: none; }
 .hrs a.hrp-btn--ghost { color: var(--hrp-ink); }
 .hrs-lede { margin-bottom: 20px; }
+/* Closed state: the eyebrow is inline-flex by default and would sit beside the inline-grid icon. */
+.hrs-closed .hrp-eyebrow { display: flex; }
 .hrs-noscript { margin: 0 0 20px; }
 
 .hrs-guidelines { border: 1px solid var(--hrp-line); background: var(--hrp-paper); margin: 0 0 28px; }

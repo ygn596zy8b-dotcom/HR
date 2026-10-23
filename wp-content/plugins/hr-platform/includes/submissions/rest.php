@@ -119,7 +119,7 @@ add_filter( 'rest_pre_dispatch', function ( $result, $server, \WP_REST_Request $
     if ( null !== $result || 'POST' !== $request->get_method() || 0 !== strcasecmp( untrailingslashit( $request->get_route() ), '/hr/v1/submissions' ) ) {
         return $result;
     }
-    if ( (int) $request->get_header( 'content_length' ) > MAX_BODY || strlen( $request->get_body() ) > MAX_BODY ) {
+    if ( (int) $request->get_header( 'content_length' ) > MAX_BODY || strlen( (string) $request->get_body() ) > MAX_BODY ) {
         return fail( 'too_large', 'This submission is too large. Keep the attachment under 8 MB.', 413 );
     }
     wp_raise_memory_limit( 'hr_submissions' ); // a full-size request peaks near 60 MB once the JSON is parsed
