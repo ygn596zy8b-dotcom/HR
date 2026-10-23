@@ -499,6 +499,22 @@ function hr_maintenance_write( string $file, string $content ): bool {
     return true;
 }
 
+/** True when the file is absent or one we wrote (never overwrite someone else's page). */
+function hr_maintenance_is_ours( string $file, string $marker ): bool {
+    return ! file_exists( $file ) || str_contains( (string) @file_get_contents( $file, false, null, 0, 4096 ), $marker );
+}
+
+function hr_maintenance_server_state(): array {
+    $p  = hr_maintenance_paths();
+    $ht = is_readable( $p['htaccess'] ) ? (string) file_get_contents( $p['htaccess'] ) : '';
+    return array(
+        'rules'  => str_contains( $ht, '# BEGIN ' . HR_MAINTENANCE_MARKER ),
+        'flag'   => file_exists( $p['flag'] ),
+        'static' => is_readable( $p['static'] ),
+        'ours'   => hr_maintenance_is_ours( $p['static'], 'hr-maintenance-page' ),
+    );
+}
+
 /**
  * Read-modify-write of .htaccess in place under an exclusive flock, the way WordPress core (insert_with_markers),
  * LiteSpeed Cache and All-In-One WP Security write it, so concurrent writers wait for each other instead of losing
