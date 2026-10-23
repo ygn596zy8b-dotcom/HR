@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 const HR_BUNDLE_DIR = __DIR__ . '/../bundled';
 
 function hr_installer_status(): array {
-    $bundled = get_file_data( HR_BUNDLE_DIR . '/hr-platform/hr-platform.php', array( 'v' => 'Version' ) )['v'];
+    $bundled = is_readable( HR_BUNDLE_DIR . '/hr-platform/hr-platform.php' ) ? get_file_data( HR_BUNDLE_DIR . '/hr-platform/hr-platform.php', array( 'v' => 'Version' ) )['v'] : '';
     $file    = WP_PLUGIN_DIR . '/hr-platform/hr-platform.php';
     $current = is_readable( $file ) ? get_file_data( $file, array( 'v' => 'Version' ) )['v'] : '';
     // Every bundled must-use plugin (hr-hardening, hr-sentry, hr-php-guard, any added later) must be in place.

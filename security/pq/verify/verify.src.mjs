@@ -38,7 +38,7 @@ function show(result) {
   out.replaceChildren();
   out.hidden = false;
   out.dataset.state = result.ok ? 'ok' : 'fail';
-  out.append(el('p', result.ok ? 'Authentic — this is exactly what the publisher signed.' : 'Not verified', 'verdict'));
+  out.append(el('p', result.ok ? 'Authentic: this is exactly what the publisher signed.' : 'Not verified', 'verdict'));
   if (!result.ok) out.append(el('p', result.reason));
 
   const h = result.header;
@@ -112,7 +112,7 @@ $('compare-form').addEventListener('submit', (e) => {
     list.replaceChildren();
     for (const k of keyset.keys ?? []) {
       const li = el('li');
-      li.append(el('code', groups(String(k.kid))), el('span', ` ${k.alg === SIG_ALG ? SIG_ALG : 'unknown algorithm'}${k.revoked ? ` — revoked ${k.revoked}` : ''}`));
+      li.append(el('code', groups(String(k.kid))), el('span', ` ${k.alg === SIG_ALG ? SIG_ALG : 'unknown algorithm'}${k.revoked ? ` (revoked ${k.revoked})` : ''}`));
       list.append(li);
     }
   } catch (err) {

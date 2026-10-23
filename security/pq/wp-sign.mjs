@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Signs Headline Recorder articles and feeds. Runs in CI (.github/workflows/sign-content.yml) or on an editor's
-// machine — never on the web server. Uses pq.mjs; no crypto of its own.
+// Offline signer for Headline Recorder articles and feeds. The site now signs on the server itself (see
+// docs/SIGNING.md); this tool is the manual alternative, run on a trusted computer or by the manual-only workflow
+// .github/workflows/sign-content.yml with the offline key, which never goes on the web server. Uploads pass the same
+// PHP verification as server signatures. Uses pq.mjs; no crypto of its own.
 //
 //   HR_WP_USER=pqsigner HR_WP_APP_PASSWORD='xxxx xxxx …' \
 //   node wp-sign.mjs --site https://headlinerecorder.com --key signing.secret.json [--pin <kid>] [--limit N] [--dry-run]
@@ -117,7 +119,7 @@ async function main() {
     }
   }
   if (!keyset) fail(`could not load the site keyset (${errors.join('; ')}). Update the Headline Recorder platform, then paste signing.public.json into Settings → Headline Recorder → Content signing.`);
-  if (errors.length) console.error(`[wp-sign] note: /.well-known/pqsig-keys.json is not reachable (${errors[0]}); used the REST copy. Partners should be able to fetch the well-known URL — see docs/DEPLOY.md.`);
+  if (errors.length) console.error(`[wp-sign] note: /.well-known/pqsig-keys.json is not reachable (${errors[0]}); used the REST copy. Partners should be able to fetch the well-known URL (see docs/DEPLOY.md).`);
   const published = (keyset?.keys ?? []).find((k) => k.kid === secretKey.kid);
   if (!published) fail(`key ${secretKey.kid.slice(0, 16)}… is not in the site keyset. Paste signing.public.json into Settings → Headline Recorder → Content signing.`);
   if (published.revoked) fail(`key ${secretKey.kid.slice(0, 16)}… is marked revoked on the site; sign with the current key.`);

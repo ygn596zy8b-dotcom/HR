@@ -68,9 +68,9 @@ function verify_url( string $sig_path = '' ): string {
 /**
  * Signature state of a post for display and the public files:
  *   null for posts that are not signed at all (not public), otherwise
- *   state 'signed'   — stored signature covers the current bytes with a non-revoked key,
- *         'stale'    — a signature exists but the article (or key status) changed since,
- *         'unsigned' — never signed yet.
+ *   state 'signed'   : stored signature covers the current bytes with a non-revoked key,
+ *         'stale'    : a signature exists but the article (or key status) changed since,
+ *         'unsigned' : never signed yet.
  */
 function signature_state( int $post_id ): ?array {
     static $cache = array();

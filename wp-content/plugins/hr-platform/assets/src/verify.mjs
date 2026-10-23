@@ -1,4 +1,4 @@
-// /verify/ — checks signature files in the reader's browser with the shared toolkit (no crypto is forked here).
+// /verify/: checks signature files in the reader's browser with the shared toolkit (no crypto is forked here).
 // Safety rules, same as security/pq/verify: every value from a signature file reaches the page through textContent,
 // and fetches are same-origin only.
 import { verify, b64u, SIG_ALG } from '../../../../../security/pq/pq.mjs';
@@ -68,7 +68,7 @@ function init(root) {
     out.replaceChildren();
     out.hidden = false;
     out.dataset.state = result.ok ? 'ok' : 'fail';
-    out.append(verdict(result.ok ? 'Authentic — this is exactly what the publisher signed.' : 'Not verified'));
+    out.append(verdict(result.ok ? 'Authentic: this is exactly what the publisher signed.' : 'Not verified'));
     out.removeAttribute('aria-describedby');
     announce('');
     if (!result.ok) {

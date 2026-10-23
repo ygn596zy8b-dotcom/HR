@@ -57,9 +57,12 @@ The bundle never contains `*.secret.json`, `node_modules`, tests, `assets/src` o
    `public_html/.htaccess` (above `# BEGIN WordPress`), then deactivate "Headers Security Advanced & HSTS WP".
 5. wp-admin → Plugins → activate **Headline Recorder Platform** (creates `wp6m_hr_passkeys`, `wp6m_hr_reads`), then
    Settings → Permalinks → Save.
-6. Signer account (application password only, never a browser login):
+6. Content signing runs on the server: in **Settings > Content signing**, generate a server key (or import the offline
+   key), add the shown `_pqsig` DNS record, add the `HR_SIGNING_KEK` line to `wp-config.php` and re-wrap, then press
+   **Sign all pending now** (`docs/SIGNING.md`). Only if you also want the offline signer (`security/pq/wp-sign.mjs`)
+   create a signer account (application password only, never a browser login):
    `wp user create pqsigner signer@headlinerecorder.com --role=hr_signer --user_pass="$(openssl rand -base64 33)"` and
-   `wp user application-password create pqsigner signer-ci --porcelain` → store it as the CI secret `HR_WP_APP_PASSWORD`.
+   `wp user application-password create pqsigner signer-offline --porcelain`, and keep that password with the offline key.
 7. Cloudflare in front for post-quantum TLS and edge caching: `infra/cloudflare/README.md` and
    `docs/PERFORMANCE.md` ("Cloudflare setup"). For automatic cache purges add `HR_CF_ZONE_ID` and `HR_CF_API_TOKEN`
    (token permission Zone > Cache Purge only) to `wp-config.php`.

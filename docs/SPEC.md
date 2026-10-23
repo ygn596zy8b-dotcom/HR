@@ -47,7 +47,7 @@ wp-content/mu-plugins/hr-hardening.php early security (loads before plugins)
 wp-content/mu-plugins/hr-sentry.php    early Sentry init (catches fatals in other plugins)
 security/pq/                           ML-DSA/ML-KEM toolkit, signer CLI (wp-sign.mjs), verify page source, tests
 infra/                                 litespeed/, cloudflare/, nginx/, ssh/, dns/
-.github/workflows/                     ci.yml (lint/test/build), sign-content.yml (scheduled signer)
+.github/workflows/                     ci.yml (lint/test/build), sign-content.yml (manual offline signer; signing runs on the server)
 docs/                                  this spec, DEPLOY.md
 ```
 
@@ -103,7 +103,7 @@ uses `var(--hr-red, <fallback>)` so it renders correctly even without the theme.
 
 - Always: keep existing templates' content and features; guard every theme→plugin call; escape output.
 - Ask first: deleting content, changing the palette, adding third-party services beyond Sentry/Claude.
-- Never: commit secrets or the site dump; ship the signing secret key to the server; weaken a check to pass a test.
+- Never: commit secrets or the site dump; put the signing secret key in git, the web root or the database; weaken a check to pass a test.
 
 ## Owner decisions (confirmed — these OVERRIDE any older wording in task prompts)
 

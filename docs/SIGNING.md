@@ -56,10 +56,15 @@ The key is never stored in the database, never written to a log and never shown 
 
 **What encrypts the key.** The `HR_SIGNING_KEK` line in `wp-config.php` if present (recommended), otherwise a key
 derived from the WordPress security keys (salts) in `wp-config.php`. The encryption is also tied to the site address
-and the key ID, so the file cannot be moved to another site or relabelled.
+and the key ID, so the file cannot be moved to another site or relabelled. Be clear about what this buys: both the
+`HR_SIGNING_KEK` line and the salts live in `wp-config.php`, so someone who can read `wp-config.php` and the key file
+can decrypt the key. Encryption protects the key in backups, file listings and copies of the private folder taken
+on their own; `HR_SIGNING_KEK` adds that changing the salts (which some security plugins do) no longer locks the key.
+Keep `wp-config.php` at mode 0440 or 0400.
 
 **Who can change it.** Only administrators, and every key action asks for the administrator's password again (plus
-their two-step code when they have one). Attempts are limited to 10 per 15 minutes and every action, successful or
+their two-step code when they have one). An administrator who signs in only with a passkey needs a password for
+this: set one in **Users > Profile** first. Attempts are limited to 10 per 15 minutes and every action, successful or
 not, is written to the security log.
 
 **The trade-off.** A key on the server is convenient: nothing waits for a person or an outside service. The cost
@@ -109,6 +114,10 @@ Partners who want certainty do not trust the website alone: they compare the key
 | "The site could not fetch its own feed" | A firewall or Cloudflare blocked the server's request to itself | Allow the server's own IP, or check that `/feed/` loads in a private window |
 | "WP-Cron is switched off" | `DISABLE_WP_CRON` is set | In cPanel > Cron Jobs, run `wp-cron.php` every 5 minutes (or `wp hr sign`) |
 | "The signer's self-test failed" | The PHP version on the host produces wrong results | Use the offline signer below and tell your developer the PHP version |
+
+**Generating a second server key** replaces the installed one and destroys its secret. The old key stays in the
+keyset as active, so what it signed stays valid; it can no longer sign anything. Mark it `"revoked"` only if you
+believe it leaked (that re-signs everything it signed).
 
 **Moving the site to a new host**: copy the `hr-private` folder (or your `HR_PRIVATE_DIR`) together with
 `wp-config.php`. If the address of the site changes, the key cannot be decrypted (by design): generate a new
