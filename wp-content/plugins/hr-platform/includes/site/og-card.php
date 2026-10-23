@@ -2,7 +2,7 @@
 /**
  * Branded 1200×630 share cards for posts that have no image of their own: /og/<post-id>-<version>.png
  *
- * Black background, red rule, the category in red, the headline in white (Source Sans 3 Bold, SIL OFL 1.1 — see
+ * Black background, red rule, the category in red, the headline in white (Source Sans 3 Bold, SIL OFL 1.1, see
  * fonts/OFL-SourceSans3.md) and the HR mark with the wordmark. Rendered with GD on first request, cached in
  * uploads/hr-og/, and re-rendered automatically when the post changes (the version in the URL is a hash of the
  * post's modified time and title, so social networks fetch the new card too).
@@ -224,7 +224,7 @@ function render_card( \WP_Post $post ) {
         while ( '' !== $last && text_width( $size, $last . '…' ) > $width ) {
             $last = preg_replace( '/\s*\S+$/u', '', $last );
         }
-        $lines[ $max - 1 ] = rtrim( $last, ' ,;:–—-' ) . '…';
+        $lines[ $max - 1 ] = rtrim( $last, " ,;:-\u{2013}\u{2014}" ) . '…';
     }
     $y = 168 + (int) round( $size * 1.33 );
     foreach ( $lines as $text ) {

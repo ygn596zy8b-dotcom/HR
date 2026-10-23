@@ -3,8 +3,12 @@
  * Structured data on top of Yoast's graph:
  *   - Organization / NewsMediaOrganization: legal name, postal address, email/phone, contact point, extra profiles
  *     (only the parts that are filled in under Settings → Headline Recorder → Organisation);
+ *     plus a plain description and the subjects the newsroom covers (knowsAbout), which answer engines use to
+ *     decide what the publisher is an authority on;
+ *   - WebSite and Organization text decoded (the tagline is stored with HTML entities such as &#039;);
  *   - PodcastSeries on /podcast/ and PodcastEpisode on episodes (when the podcast module's hr_episode type exists);
- *   - Yoast's graph on Executive Spotlight interviews, whose template prints no structured data of its own.
+ *   - Yoast's graph (WebPage, BreadcrumbList, WebSite, Organization) on every article, without Yoast's own Article
+ *     node: the theme prints the article's NewsArticle (inc/schema.php), which points at the same @id values.
  * Plus the footer address block on do_action( 'hr_footer_contact' ).
  */
 
@@ -61,22 +65,61 @@ add_filter( 'wpseo_schema_organization', function ( $data ) {
         $extra          = preg_split( '/\R/', $org['same_as'] );
         $data['sameAs'] = array_values( array_unique( array_filter( array_merge( (array) ( $data['sameAs'] ?? array() ), $extra ) ) ) );
     }
+    if ( empty( $data['description'] ) ) {
+        $data['description'] = 'Headline Recorder is a Karachi-based digital news publication covering Pakistan’s economy, business, financial markets, technology and startups, with executive interviews and signed opinion pieces.';
+    }
+    if ( empty( $data['knowsAbout'] ) ) {
+        $data['knowsAbout'] = array( 'Pakistan economy', 'Pakistan Stock Exchange (PSX)', 'State Bank of Pakistan monetary policy', 'Federal budget and taxation (FBR)', 'IMF programme', 'Banking and finance', 'Energy and commodities', 'Technology and startups', 'Corporate news' );
+    }
+    if ( empty( $data['areaServed'] ) && ! empty( $org['country'] ) ) {
+        $data['areaServed'] = $org['country'];
+    }
+    return decode_schema_text( $data );
+}, 20 );
+
+/** Decodes HTML entities in the name and description of a schema node (WordPress stores the tagline encoded). */
+function decode_schema_text( $data ) {
+    if ( ! is_array( $data ) ) {
+        return $data;
+    }
+    foreach ( array( 'name', 'alternateName', 'description', 'legalName' ) as $key ) {
+        if ( isset( $data[ $key ] ) && is_string( $data[ $key ] ) ) {
+            $data[ $key ] = trim( html_entity_decode( wp_strip_all_tags( $data[ $key ] ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+        }
+    }
+    return $data;
+}
+add_filter( 'wpseo_schema_website', __NAMESPACE__ . '\\decode_schema_text', 20 );
+add_filter( 'wpseo_schema_webpage', __NAMESPACE__ . '\\decode_schema_text', 20 );
+
+// Breadcrumb names come from texturized titles ("Pakistan&#8217;s"); JSON-LD wants the plain characters.
+add_filter( 'wpseo_schema_breadcrumb', static function ( $data ) {
+    if ( is_array( $data ) && isset( $data['itemListElement'] ) && is_array( $data['itemListElement'] ) ) {
+        $data['itemListElement'] = array_map( __NAMESPACE__ . '\\decode_schema_text', $data['itemListElement'] );
+    }
     return $data;
 }, 20 );
 
 /**
- * The theme turns Yoast's graph off on every is_single() page (single.php prints a hand-built NewsArticle instead).
- * Executive Spotlight interviews and podcast episodes print no article JSON-LD, so turn Yoast's graph (WebPage,
- * Organization, breadcrumbs) back on for them; the PodcastEpisode below points at its Organization @id.
- * Filterable so the theme can take over once it prints its own.
+ * The theme turns Yoast's graph off on every is_single() page because single.php prints a hand-built NewsArticle
+ * (inc/schema.php). That also removed the page's WebPage, BreadcrumbList, WebSite and Organization nodes (address,
+ * profiles, policies), so the graph is turned back on for articles and podcast episodes, and Yoast's own Article and
+ * author nodes are left out on articles: the theme's NewsArticle is the only article, and its mainEntityOfPage and
+ * publisher point at the same WebPage and #organization @id values. Filterable so the theme can take over.
  */
+function yoast_graph_on_single(): bool {
+    $own = is_singular( 'hr_episode' ) || is_singular( 'post' );
+    return $own && (bool) apply_filters( 'hr_site_yoast_graph_on_singles', apply_filters( 'hr_site_yoast_graph_on_spotlight', true ) );
+}
+
 add_filter( 'wpseo_json_ld_output', function ( $data ) {
-    $own = is_singular( 'hr_episode' ) || ( is_singular( 'post' ) && in_category( 'executive-spotlight', get_queried_object_id() ) );
-    if ( false === $data && $own && apply_filters( 'hr_site_yoast_graph_on_spotlight', true ) ) {
+    if ( false === $data && yoast_graph_on_single() ) {
         return array( '_deprecated' => '' );
     }
     return $data;
 }, 20 );
+
+add_filter( 'wpseo_schema_article_type', static fn( $type ) => is_singular( 'post' ) && yoast_graph_on_single() ? 'None' : $type, 20 );
 
 // The address block for the footer (and anywhere else the theme calls the action). Only filled parts are printed.
 // Compact: the address on two lines beside a pin, then the email (and phone, when set) on one line each beside an

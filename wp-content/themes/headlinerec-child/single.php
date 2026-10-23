@@ -299,17 +299,18 @@ hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author
              </div>
     </div>
 
-            <!-- Prev / Next navigation (Opinion-Locked) -->
+            <!-- Prev / Next navigation, within the same category -->
             <?php
             // Pull adjacent posts only within the same category to keep the editorial context clean
-            $prev_post = get_previous_post(true); 
+            $prev_post = get_previous_post(true);
             $next_post = get_next_post(true);
+            $hr_nav_noun = has_category( 'opinion', $post_id ) ? 'Opinion' : 'Story';
             
             if ($prev_post || $next_post) : ?>
             <div class="hr-post-nav">
                 <?php if ($prev_post) : ?>
                 <a href="<?php echo esc_url(get_permalink($prev_post->ID)); ?>" class="hr-nav-item prev">
-                    <span class="hr-nav-direction">← Previous Opinion</span>
+                    <span class="hr-nav-direction">← Previous <?php echo esc_html( $hr_nav_noun ); ?></span>
                     <span class="hr-nav-title"><?php echo esc_html(get_the_title($prev_post->ID)); ?></span>
                 </a>
                 <?php else : ?>
@@ -318,7 +319,7 @@ hr_print_article_schema($post_id, array('name' => $author_name, 'url' => $author
                 
                 <?php if ($next_post) : ?>
                 <a href="<?php echo esc_url(get_permalink($next_post->ID)); ?>" class="hr-nav-item next">
-                    <span class="hr-nav-direction">Next Opinion →</span>
+                    <span class="hr-nav-direction">Next <?php echo esc_html( $hr_nav_noun ); ?> →</span>
                     <span class="hr-nav-title"><?php echo esc_html(get_the_title($next_post->ID)); ?></span>
                 </a>
                 <?php endif; ?>

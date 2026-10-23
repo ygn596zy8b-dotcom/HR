@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 $hr_home  = home_url( '/' );
 $hr_share = rawurlencode( $hr_home );
-$hr_text  = rawurlencode( 'Headline Recorder — Pakistan’s sharpest business and economy news' );
+$hr_text  = rawurlencode( 'Headline Recorder: Pakistan business, economy and markets news' );
 $hr_links = array(
     'LinkedIn' => 'https://www.linkedin.com/sharing/share-offsite/?url=' . $hr_share,
     'X'        => 'https://x.com/intent/post?url=' . $hr_share . '&text=' . $hr_text,
@@ -59,7 +59,7 @@ $hr_links = array(
             <?php if ( $podcast_url ) : ?>
                 <div class="hrp-card hrp-card--accent hr-ty__card">
                     <h3 class="hr-ty__h3"><?php echo icon( 'headphones' ); // phpcs:ignore WordPress.Security.EscapeOutput -- static SVG ?>Listen to <?php echo esc_html( $podcast_name ); ?></h3>
-                    <p>Pakistan’s business and economy news, briefed in minutes — for the commute or between meetings.</p>
+                    <p>Pakistan’s business and economy news, briefed in a few minutes for the commute or between meetings.</p>
                     <a class="hrp-btn hrp-btn--ghost" href="<?php echo esc_url( $podcast_url ); ?>">Listen to <?php echo esc_html( $podcast_name ); ?></a>
                 </div>
             <?php endif; ?>

@@ -44,7 +44,7 @@ $hrs_icons = array( 'first' => 'sparkles', 'streak' => 'flame', 'reads' => 'book
 $hrs_saved = array(
     'goal'          => array( 'ok', 'Daily goal updated.' ),
     'goal-locked'   => array( 'warn', 'You have already changed your goal today. You can change it again tomorrow.' ),
-    'reminders-on'  => array( 'ok', 'Reminders are on. We will email you at 7 pm on days your streak is about to end.' ),
+    'reminders-on'  => array( 'ok', 'Reminders are on. We will email you at 7 pm Pakistan time on days your streak is about to end.' ),
     'reminders-off' => array( 'ok', 'Reminders are off.' ),
     'expired'       => array( 'error', 'That form expired. Please try again.' ),
     'busy'          => array( 'error', 'Too many changes in a short time. Please try again later.' ),
@@ -263,7 +263,7 @@ $hrs_saved = array(
                     <input type="hidden" name="hr_action" value="reminders">
                     <label class="hrp-check">
                         <input type="checkbox" name="reminders" value="1"<?php checked( $reminders ); ?> aria-describedby="hrs-rem-hint">
-                        <span>Email me at 7 pm when my streak is about to end</span>
+                        <span>Email me at 7 pm Pakistan time when my streak is about to end</span>
                     </label>
                     <p class="hrs-meta" id="hrs-rem-hint">At most one email a day, only when you have not met your goal yet. <?php echo $verified ? '' : esc_html( 'Confirm your email address first; we only email confirmed addresses.' ); ?></p>
                     <button type="submit" class="hrp-btn hrp-btn--ghost">Save reminder setting</button>

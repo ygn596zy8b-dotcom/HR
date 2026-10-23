@@ -34,6 +34,9 @@ function register(): void {
             'remove_featured_image' => 'Remove logo',
             'use_featured_image'    => 'Use as logo',
         ),
+        // Home-page content: editors and administrators only (page capabilities), not every author or contributor.
+        'capability_type' => 'page',
+        'map_meta_cap'  => true,
         'public'        => false,
         'show_ui'       => true,
         'show_in_rest'  => false,
@@ -78,7 +81,7 @@ function clients(): array {
     $out = array();
     foreach ( $q->posts as $post ) {
         $name = wp_strip_all_tags( get_the_title( $post ) );
-        $img  = wp_get_attachment_image( (int) get_post_thumbnail_id( $post ), 'medium', false, array( 'loading' => 'lazy', 'decoding' => 'async', 'alt' => $name, 'class' => 'hr-clients__logo' ) );
+        $img  = wp_get_attachment_image( (int) get_post_thumbnail_id( $post ), 'medium', false, array( 'loading' => 'lazy', 'decoding' => 'async', 'alt' => $name, 'class' => 'hr-clients__logo', 'sizes' => '160px' ) );
         if ( '' !== $img ) {
             $out[] = array( 'name' => $name, 'url' => (string) get_post_meta( $post->ID, META_URL, true ), 'img' => $img );
         }
@@ -92,8 +95,9 @@ function enqueue(): void {
     wp_enqueue_script( 'hr-clients', asset_url( 'js/clients.js' ), array(), asset_ver( 'js/clients.js' ), array( 'in_footer' => true, 'strategy' => 'defer' ) );
 }
 
+/** The band shows when there are logos; the empty "add logos" prompt only for people who can add them (signed in, never cached). */
 function visible(): bool {
-    return clients() || current_user_can( 'edit_posts' );
+    return clients() || current_user_can( 'edit_pages' );
 }
 
 // Enqueue in <head> where the band will render (no late, shifting stylesheet); the shortcode also enqueues as a fallback.

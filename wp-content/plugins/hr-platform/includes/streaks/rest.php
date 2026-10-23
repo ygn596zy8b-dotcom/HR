@@ -123,7 +123,7 @@ function rest_complete( \WP_REST_Request $request ) {
         $view   = summary( $uid );
         $events = array( 'xp' => 0, 'goal_met' => false, 'milestone' => null, 'new_best' => false, 'freeze_earned' => false, 'badges' => array() );
     } else {
-        [ $view, $events ] = refresh( $uid, array( 'kind' => kind_of( $post ), 'hour' => local_hour( $now, wp_timezone() ) ) );
+        [ $view, $events ] = refresh( $uid, array( 'kind' => kind_of( $post ), 'hour' => local_hour( $now, day_zone() ) ) );
     }
     return array(
         'counted'      => $counted,

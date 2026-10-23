@@ -276,7 +276,9 @@ function route_verify(): void {
     log_security( 'email_verified', array( 'uid' => $uid ) );
     $return = safe_redirect_target( (string) ( $record['r'] ?? '' ), '' ); // the page they registered from, if any
     if ( $current ) {
-        flash( 'welcome' );
+        if ( '' === $return ) {
+            flash( 'welcome' ); // the welcome panel lives on the overview; never leave it waiting for a later visit
+        }
         redirect( '' !== $return ? $return : account_url() );
     }
     // The link proves the inbox; sign in only accounts without a second factor (never bypass 2FA/passkeys), and
@@ -288,7 +290,9 @@ function route_verify(): void {
         redirect( login_url( $return ) );
     }
     complete_login( $user, false, 'email-link' );
-    flash( 'welcome' );
+    if ( '' === $return ) {
+        flash( 'welcome' );
+    }
     redirect( '' !== $return ? $return : default_login_redirect( $user ) );
 }
 

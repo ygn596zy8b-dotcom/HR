@@ -149,14 +149,16 @@ function plain_response( $data, int $status ): \WP_REST_Response {
 
 /**
  * Forwards a browser envelope to Sentry. Only envelopes addressed to our own browser DSN are accepted, and the
- * upstream URL is built from configuration, never from the request — so this cannot be used as an open relay.
+ * upstream URL is built from configuration, never from the request, so this cannot be used as an open relay.
+ * Limits: 200 KB per envelope, 60 per minute per visitor and 600 per minute for the whole site.
  */
 function tunnel( \WP_REST_Request $request ): \WP_REST_Response {
     $dsn = browser_dsn();
     if ( ! $dsn ) {
         return plain_response( array( 'error' => 'not_found' ), 404 );
     }
-    if ( ! rate_limit( 'sentry-tunnel', client_ip(), 60, MINUTE_IN_SECONDS ) ) {
+    // Per visitor, then site-wide: many addresses together still cannot burn through the Sentry quota or PHP workers.
+    if ( ! rate_limit( 'sentry-tunnel', client_ip(), 60, MINUTE_IN_SECONDS ) || ! rate_limit( 'sentry-tunnel-site', 'all', 600, MINUTE_IN_SECONDS ) ) {
         $response = plain_response( array( 'error' => 'rate_limited' ), 429 );
         $response->header( 'Retry-After', '60' );
         return $response;
@@ -218,10 +220,26 @@ function health(): \WP_REST_Response {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// CSP violation reports go straight from the browser to Sentry's security endpoint.
+// CSP violation reports go straight from the browser to Sentry's security endpoint. A report carries the full page
+// address, so pages opened from an emailed link (verify ?u=&t=, password reset ?key=&login=, unsubscribe) get no
+// report target: their one-time tokens must never reach Sentry. Those pages are no-store, so no cache keeps the header.
 // ---------------------------------------------------------------------------------------------------------------
+function request_has_secret_query(): bool {
+    foreach ( array_keys( (array) $_GET ) as $name ) {
+        $name = strtolower( (string) $name );
+        if ( in_array( $name, array( 't', 'u', 'k' ), true ) || preg_match( '/pass|pwd|token|key|nonce|secret|sig|code|email|auth|login/', $name ) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function csp_report_target(): string {
+    return request_has_secret_query() ? '' : csp_report_url();
+}
+
 add_filter( 'hr_csp_directives', function ( $parts ) {
-    $url = csp_report_url();
+    $url = csp_report_target();
     if ( '' !== $url && is_array( $parts ) ) {
         $parts[] = 'report-uri ' . $url;
         $parts[] = 'report-to csp-endpoint';
@@ -230,7 +248,7 @@ add_filter( 'hr_csp_directives', function ( $parts ) {
 } );
 
 add_action( 'hr_security_headers', function ( $front_end ) {
-    $url = csp_report_url();
+    $url = csp_report_target();
     if ( $front_end && '' !== $url && ! headers_sent() ) {
         header( 'Reporting-Endpoints: csp-endpoint="' . $url . '"' );
     }
@@ -298,7 +316,7 @@ add_filter( 'hr_settings_schema', function ( $schema ) {
     $schema['monitoring'] = array(
         'title'       => 'Monitoring',
         'description' => 'PHP and browser errors, performance traces, CSP violation reports and cron check-ins go to Sentry. '
-            . 'Configure it in <code>wp-config.php</code> with <code>HR_SENTRY_DSN</code>, <code>HR_SENTRY_BROWSER_DSN</code>, <code>HR_SENTRY_TRACES</code> and <code>HR_SENTRY_BROWSER_TRACES</code> — never here.<br>'
+            . 'Configure it in <code>wp-config.php</code> with <code>HR_SENTRY_DSN</code>, <code>HR_SENTRY_BROWSER_DSN</code>, <code>HR_SENTRY_TRACES</code> and <code>HR_SENTRY_BROWSER_TRACES</code>, never here.<br>'
             . 'Server DSN configured: ' . $yes( $server ) . ' &middot; PHP SDK running: ' . $yes( php_active() )
             . ' &middot; Browser DSN: ' . $browser
             . ' &middot; Traces: ' . $pct( 'HR_SENTRY_TRACES' ) . ' server, ' . $pct( 'HR_SENTRY_BROWSER_TRACES' ) . ' browser.<br>'

@@ -24,13 +24,8 @@ function staff_mfa_enforced( ?\WP_User $user = null ): bool {
     return (bool) apply_filters( 'hr_enforce_staff_mfa', $on, $user );
 }
 
-add_action( 'admin_notices', function () {
-    $user = wp_get_current_user();
-    if ( ! is_staff( $user ) || has_mfa( (int) $user->ID ) ) {
-        return;
-    }
-    printf( '<div class="notice notice-warning"><p><strong>Protect your account:</strong> add a passkey or two-step verification in <a href="%s">your account security settings</a>.</p></div>', esc_url( account_url( 'settings' ) . '#security' ) );
-} );
+// (The "protect your staff account" reminder for staff without a passkey or two-step verification is printed by the
+// admin_notices hook further down, once.)
 
 add_action( 'admin_init', function () {
     if ( wp_doing_ajax() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) || ! is_user_logged_in() ) {
@@ -124,10 +119,19 @@ add_action( 'admin_notices', function () {
     }
 } );
 
+/** Staff accounts (first 200) with neither an authenticator app nor a passkey: two queries, not two per user. */
 function staff_without_mfa(): int {
+    global $wpdb;
+    $ids = array_map( 'intval', get_users( array( 'capability' => 'edit_posts', 'fields' => 'ID', 'number' => 200 ) ) );
+    if ( ! $ids ) {
+        return 0;
+    }
+    update_meta_cache( 'user', $ids ); // has_totp() then reads from the object cache
+    $table   = passkeys_table();
+    $with_pk = array_flip( array_map( 'intval', (array) $wpdb->get_col( "SELECT DISTINCT user_id FROM {$table}" ) ) );
     $missing = 0;
-    foreach ( get_users( array( 'capability' => 'edit_posts', 'fields' => 'ID', 'number' => 200 ) ) as $uid ) {
-        if ( ! has_mfa( (int) $uid ) ) {
+    foreach ( $ids as $uid ) {
+        if ( ! isset( $with_pk[ $uid ] ) && ! has_totp( $uid ) ) {
             $missing++;
         }
     }
@@ -327,3 +331,18 @@ add_filter( 'login_redirect', function ( $redirect, $requested, $user ) {
     }
     return $redirect;
 }, 20, 3 );
+
+// Maintenance mode (mu-plugins/hr-maintenance.php) lets signed-in editors and administrators through, but they must be
+// able to sign in first: keep the sign-in, second-step and password-reset pages and the passkey sign-in endpoints
+// reachable. Staff whose second factor is a passkey can only sign in here (wp-login.php sends them to this page).
+add_filter( 'hr_maintenance_allowed_paths', static function ( $paths ) {
+    $base = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+    foreach ( array( 'login', 'two-factor', 'forgot', 'reset' ) as $slug ) {
+        $paths[] = '/' . ltrim( substr( (string) wp_parse_url( account_url( $slug ), PHP_URL_PATH ), strlen( rtrim( $base, '/' ) ) ), '/' );
+    }
+    return $paths;
+} );
+add_filter( 'hr_maintenance_allowed_rest', static function ( $routes ) {
+    $routes[] = '/hr/v1/passkeys/login/';
+    return $routes;
+} );

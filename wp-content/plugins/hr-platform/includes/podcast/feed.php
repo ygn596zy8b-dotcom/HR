@@ -52,14 +52,35 @@ add_filter( 'bloginfo_rss', function ( $value, $show ) {
     if ( ! is_podcast_feed() ) {
         return $value;
     }
+    // Apple Podcasts and Spotify show the channel <description> as the show description (itunes:summary is legacy).
     if ( 'description' === $show ) {
-        return esc_html( (string) setting( 'podcast_tagline' ) );
+        return esc_html( trim( (string) setting( 'podcast_description' ) ) ?: (string) setting( 'podcast_tagline' ) );
     }
     if ( 'language' === $show ) {
         return esc_html( (string) setting( 'podcast_language' ) ?: 'en' );
     }
     return $value;
 }, 10, 2 );
+
+// Episodes drafted by the scheduled briefing have no WordPress author; the feed credits the show's author instead
+// of printing an empty <dc:creator>.
+add_filter( 'the_author', function ( $name ) {
+    return is_podcast_feed() && '' === trim( (string) $name ) ? (string) setting( 'podcast_author' ) : $name;
+} );
+
+/** Podcasting 2.0 podcast:guid: UUIDv5 of the feed URL without its scheme and trailing slash (podcastindex.org spec). */
+function podcast_guid(): string {
+    $name = rtrim( (string) preg_replace( '#^[a-z]+://#i', '', feed_url() ), '/' );
+    $hash = sha1( (string) hex2bin( 'ead4c236bf5858c6a2c6a131a5d2f5f8' ) . $name );
+    return sprintf(
+        '%s-%s-5%s-%s-%s',
+        substr( $hash, 0, 8 ),
+        substr( $hash, 8, 4 ),
+        substr( $hash, 13, 3 ),
+        dechex( ( hexdec( substr( $hash, 16, 2 ) ) & 0x3f ) | 0x80 ) . substr( $hash, 18, 2 ),
+        substr( $hash, 20, 12 )
+    );
+}
 
 add_action( 'rss2_ns', function () {
     if ( is_podcast_feed() ) {
@@ -82,6 +103,7 @@ add_action( 'rss2_head', function () {
     printf( "\t<itunes:author>%s</itunes:author>\n", esc_html( $author ) );
     printf( "\t<itunes:summary>%s</itunes:summary>\n", esc_html( (string) setting( 'podcast_description' ) ) );
     echo "\t<itunes:type>episodic</itunes:type>\n";
+    printf( "\t<podcast:guid>%s</podcast:guid>\n", esc_html( podcast_guid() ) );
     printf( "\t<itunes:explicit>%s</itunes:explicit>\n", setting( 'podcast_explicit' ) ? 'true' : 'false' );
     // The email is public in the feed, so it is only included when an owner address has been set on purpose.
     printf( "\t<itunes:owner><itunes:name>%s</itunes:name>%s</itunes:owner>\n", esc_html( $author ), $email ? '<itunes:email>' . esc_html( $email ) . '</itunes:email>' : '' );

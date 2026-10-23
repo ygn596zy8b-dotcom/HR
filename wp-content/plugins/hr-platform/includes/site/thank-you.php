@@ -1,6 +1,6 @@
 <?php
 /**
- * /thank-you/?for=newsletter|contact|media-kit|generic — confirmation page after a form, with next steps.
+ * /thank-you/?for=newsletter|contact|media-kit|generic: confirmation page after a form, with next steps.
  *
  * Readers land here after a successful newsletter sign-up (Mailchimp for WP form 2953, plain POST) and after the
  * contact and media-kit forms (Contact Form 7 posts normally because its JavaScript is switched off site-wide).
@@ -22,7 +22,7 @@ function thank_you_variants(): array {
     return array(
         'newsletter' => array(
             'eyebrow' => 'Intelligence Briefing',
-            'title'   => 'Almost there — check your inbox',
+            'title'   => 'Almost there: check your inbox',
             'lede'    => 'We have sent you an email to confirm your subscription. Click the link inside and the weekly Intelligence Briefing will start arriving.',
             'hint'    => 'Nothing yet? Check your spam or promotions folder, or sign up again with a different address.',
         ),

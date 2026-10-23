@@ -1,6 +1,6 @@
 <?php
 /**
- * Submissions: the account pages — /account/submit/ (sealed form) and /account/submissions/ (list + withdraw).
+ * Submissions: the account pages, /account/submit/ (sealed form) and /account/submissions/ (list + withdraw).
  */
 
 namespace HR\Platform\Submissions;

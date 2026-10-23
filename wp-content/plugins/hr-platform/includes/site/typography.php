@@ -847,7 +847,7 @@ add_filter( 'the_excerpt', static fn( $excerpt ) => is_string( $excerpt ) && has
 
 // Document, SEO, Open Graph and X titles and descriptions: the home page, archives, pages and episodes.
 foreach ( array(
-    'document_title', 'wpseo_title', 'wpseo_opengraph_title', 'wpseo_twitter_title', 'wpseo_metadesc', 'wpseo_opengraph_desc',
+    'pre_get_document_title', 'document_title', 'wpseo_title', 'wpseo_opengraph_title', 'wpseo_twitter_title', 'wpseo_metadesc', 'wpseo_opengraph_desc',
     'wpseo_twitter_description',
 ) as $hr_emdash_hook ) {
     add_filter( $hr_emdash_hook, __NAMESPACE__ . '\\emdash_display_seo', 50 );

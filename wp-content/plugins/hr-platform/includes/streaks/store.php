@@ -30,8 +30,24 @@ function install(): void {
     update_option( 'hr_streaks_db_version', DB_VERSION, true );
 }
 
+/**
+ * The zone streak days run in: Pakistan time (Asia/Karachi, UTC+5, no daylight saving) for this Pakistani readership,
+ * whatever Settings > General > Timezone says (the site may run on UTC). Filter 'hr_streak_timezone' ( string ) to change.
+ */
+function day_zone(): \DateTimeZone {
+    static $zone = null;
+    if ( null === $zone ) {
+        try {
+            $zone = new \DateTimeZone( (string) apply_filters( 'hr_streak_timezone', 'Asia/Karachi' ) );
+        } catch ( \Exception $e ) {
+            $zone = wp_timezone();
+        }
+    }
+    return $zone;
+}
+
 function today(): string {
-    return local_date( time(), wp_timezone() );
+    return local_date( time(), day_zone() );
 }
 
 function kind_of( \WP_Post $post ): string {
@@ -147,6 +163,9 @@ function refresh( int $uid, array $read = array() ): array {
     global $wpdb;
     $lock = $wpdb->prefix . 'hr_streak_' . $uid;
     $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock ) );
+    // The user meta was cached when this request authenticated (before the lock), so a parallel read may have
+    // saved newer XP and streak values since: read them fresh, or that read's gains are overwritten.
+    wp_cache_delete( $uid, 'user_meta' );
     try {
         $today          = today();
         $goal           = goal( $uid );

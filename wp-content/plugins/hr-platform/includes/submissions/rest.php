@@ -136,23 +136,32 @@ function rest_submit( \WP_REST_Request $request ) {
     if ( ! current_user_can( 'edit_posts' ) && ! Accounts\is_verified( $uid ) ) {
         return fail( 'unverified', 'Confirm your email address before submitting.', 403 );
     }
-    // rate_limit() reads then writes a transient, so parallel requests could all pass it: one check at a time per
-    // user (a MySQL named lock, released below or when the connection closes). NULL means no lock support: go on.
-    global $wpdb;
-    $lock = $wpdb->prefix . 'hr_submission_' . $uid; // lock names are server-wide
-    if ( '0' === $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) ) || ! rate_limit( 'submission_minute', (string) $uid, 1, MINUTE_IN_SECONDS ) ) {
-        return fail( 'rate_limited', 'Please wait a minute before submitting again.', 429 );
-    }
-    $within = rate_limit( 'submission_day', (string) $uid, 5, DAY_IN_SECONDS ) && rate_limit( 'submission_ip', ip_hash(), 20, DAY_IN_SECONDS );
-    $wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
-    if ( ! $within ) {
-        return fail( 'rate_limited', 'You have reached today\'s limit for submissions. Please try again tomorrow.', 429 );
-    }
+    // Field checks come first, so a writer who fixes a field the server refused can resend at once; refused requests
+    // have their own, looser limit.
     $data = $request->get_json_params();
     $f    = validate_submission( is_array( $data ) ? $data : array(), $key );
     if ( is_wp_error( $f ) ) {
         log_security( 'submission_rejected', array( 'reason' => $f->get_error_code(), 'field' => $f->get_error_data()['field'] ?? '' ) );
-        return $f;
+        return rate_limit( 'submission_rejected', (string) $uid, 30, HOUR_IN_SECONDS ) ? $f : fail( 'rate_limited', 'Please wait an hour before submitting again.', 429 );
+    }
+    // rate_limit() reads then writes a transient, so parallel requests could all pass it: one check at a time per
+    // user (a MySQL named lock, released below or when the connection closes). NULL means no lock support: go on.
+    global $wpdb;
+    $lock   = $wpdb->prefix . 'hr_submission_' . $uid; // lock names are server-wide
+    $locked = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) );
+    if ( '0' === $locked ) {
+        return fail( 'rate_limited', 'Please wait a minute before submitting again.', 429 );
+    }
+    $minute = rate_limit( 'submission_minute', (string) $uid, 1, MINUTE_IN_SECONDS );
+    $within = $minute && rate_limit( 'submission_day', (string) $uid, 5, DAY_IN_SECONDS ) && rate_limit( 'submission_ip', ip_hash(), 20, DAY_IN_SECONDS );
+    if ( '1' === $locked ) {
+        $wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+    }
+    if ( ! $minute ) {
+        return fail( 'rate_limited', 'Please wait a minute before submitting again.', 429 );
+    }
+    if ( ! $within ) {
+        return fail( 'rate_limited', 'You have reached today\'s limit for submissions. Please try again tomorrow.', 429 );
     }
 
     // Stored byte-for-byte as the browser serialises it, so both sides compute the same fingerprint.
@@ -165,7 +174,13 @@ function rest_submit( \WP_REST_Request $request ) {
         return fail( 'storage', 'We could not save your submission. Please try again in a few minutes.', 500 );
     }
     $sha = hash( 'sha256', $json );
-    $id  = wp_insert_post( wp_slash( array(
+    // The headline is already plain text (sanitize_text_field). kses would only turn "&" into "&amp;", which then
+    // shows up literally in the wp-admin title field and in plain-text emails.
+    $kses = has_filter( 'title_save_pre', 'wp_filter_kses' );
+    if ( false !== $kses ) {
+        remove_filter( 'title_save_pre', 'wp_filter_kses', $kses );
+    }
+    $id = wp_insert_post( wp_slash( array(
         'post_type'   => CPT,
         'post_status' => 'private',
         'post_author' => $uid,
@@ -183,8 +198,14 @@ function rest_submit( \WP_REST_Request $request ) {
             '_hr_sub_kid'            => $key['kid'],
         ),
     ) ), true );
+    if ( false !== $kses ) {
+        add_filter( 'title_save_pre', 'wp_filter_kses', $kses );
+    }
     if ( is_wp_error( $id ) || ! $id ) {
-        unlink( envelope_path( $file ) );
+        $path = envelope_path( $file );
+        if ( '' !== $path ) {
+            unlink( $path );
+        }
         log_security( 'submission_store_failed' );
         return fail( 'storage', 'We could not save your submission. Please try again in a few minutes.', 500 );
     }
@@ -196,9 +217,9 @@ function rest_submit( \WP_REST_Request $request ) {
 
     $type = TYPES[ $f['type'] ];
     Accounts\send_mail( notify_email(), sprintf( 'New %s #%d: %s', strtolower( $type ), $id, $f['title'] ), array(
-        'preheader'  => sprintf( '#%d %s — %s', $id, $f['title'], $type ),
+        'preheader'  => sprintf( '#%d %s (%s)', $id, $f['title'], $type ),
         'heading'    => sprintf( 'New submission #%d', $id ),
-        'paragraphs' => array( sprintf( '#%d %s — %s — open in wp-admin.', $id, $f['title'], $type ), 'The content is sealed. Open it on the submission screen with the editors\' key.' ),
+        'paragraphs' => array( sprintf( '#%d %s (%s, %s words). Open it in wp-admin.', $id, $f['title'], $type, number_format( $f['words'] ) ), 'The content is sealed. Open it on the submission screen with the editors\' key.' ),
         'button'     => array( 'label' => 'Open in wp-admin', 'url' => admin_url( 'post.php?post=' . $id . '&action=edit' ) ),
     ) );
     // The receipt goes to the verified account address, so this form cannot be used to mail strangers.

@@ -127,8 +127,11 @@ function init(root) {
         el('p', { class: 'hrs-admin__bio', text: str(sub.bio) })));
 
     const badge = el('span', { class: `hrs-admin-badge ${inRange ? 'is-ok' : 'is-warn'}`, text: inRange ? 'Within limit' : `Outside ${fmtNum(min)}–${fmtNum(max)}` });
+    // The server could only check the count the writer's browser reported; a different count here means it was altered.
+    const stated = Number(cfg.stated) || 0;
+    const mismatch = stated !== words ? el('span', { class: 'hrs-admin-badge is-warn', text: `Stated ${fmtNum(stated)}` }) : null;
     const meta = el('p', { class: 'hrs-admin__meta' },
-      `${cfg.type === 'oped' ? 'Op-ed' : 'Article'} · ${str(sub.category_name)} · ${fmtNum(words)} words (counted here) `, badge);
+      `${cfg.type === 'oped' ? 'Op-ed' : 'Article'} · ${str(sub.category_name)} · ${fmtNum(words)} words (counted here) `, badge, mismatch ? ' ' : null, mismatch);
 
     const body = el('div', { class: 'hrs-admin__body' }, ...str(sub.body).split(/\n\s*\n/).filter((p) => p.trim()).map((p) => el('p', { text: p.trim() })));
 
@@ -165,7 +168,8 @@ function init(root) {
       actions.append(el('p', { class: 'description', text: 'A draft post has already been created from this submission (see above).' }));
     }
 
-    out.replaceChildren(
+    // replaceChildren() would print a null as the text "null": drop the empty optional blocks first.
+    out.replaceChildren(...[
       writer,
       meta,
       el('h2', { class: 'hrs-admin__title', text: str(sub.title) }),
@@ -176,7 +180,7 @@ function init(root) {
       attachment,
       el('p', { class: 'hrs-admin__fine', text: `Sealed in the writer's browser at ${str(sub.submitted_at)}.` }),
       actions,
-    );
+    ].filter(Boolean));
     out.hidden = false;
     forget.hidden = false;
   }

@@ -1,5 +1,5 @@
 // Browser error monitoring. Performance tracing (browserTracingIntegration) roughly doubles the SDK's size, so it
-// lives in sentry-tracing.js and only the sampled share of page views downloads it — instead of this SDK, not on top.
+// lives in sentry-tracing.js and only the sampled share of page views downloads it, instead of this SDK (not on top of it).
 import { readConfig, start } from './_sentry-common.mjs';
 
 try {

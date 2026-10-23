@@ -2,7 +2,7 @@
 /**
  * Streaks: opt-in reminder emails (user meta _hr_streak_reminders = '1'; off by default).
  *
- * Daily at 19:00 site time: every opted-in reader with a confirmed address whose streak is at risk gets at most one
+ * Daily at 19:00 in the streak day zone (Pakistan time, store.php day_zone()): every opted-in reader with a confirmed address whose streak is at risk gets at most one
  * email a day, 50 readers per run (a follow-up run is queued while more are left). Each email carries
  * List-Unsubscribe + List-Unsubscribe-Post (one-click, RFC 8058) pointing at /reading/unsubscribe/?u=&t=, where
  * t is an HMAC of the user id: GET shows a confirm button, POST turns reminders off.
@@ -28,8 +28,14 @@ const REMINDER_HOOK  = 'hr_streak_reminders';
 const REMINDER_BATCH = 50;
 
 add_action( 'init', function () {
-    if ( ! wp_next_scheduled( REMINDER_HOOK ) ) {
-        $next = new \DateTimeImmutable( 'today 19:00', wp_timezone() );
+    $scheduled = wp_next_scheduled( REMINDER_HOOK );
+    // An event scheduled for another hour (an older version used the site timezone) is moved to 19:00.
+    if ( $scheduled && 19 !== local_hour( $scheduled, day_zone() ) ) {
+        wp_clear_scheduled_hook( REMINDER_HOOK );
+        $scheduled = false;
+    }
+    if ( ! $scheduled ) {
+        $next = new \DateTimeImmutable( 'today 19:00', day_zone() );
         if ( $next->getTimestamp() <= time() ) {
             $next = $next->modify( '+1 day' );
         }
@@ -43,7 +49,7 @@ function send_reminders(): void {
     do_action( 'hr_monitor_cron', 'streak-reminders', 'in_progress', '0 19 * * *' );
     try {
         // A run that slipped past midnight would promise "ends at midnight" a whole day early.
-        if ( local_hour( time(), wp_timezone() ) < 12 ) {
+        if ( local_hour( time(), day_zone() ) < 12 ) {
             do_action( 'hr_monitor_cron', 'streak-reminders', 'ok', '0 19 * * *' );
             return;
         }
@@ -92,13 +98,20 @@ function unsubscribe_url( int $uid ): string {
 function send_reminder( \WP_User $user, array $view ): bool {
     $left    = max( 1, $view['goal'] - $view['today'] );
     $reads   = suggestions( (int) $user->ID, 3 );
-    $subject = sprintf( 1 === count( $reads ) ? 'Your %d-day streak ends at midnight: %d quick read to keep it' : 'Your %d-day streak ends at midnight: %d quick reads to keep it', $view['current'], count( $reads ) );
-    if ( ! $reads ) {
-        $subject = sprintf( 'Your %d-day streak ends at midnight', $view['current'] );
+    $state   = state( (int) $user->ID );
+    // A missed day is covered when the freezes held can bridge every day since the goal was last met, today included.
+    $covered = '' !== $state['last_goal_date'] && days_between( $state['last_goal_date'], today() ) <= $state['freezes'];
+    $more    = sprintf( 1 === $left ? '%d more article' : '%d more articles', $left );
+    if ( $covered ) {
+        $subject = sprintf( 'Keep your %d-day streak: read %s today', $view['current'], $more );
+        $lead    = sprintf( 'Read %s before midnight to keep your %d-day streak going without using a streak freeze.', $more, $view['current'] );
+    } else {
+        $subject = sprintf( 'Your %d-day streak ends at midnight: read %s to keep it', $view['current'], $more );
+        $lead    = sprintf( 'Read %s before midnight to keep your %d-day streak going.', $more, $view['current'] );
     }
     $vars = array(
         'subject' => $subject,
-        'lead'    => sprintf( 'Read %d more %s before midnight to keep your %d-day streak going.', $left, 1 === $left ? 'article' : 'articles', $view['current'] ),
+        'lead'    => $lead,
         'reads'   => array_map( static fn( $p ) => array( 'title' => html_entity_decode( get_the_title( $p ), ENT_QUOTES, 'UTF-8' ), 'url' => get_permalink( $p ), 'minutes' => minutes( $p ), 'oped' => 'oped' === kind_of( $p ) ), $reads ),
         'unsub'   => unsubscribe_url( (int) $user->ID ),
     );

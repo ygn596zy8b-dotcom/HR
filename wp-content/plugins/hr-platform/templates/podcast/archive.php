@@ -8,13 +8,17 @@
 use function HR\Platform\icon;
 use function HR\Platform\render;
 use function HR\Platform\setting;
-use function HR\Platform\Podcast\keep_count;
 use function HR\Platform\Podcast\latest;
 use function HR\Platform\Podcast\minutes;
 use function HR\Platform\Podcast\show_name;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+// One query for every episode's audio attachment instead of one per episode.
+$hrp_audio_ids = array_filter( array_map( static fn( $p ) => (int) get_post_meta( $p->ID, '_hr_audio_id', true ), $GLOBALS['wp_query']->posts ) );
+if ( $hrp_audio_ids ) {
+    _prime_post_caches( $hrp_audio_ids, false, true );
+}
 $featured = latest();
 $cover    = (int) setting( 'podcast_cover' );
 $episodes = array_values( array_filter( array_map( 'HR\Platform\Podcast\episode', $GLOBALS['wp_query']->posts ), static fn( $e ) => ! $featured || $e['id'] !== $featured['id'] ) );
@@ -72,7 +76,7 @@ get_header();
             <section class="hrp-podcast-list" aria-labelledby="hrp-episodes-title">
                 <div class="hrp-podcast-list__head">
                     <h2 class="hrp-podcast-list__title" id="hrp-episodes-title">Recent episodes</h2>
-                    <p class="hrp-podcast-list__note"><?php echo esc_html( sprintf( 'The latest %d episodes', keep_count() ) ); ?></p>
+                    <p class="hrp-podcast-list__note"><?php echo esc_html( sprintf( 'The latest %d episodes', count( $episodes ) + 1 ) ); ?></p>
                 </div>
                 <ol class="hrp-eps" role="list">
                     <?php foreach ( $episodes as $e ) : ?>

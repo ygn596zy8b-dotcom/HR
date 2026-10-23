@@ -1,13 +1,14 @@
 <?php
 /**
- * Generative-engine optimisation (MSBJ). Yoast writes /llms.txt (a short index); this adds /llms-full.txt — who
- * publishes the site, how to cite it, and the latest articles with their editor-written summaries — so answer
+ * Generative-engine optimisation (MSBJ). Yoast writes /llms.txt (a short index); this adds /llms-full.txt (who
+ * publishes the site, how to cite it, and the latest articles with their editor-written summaries) so answer
  * engines can quote Headline Recorder accurately and link back. Summaries also become the llms.txt link text.
  */
 
 namespace HR\Platform\Site;
 
 use function HR\Platform\add_route;
+use function HR\Platform\route_url;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -21,7 +22,8 @@ function summary( \WP_Post $post ): string {
 
 add_filter( 'wpseo_llmstxt_link_description', function ( $description, $post_id = 0, $post_type = '' ) {
     $post = 'post' === $post_type ? get_post( (int) $post_id ) : null;
-    return $post ? summary( $post ) : $description;
+    $text = $post ? summary( $post ) : '';
+    return '' !== $text ? shorten( $text, 300 ) : $description; // an index entry: one or two sentences
 }, 10, 3 );
 
 function llms_full(): string {
@@ -39,12 +41,23 @@ function llms_full(): string {
         '- Publisher: ' . ( $org['legal_name'] ?? site_name() ) . ( $addr ? " ({$addr})" : '' ),
         '- Website: ' . home_url( '/' ),
         '- Editorial and corrections policy: ' . home_url( '/editorial-corrections-policy/' ),
-        '- About: ' . home_url( '/about-us/' ) . ' · Contact: ' . home_url( '/contact-us/' ),
+        '- About: ' . home_url( '/about-us/' ) . ' · Contact: ' . home_url( '/contact-us/' ) . ( ! empty( $org['email'] ) ? ' (' . $org['email'] . ')' : '' ),
+        '- Founded: 2023 · Language: English · Based in: ' . ( $org['locality'] ?? 'Karachi' ) . ', ' . ( isset( $org['country'] ) ? country_name( $org['country'] ) : 'Pakistan' ),
+        '- Coverage: Pakistan\'s economy, the State Bank of Pakistan and monetary policy, the Pakistan Stock Exchange (PSX), the federal budget and taxes (FBR), the IMF programme, banking, energy, agriculture, telecoms, technology and startups, plus global business news that matters to Pakistan',
         '- Authenticity: every article is signed (ML-DSA-87 + Ed448); check a copy at ' . home_url( '/verify/' ),
         '- How to cite: "<headline>", Headline Recorder, <date published>, <article URL>. Please link to the article.',
+        '- Headlines, dates and bylines below are as published; each summary is the article\'s own summary or excerpt.',
         '',
-        '## Sections',
+        '## Key pages',
+        '- [Latest news](' . home_url( '/' ) . ')',
+        '- [Markets](' . home_url( '/markets/' ) . '): PSX, currency and commodity data',
+        '- [Opinion](' . home_url( '/category/opinion/' ) . '): signed op-eds by guest experts',
+        '- [Authors and experts](' . home_url( '/authors-experts/' ) . ')',
     );
+    if ( post_type_exists( 'hr_episode' ) ) {
+        $out[] = '- [Podcast](' . podcast_archive_url() . '): daily audio briefings, RSS feed ' . route_url( 'podcast/feed' );
+    }
+    array_push( $out, '- [RSS feed of all articles](' . get_feed_link() . ')', '', '## Sections' );
     foreach ( get_categories( array( 'orderby' => 'count', 'order' => 'DESC', 'number' => 12, 'hide_empty' => true, 'exclude' => array( (int) get_option( 'default_category' ) ) ) ) as $cat ) {
         $out[] = sprintf( '- [%s](%s)', $md( plain_text( $cat->name ) ), get_category_link( $cat ) );
     }

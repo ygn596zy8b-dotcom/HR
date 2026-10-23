@@ -175,25 +175,28 @@ function request_script( array $articles ) {
     $prompt = sprintf( "Today is %s. Write today's briefing from these %d articles.\n\n%s", wp_date( 'l, j F Y' ), count( $articles ), $blocks );
     $model  = (string) setting( 'ai_model' ) ?: 'claude-opus-5-5';
 
-    // The request can take minutes (cron and the admin button alike); shared hosts often default to 30 s.
+    // The request can take minutes (cron and the admin button alike); shared hosts often default to 30 s. The limit
+    // covers the worst case: two attempts of 180 s each plus the SDK's retry delay.
     if ( function_exists( 'set_time_limit' ) ) {
-        set_time_limit( 300 );
+        set_time_limit( 420 );
     }
+    // Server-side refusal fallback exists for Opus and Sonnet; Haiku has none, so the parameter is left out there.
+    $fallback = ! str_starts_with( $model, 'claude-haiku' );
     try {
         $client  = new \Anthropic\Client(
             apiKey: (string) ANTHROPIC_API_KEY,
             baseUrl: api_base_url(),
-            requestOptions: array( 'timeout' => 240.0, 'maxRetries' => 2 ),
+            requestOptions: array( 'timeout' => 180.0, 'maxRetries' => 1 ),
         );
-        // Opus 5.5 always thinks (no thinking/budget_tokens allowed); effort sets the depth.
+        // Current models always think (no thinking/budget_tokens allowed); effort sets the depth.
         $message = $client->beta->messages->create(
             maxTokens: 16000,
             messages: array( array( 'role' => 'user', 'content' => $prompt ) ),
             model: $model,
             system: SYSTEM_PROMPT,
             outputConfig: array( 'effort' => 'medium', 'format' => array( 'type' => 'json_schema', 'schema' => SCHEMA ) ),
-            fallbacks: 'default',
-            betas: array( 'server-side-fallback-2026-07-01' ),
+            fallbacks: $fallback ? 'default' : null,
+            betas: $fallback ? array( 'server-side-fallback-2026-07-01' ) : null,
         );
     } catch ( \Anthropic\Core\Exceptions\APIStatusException $e ) {
         error_log( sprintf( 'hr-podcast: briefing API error %d %s', (int) $e->status, $e->type?->value ?? '' ) );

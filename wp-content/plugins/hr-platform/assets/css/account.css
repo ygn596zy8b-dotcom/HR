@@ -7,6 +7,12 @@
 .hra { --hra-gap: clamp(16px, 3vw, 32px); padding-block: clamp(12px, 3vw, 40px) clamp(48px, 7vw, 96px); }
 .hra a { color: var(--hrp-red-deep); text-underline-offset: 3px; }
 .hra a:hover { color: var(--hrp-ink); }
+/* Links styled as buttons keep the button colours (the generic link colour above would otherwise win). */
+.hra a.hrp-btn, .hra a.hrp-btn:hover { color: #fff; text-decoration: none; }
+.hra a.hrp-btn--ghost { color: var(--hrp-ink); }
+.hra a.hrp-btn--ghost:hover { color: #fff; }
+.hra .hrp-btn--link, .hra a.hrp-btn--link { color: var(--hrp-red-deep); } /* AA contrast on white */
+.hra .hrp-btn--link:hover, .hra a.hrp-btn--link:hover { color: var(--hrp-ink); }
 .hra .hr-icon { width: 1.15em; height: 1.15em; }
 .hra-title { font-size: clamp(28px, 3.4vw, 36px); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 10px; color: var(--hrp-ink); }
 .hra-title:focus { outline: none; }

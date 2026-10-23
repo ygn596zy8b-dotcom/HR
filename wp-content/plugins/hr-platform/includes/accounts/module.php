@@ -62,9 +62,11 @@
  *   document.dispatchEvent( new CustomEvent( 'hr:streak', { detail: streak } ) ) to update the header chip.
  *   The REST nonce in the payload lives in memory only; never copy it to localStorage/sessionStorage.
  *
- * Staff sign-in policy: apply_filters( 'hr_enforce_staff_mfa', bool $on, ?WP_User $user ): anyone who can
- *   edit_posts must have a passkey or two-step verification before using wp-admin. On by default; off with
- *   define( 'HR_ENFORCE_STAFF_MFA', false ); opt-in (filter) on WP_ENVIRONMENT_TYPE 'local' copies.
+ * Staff sign-in policy: apply_filters( 'hr_enforce_staff_mfa', bool $on, ?WP_User $user ): when on, anyone
+ *   who can edit_posts (administrators excepted, so the owner is never locked out) must have a passkey or
+ *   two-step verification before using wp-admin or writing through /wp/v2/. Enabled with
+ *   define( 'HR_ENFORCE_STAFF_MFA', true ); in wp-config.php (see staff_mfa_enforced() in admin.php); until then
+ *   staff without one see a dashboard reminder.
  *
  * Policies outside /account/: wp-login.php needs the authentication code for two-step accounts (staff with only a
  *   passkey are sent to /account/login/); wp-login.php?action=register|lostpassword redirect to our pages; core

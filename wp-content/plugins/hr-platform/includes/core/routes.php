@@ -4,7 +4,7 @@
  *
  *   add_route( 'account', '^account(?:/([a-z-]+))?/?$', function ( string $sub ) { ... } );
  *
- * The handler runs on template_redirect and must output a full response (or redirect) — it is followed by exit.
+ * The handler runs on template_redirect and must output a full response (or redirect); it is followed by exit.
  * The first regex capture group is passed as $sub ('' when absent).
  */
 
@@ -46,8 +46,10 @@ add_filter( 'query_vars', function ( array $vars ) {
 add_action( 'init', function () {
     $signature = md5( wp_json_encode( array_map( fn( $r ) => $r['regex'], $GLOBALS['hr_platform_routes'] ) ) );
     if ( get_option( 'hr_platform_routes_sig' ) !== $signature ) {
-        update_option( 'hr_platform_routes_sig', $signature, false );
+        update_option( 'hr_platform_routes_sig', $signature, true ); // read on every request: autoload it
         flush_rewrite_rules( false );
+    } elseif ( ! isset( wp_load_alloptions()['hr_platform_routes_sig'] ) ) {
+        wp_set_option_autoload( 'hr_platform_routes_sig', true ); // older installs stored it unautoloaded
     }
 }, 100 );
 
@@ -70,10 +72,14 @@ add_filter( 'redirect_canonical', function ( $redirect ) {
     return '' !== current_route() ? false : $redirect;
 } );
 
-/** Title for a virtual page; set by the handler before get_header(). Personal pages stay out of search engines. */
+/**
+ * Title for a virtual page; set by the handler before get_header(). Personal pages stay out of search engines.
+ * "Page - Brand", the same separator as the Yoast titles on the rest of the site.
+ */
 function set_page_title( string $title, bool $indexable = false ): void {
-    add_filter( 'pre_get_document_title', fn() => $title . ' — ' . get_bloginfo( 'name' ), 20 );
-    add_filter( 'wpseo_title', fn() => $title . ' — ' . get_bloginfo( 'name' ), 20 );
+    $full = $title . ' - ' . get_bloginfo( 'name' );
+    add_filter( 'pre_get_document_title', fn() => $full, 20 );
+    add_filter( 'wpseo_title', fn() => $full, 20 );
     add_filter( 'wpseo_canonical', fn() => $indexable ? route_url( current_route() ) : false, 20 );
     if ( ! $indexable ) {
         add_filter( 'wpseo_robots', fn() => 'noindex, nofollow', 20 );

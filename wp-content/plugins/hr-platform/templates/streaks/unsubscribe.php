@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
         <p class="hrp-eyebrow">Streak reminders</p>
         <?php if ( 'confirm' === $state ) : ?>
             <h1 class="hrs-unsub__title">Turn off reminder emails?</h1>
-            <p class="hrs-meta">You will stop getting the 7 pm email on days your reading streak is about to end. Your streak itself is not affected.</p>
+            <p class="hrs-meta">You will stop getting the 7 pm email (Pakistan time) on days your reading streak is about to end. Your streak itself is not affected.</p>
             <form method="post" action="">
                 <button type="submit" class="hrp-btn">Turn off reminders</button>
             </form>

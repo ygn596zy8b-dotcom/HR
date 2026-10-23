@@ -251,7 +251,7 @@ close to readers; both are purged on every change. Settings that match this site
 - **TTL:** Default Public Cache TTL 3600, Front Page TTL 600, Feed TTL 600, 404 TTL 3600.
 - **Purge:** "Auto Purge Rules For Publish/Update": All pages, Front page, Home page, Pages, Author archive,
   Post type archive, Yearly/Monthly/Daily archive, Term archive. "Serve Stale" ON.
-- **Excludes > Do Not Cache URIs:** `/account/`, `/dashboard/`, `/wp-json/hr/v1/`, `/thank-you/`. **Do Not Cache
+- **Excludes > Do Not Cache URIs:** `/account/`, `/dashboard/`, `/wp-json/hr/v1/`, `/thank-you/`, `/reading/`. **Do Not Cache
   Cookies:** `hr_li`, `wordpress_logged_in`. (The plugin also sends `no-store` and `litespeed_control_set_nocache` on
   personalised responses, and the edge module never marks a page public when LiteSpeed Cache says `no-cache`.)
 - **ESI:** OFF. Nothing per-user is rendered on cacheable pages: the header account chip and streak flame come from

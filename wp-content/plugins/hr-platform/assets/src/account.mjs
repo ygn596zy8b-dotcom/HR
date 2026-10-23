@@ -268,7 +268,7 @@ function initReveal() {
   const toggle = (btn, input, show) => {
     input.type = show ? 'text' : 'password';
     btn.setAttribute('aria-pressed', String(show));
-    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    // The label stays "Show password"; aria-pressed carries the state (changing both would announce it twice).
     btn.replaceChildren(svg(show ? 'eye-off' : 'eye'));
   };
   for (const btn of $$('button.hrp-reveal[data-hra-reveal]')) {

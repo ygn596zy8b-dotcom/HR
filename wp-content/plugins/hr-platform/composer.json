@@ -6,7 +6,7 @@
   "require": {
     "php": ">=8.2",
     "sentry/sentry": "^4.10",
-    "anthropic-ai/sdk": "*",
+    "anthropic-ai/sdk": "^0.59",
     "lbuchs/webauthn": "^2.2",
     "guzzlehttp/guzzle": "^7.9"
   },

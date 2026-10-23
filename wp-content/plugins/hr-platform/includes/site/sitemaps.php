@@ -6,7 +6,11 @@
  *     never reports "submitted URL marked noindex";
  *   - personal pages (the reading dashboard, /account/…) are left out;
  *   - the podcast archive and the public /verify/ page are listed by a small "hr" provider (core lists post type
- *     archives and virtual routes nowhere). Podcast episodes are a public post type, so core lists them itself.
+ *     archives and virtual routes nowhere). Podcast episodes are a public post type, so core lists them itself;
+ *   - the Google News sitemap (/sitemap-news.xml, articles of the last 48 hours) skips the same noindex and
+ *     password-protected posts;
+ *   - the reading dashboard page is marked noindex in Yoast's own index too, so Yoast's robots tag and its
+ *     /llms.txt page list leave it out.
  */
 
 namespace HR\Platform\Site;
@@ -45,15 +49,63 @@ function sitemap_excluded_ids(): array {
     }
     global $wpdb;
     $ids = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-        "SELECT post_id FROM {$wpdb->postmeta} WHERE ( meta_key = %s AND meta_value = %s ) OR ( meta_key = %s AND meta_value = %s )",
+        "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
         '_yoast_wpseo_meta-robots-noindex',
-        '1',
-        '_wp_page_template',
-        'page-dashboard.php'
+        '1'
     ) ) );
-    $ids = (array) apply_filters( 'hr_sitemap_excluded_ids', $ids );
+    $ids = array_values( array_unique( array_merge( $ids, dashboard_page_ids() ) ) );
+    $ids = array_map( 'intval', (array) apply_filters( 'hr_sitemap_excluded_ids', $ids ) );
     return $ids;
 }
+
+/** Pages using the personal reading dashboard template (they redirect guests to sign in). */
+function dashboard_page_ids(): array {
+    static $ids = null;
+    if ( null === $ids ) {
+        global $wpdb;
+        $ids = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+            "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
+            '_wp_page_template',
+            'page-dashboard.php'
+        ) ) );
+    }
+    return $ids;
+}
+
+// Google News sitemap ("XML Sitemap & Google News"): no noindex, dashboard or password-protected posts.
+add_filter( 'xmlsf_news_excluded', static function ( $excluded, $post_id = 0 ) {
+    $post_id = (int) $post_id;
+    return $excluded || ( $post_id && ( in_array( $post_id, sitemap_excluded_ids(), true ) || post_password_required( $post_id ) ) );
+}, 20, 2 );
+
+// Yoast's index: the dashboard is personal, so its indexable carries noindex (Yoast's robots tag, its llms.txt
+// page list and its internal-linking tools then all treat it as not for search engines).
+add_filter( 'wpseo_should_save_indexable', static function ( $save, $indexable = null ) {
+    if ( is_object( $indexable ) && 'post' === ( $indexable->object_type ?? '' ) && in_array( (int) ( $indexable->object_id ?? 0 ), dashboard_page_ids(), true ) ) {
+        $indexable->is_robots_noindex = true;
+    }
+    return $save;
+}, 20, 2 );
+
+// Once per site: correct the dashboard indexables Yoast built before the filter above existed.
+add_action( 'admin_init', static function () {
+    if ( 'v1' === get_option( 'hr_site_dashboard_noindex' ) || ! function_exists( 'YoastSEO' ) ) {
+        return;
+    }
+    update_option( 'hr_site_dashboard_noindex', 'v1', false );
+    try {
+        $repo = YoastSEO()->classes->get( \Yoast\WP\SEO\Repositories\Indexable_Repository::class );
+        foreach ( dashboard_page_ids() as $id ) {
+            $indexable = $repo->find_by_id_and_type( $id, 'post', false );
+            if ( $indexable && ! $indexable->is_robots_noindex ) {
+                $indexable->is_robots_noindex = true;
+                $indexable->save();
+            }
+        }
+    } catch ( \Throwable $e ) {
+        // Yoast's internals changed: the filter above still applies the next time the page is saved.
+    }
+} );
 
 // After the sitemap plugin (priority 10), which replaces meta_query; post__not_in is left alone by it.
 add_filter( 'wp_sitemaps_posts_query_args', static function ( $args ) {
@@ -102,3 +154,21 @@ add_action( 'wp_sitemaps_init', static function ( $sitemaps ) {
     };
     $sitemaps->registry->add_provider( 'hr', $provider );
 }, 20 );
+
+// WordPress's virtual robots.txt, used only when the static deploy/webroot/robots.txt is not in the web root:
+// keep internal search out of crawlers' queues and point them at the Google News sitemap too.
+add_filter( 'robots_txt', static function ( $output, $public = true ) {
+    if ( ! $public || ! is_string( $output ) ) {
+        return $output;
+    }
+    if ( ! str_contains( $output, 'Disallow: /?s=' ) ) {
+        $output = preg_replace( '/^(User-agent: \*\R)/m', "$1Disallow: /?s=\nDisallow: /*?s=\nDisallow: /search/\nDisallow: /verify/?\n", $output, 1 );
+    }
+    if ( class_exists( 'XMLSF\\Sitemap_News' ) || function_exists( 'xmlsf' ) || get_option( 'xmlsf_sitemaps' ) ) {
+        $news = home_url( '/sitemap-news.xml' );
+        if ( ! str_contains( $output, $news ) ) {
+            $output = rtrim( $output ) . "\nSitemap: {$news}\n";
+        }
+    }
+    return $output;
+}, 20, 2 );

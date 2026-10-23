@@ -219,6 +219,6 @@ add_action( 'admin_notices', function () {
     $left   = absint( $_GET['hr_alt_left'] ?? 0 );
     printf(
         '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-        esc_html( sprintf( 'Alt text added to %d image(s).%s', $filled, $left ? sprintf( ' %d image(s) had nothing to go on — add their alt text in the media library.', $left ) : '' ) )
+        esc_html( sprintf( 'Alt text added to %d image(s).%s', $filled, $left ? sprintf( ' %d image(s) had nothing to go on: add their alt text in the media library.', $left ) : '' ) )
     );
 } );

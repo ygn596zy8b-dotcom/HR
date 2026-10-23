@@ -160,7 +160,8 @@ add_route( 'manifest', '^manifest\.webmanifest$', function () {
     );
     foreach ( array( '192', '512' ) as $size ) {
         if ( isset( $icons[ $size ] ) ) {
-            $manifest['icons'][] = array( 'src' => $icons[ $size ], 'sizes' => "{$size}x{$size}", 'type' => 'image/png', 'purpose' => 'any' );
+            $type                = wp_check_filetype( (string) wp_parse_url( $icons[ $size ], PHP_URL_PATH ) )['type'] ?: 'image/png';
+            $manifest['icons'][] = array( 'src' => $icons[ $size ], 'sizes' => "{$size}x{$size}", 'type' => $type, 'purpose' => 'any' );
         }
     }
     if ( isset( $icons['maskable'] ) ) {

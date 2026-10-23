@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 add_filter( 'hr_settings_schema', function ( array $schema ): array {
     $schema['organisation'] = array(
         'title'       => 'Organisation',
-        'description' => 'Used in search-engine structured data (Organization / NewsMediaOrganization), the footer address and the legal pages. Leave a field empty rather than guessing — empty fields are simply left out.',
+        'description' => 'Used in search-engine structured data (Organization / NewsMediaOrganization), the footer address and the legal pages. Leave a field empty rather than guessing: empty fields are simply left out.',
         'fields'      => array(
             'org_legal_name'     => array( 'label' => 'Legal name', 'type' => 'text', 'default' => 'Headline Recorder' ),
             'org_street_address' => array( 'label' => 'Street address', 'type' => 'text', 'default' => 'First Floor, Feroze Heights, Saadi Town' ),

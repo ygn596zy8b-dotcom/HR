@@ -68,9 +68,9 @@ add_filter( 'login_redirect', function ( $redirect, $requested, $user ) {
     return $redirect;
 }, 30, 3 );
 
-/** "Pakistan time" when the site runs on Karachi time (Settings → General → Timezone), otherwise the zone itself. */
+/** "Pakistan time" when streak days run on Karachi time (store.php day_zone()), otherwise the zone itself. */
 function day_zone_label(): string {
-    $tz     = wp_timezone();
+    $tz     = day_zone();
     $offset = $tz->getOffset( new \DateTimeImmutable( 'now', $tz ) );
     if ( 'Asia/Karachi' === $tz->getName() || 5 * HOUR_IN_SECONDS === $offset ) {
         return 'Pakistan time';

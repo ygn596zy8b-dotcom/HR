@@ -1,6 +1,6 @@
 <?php
 /**
- * Submissions — signed-in readers send articles and op-eds from /account/submit/.
+ * Submissions: signed-in readers send articles and op-eds from /account/submit/.
  *
  * Everything the writer types (and their headshot and attachment) is sealed in the browser to the editors' public key
  * with ML-KEM-1024 + P-384 → AES-256-GCM (security/pq/pq.mjs). The server stores only that envelope, in a private
@@ -209,9 +209,9 @@ function export_row( int $id ): array {
     $cat  = get_term( (int) meta( $id, 'category' ), 'category' );
     return array(
         'id'             => $id,
-        'title'          => $post ? $post->post_title : '',
+        'title'          => $post ? html_entity_decode( $post->post_title, ENT_QUOTES, 'UTF-8' ) : '',
         'type'           => TYPES[ meta( $id, 'type' ) ] ?? '',
-        'category'       => $cat && ! is_wp_error( $cat ) ? html_entity_decode( $cat->name ) : '',
+        'category'       => $cat && ! is_wp_error( $cat ) ? html_entity_decode( $cat->name, ENT_QUOTES, 'UTF-8' ) : '',
         'words'          => (int) meta( $id, 'words' ),
         'contact_email'  => meta( $id, 'email' ),
         'status'         => STATUSES[ meta( $id, 'status' ) ] ?? '',

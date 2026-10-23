@@ -1,6 +1,6 @@
 <?php
 /**
- * /account/submit/ — the sealed submission form. seal.js validates it, encrypts everything except the triage fields
+ * /account/submit/: the sealed submission form. seal.js validates it, encrypts everything except the triage fields
  * (type, headline, section, contact email, word count) and uploads the envelope. Without JavaScript nothing can be
  * encrypted, so the submit button stays disabled.
  * Theme override: headlinerec-child/hr/submissions/submit.php
@@ -222,7 +222,7 @@ $hrs_config = array(
             <span class="hrs-seal__icon" aria-hidden="true"><?php echo icon( 'lock' ); // phpcs:ignore -- static SVG ?></span>
             <div>
                 <p class="hrs-seal__title">Encrypted before it leaves your device</p>
-                <p>Your article is encrypted in your browser with post-quantum ML-KEM-1024 + AES-256-GCM before it leaves your device. Only our editors' offline key can open it. Your title, type and category are stored unencrypted so editors can triage.</p>
+                <p>Your piece, photo and details are encrypted in your browser with post-quantum ML-KEM-1024 and P-384 key exchange and AES-256-GCM before they leave your device. Only our editors' offline key can open them. Your headline, type and section are stored unencrypted so editors can sort submissions.</p>
                 <p class="hrs-seal__fine">So are your contact email and the word count. Editors' key ID <code class="hrs-kid"><?php echo esc_html( substr( $key['kid'], 0, 16 ) ); ?>…</code></p>
             </div>
         </div>

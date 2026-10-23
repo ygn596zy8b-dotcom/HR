@@ -183,7 +183,7 @@
                         <p class="item__meta">
                           <xsl:if test="pubDate"><time><xsl:value-of select="substring(pubDate, 6, 11)"/></time></xsl:if>
                           <xsl:if test="itunes:duration and number(itunes:duration) &gt; 0">
-                            <span><xsl:value-of select="round(number(itunes:duration) div 60) + number(number(itunes:duration) &lt; 60)"/> min</span>
+                            <span><xsl:value-of select="round(number(itunes:duration) div 60) + number(number(itunes:duration) &lt; 30)"/> min</span>
                           </xsl:if>
                           <xsl:if test="category[1] and not($is-podcast)"><span><xsl:value-of select="category[1]"/></span></xsl:if>
                         </p>

@@ -52,7 +52,7 @@ $hra_addr = 'First Floor, Feroze Heights, Saadi Town, Karachi, Sindh 75280, Paki
             <?php endif; ?>
         </td></tr>
         <?php endif; ?>
-        <tr><td style="padding:20px 32px 28px;border-top:1px solid #e5e5ea;font-family:<?php echo esc_attr( $hra_font ); ?>;font-size:12px;line-height:1.6;color:#8e8e93;">
+        <tr><td style="padding:20px 32px 28px;border-top:1px solid #e5e5ea;font-family:<?php echo esc_attr( $hra_font ); ?>;font-size:12px;line-height:1.6;color:#6e6e73;">
             We will never ask for your password by email. This message was sent because of activity on your Headline Recorder account.<br>
             Headline Recorder · <?php echo esc_html( $hra_addr ); ?><br>
             <a href="<?php echo esc_url( home_url( '/' ) ); ?>" style="color:#5f5f66;"><?php echo esc_html( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ); ?></a> · <a href="<?php echo esc_url( home_url( '/privacy-policy/' ) ); ?>" style="color:#5f5f66;">Privacy Policy</a>

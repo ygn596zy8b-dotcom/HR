@@ -1,6 +1,6 @@
 <?php
 /**
- * Site — SEO and trust layer on top of Yoast SEO and the theme:
+ * Site: SEO and trust layer on top of Yoast SEO and the theme:
  *   settings.php  Organisation details + cookie settings (Settings → Headline Recorder)
  *   seo.php       meta descriptions, titles, Open Graph / Twitter gaps
  *   og-card.php   branded 1200×630 share cards at /og/<post-id>-<version>.png

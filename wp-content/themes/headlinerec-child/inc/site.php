@@ -207,12 +207,18 @@ function hr_card_image_fallback(): string {
     return '<span class="hr-img-fallback" aria-hidden="true"><span class="hr-img-fallback__mark">H<span>R</span></span></span>';
 }
 
-/** First category of a post that is not the "Editor's Picks" flag, or ''. */
+/** First category of a post that is neither the "Editor's Picks" flag nor the default "Uncategorized", or ''. */
 function hr_primary_category_name( int $post_id ): string {
+    $default = (int) get_option( 'default_category' );
     foreach ( get_the_category( $post_id ) as $cat ) {
-        if ( "editor's picks" !== strtolower( html_entity_decode( $cat->name, ENT_QUOTES ) ) ) {
+        if ( (int) $cat->term_id !== $default && "editor's picks" !== strtolower( html_entity_decode( $cat->name, ENT_QUOTES ) ) ) {
             return $cat->name;
         }
     }
     return '';
 }
+
+// Contact Form 7 frames its empty select option ("Please choose an option") with long dashes; show the plain words.
+add_filter( 'gettext_contact-form-7', static function ( $translation, $text ) {
+    return str_contains( $text, 'Please choose an option' ) ? 'Please choose an option' : $translation;
+}, 10, 2 );

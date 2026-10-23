@@ -33,16 +33,16 @@ add_filter( 'manage_' . CPT . '_posts_columns', function ( array $cols ) {
 add_action( 'manage_' . CPT . '_posts_custom_column', function ( string $col, int $id ) {
     switch ( $col ) {
         case 'hr_type':
-            echo esc_html( TYPES[ meta( $id, 'type' ) ] ?? '—' );
+            echo esc_html( TYPES[ meta( $id, 'type' ) ] ?? '-' );
             break;
         case 'hr_category':
-            echo esc_html( categories()[ (int) meta( $id, 'category' ) ] ?? '—' );
+            echo esc_html( categories()[ (int) meta( $id, 'category' ) ] ?? '-' );
             break;
         case 'hr_author':
             author_cell( $id );
             break;
         case 'hr_status':
-            echo esc_html( STATUSES[ meta( $id, 'status' ) ] ?? '—' );
+            echo esc_html( STATUSES[ meta( $id, 'status' ) ] ?? '-' );
             break;
         case 'hr_size':
             echo esc_html( size_format( (int) meta( $id, 'bytes' ), 1 ) );
@@ -53,7 +53,7 @@ add_action( 'manage_' . CPT . '_posts_custom_column', function ( string $col, in
 function author_cell( int $id ): void {
     $user = get_userdata( (int) get_post_field( 'post_author', $id ) );
     if ( ! $user ) {
-        echo '—';
+        echo '-';
         return;
     }
     $verified = Accounts\is_verified( (int) $user->ID );
@@ -109,10 +109,10 @@ function sealed_box( \WP_Post $post ): void {
     render( 'submissions/admin-sealed', array(
         'post'   => $post,
         'facts'  => array(
-            'Type'           => TYPES[ $type ] ?? '—',
-            'Section'        => categories()[ (int) meta( $id, 'category' ) ] ?? '—',
+            'Type'           => TYPES[ $type ] ?? '-',
+            'Section'        => categories()[ (int) meta( $id, 'category' ) ] ?? '-',
             'Words (stated)' => number_format( (int) meta( $id, 'words' ) ),
-            'Account'        => $user ? $user->display_name . ( Accounts\is_verified( (int) $user->ID ) ? ' (verified)' : ' (unverified)' ) : '—',
+            'Account'        => $user ? $user->display_name . ( Accounts\is_verified( (int) $user->ID ) ? ' (verified)' : ' (unverified)' ) : '-',
             'Contact email'  => meta( $id, 'email' ),
             'Received'       => get_the_date( 'j M Y, H:i', $post ),
             'Size'           => size_format( (int) meta( $id, 'bytes' ), 1 ),
@@ -127,6 +127,7 @@ function sealed_box( \WP_Post $post ): void {
             'sha256'    => meta( $id, 'sha256' ),
             'type'      => $type,
             'words'     => word_range( $type ),
+            'stated'    => (int) meta( $id, 'words' ),
             'envelope'  => esc_url_raw( rest_url( "hr/v1/submissions/{$id}/envelope" ) ),
             'draft'     => esc_url_raw( rest_url( "hr/v1/submissions/{$id}/draft" ) ),
             'media'     => current_user_can( 'upload_files' ) ? esc_url_raw( rest_url( 'wp/v2/media' ) ) : '',
@@ -183,7 +184,7 @@ function mail_status( int $id ): void {
     Accounts\send_mail( $to, sprintf( 'Update on your submission #%d', $id ), array(
         'preheader'  => sprintf( 'Status: %s', $status ),
         'heading'    => sprintf( 'Your submission is now: %s', $status ),
-        'paragraphs' => array_filter( array( sprintf( '"%s" (#%d)', $post->post_title, $id ), '' !== $note ? 'Note from the editors: ' . $note : '' ) ),
+        'paragraphs' => array_filter( array( sprintf( '"%s" (#%d)', html_entity_decode( $post->post_title, ENT_QUOTES, 'UTF-8' ), $id ), '' !== $note ? 'Note from the editors: ' . $note : '' ) ),
         'button'     => array( 'label' => 'My submissions', 'url' => Accounts\account_url( 'submissions' ) ),
     ) );
 }

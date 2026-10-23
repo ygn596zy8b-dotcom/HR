@@ -1,6 +1,6 @@
 <?php
 /**
- * Titles, meta descriptions and Open Graph — layered on top of Yoast SEO, never replacing it.
+ * Titles, meta descriptions and Open Graph, layered on top of Yoast SEO and never replacing it.
  *
  * Yoast stays the source of truth (its templates and every per-post / per-term setting an editor typed in win).
  * This file only fills gaps:
@@ -47,7 +47,7 @@ function shorten( string $text, int $limit = DESC_MAX ): string {
     }
     $cut = mb_substr( $text, 0, $limit - 4 );
     $cut = preg_replace( '/\s+\S*$/u', '', $cut );
-    return rtrim( $cut, " ,;:–—-" ) . '…';
+    return rtrim( $cut, " ,;:-\u{2013}\u{2014}" ) . '…';
 }
 
 function site_name(): string {
@@ -73,7 +73,7 @@ function is_podcast_archive(): bool {
 function route_description( string $route ): string {
     $defaults = array(
         'verify'    => 'Check that a Headline Recorder article is genuine and unchanged: verify its post-quantum signature (ML-DSA-87 + Ed448) in your browser.',
-        'thank-you' => 'Thank you from Headline Recorder — Pakistan’s sharpest business and economy news.',
+        'thank-you' => 'Thank you from Headline Recorder: Pakistan business, economy, markets and policy news from Karachi.',
     );
     $desc = $defaults[ $route ] ?? '';
     if ( '' === $desc && str_starts_with( $route, 'account' ) ) {
@@ -113,17 +113,17 @@ function description( string $yoast ): string {
         $term = get_queried_object();
         $name = $term instanceof \WP_Term ? html_entity_decode( $term->name, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) : '';
         if ( is_category() ) {
-            $desc = sprintf( 'Latest %s news and analysis from Pakistan — %s', $name, site_name() );
+            $desc = sprintf( 'Latest %s news and analysis from Pakistan by %s: markets, the economy, companies and policy.', $name, site_name() );
         } elseif ( is_tax( 'guest_author' ) ) {
-            $desc = sprintf( 'Op-eds and analysis by %s on Pakistan’s economy, business and policy — %s.', $name, site_name() );
+            $desc = sprintf( 'Op-eds and analysis by %s on Pakistan’s economy, business and policy, published by %s.', $name, site_name() );
         } elseif ( is_tag() ) {
             $desc = sprintf( 'News and analysis on %s from %s, Pakistan’s business and economy newsroom.', $name, site_name() );
         } else {
-            $desc = sprintf( 'Latest coverage of %s — %s.', $name, site_name() );
+            $desc = sprintf( 'Latest coverage of %s from %s, Pakistan business and economy news.', $name, site_name() );
         }
     } elseif ( '' === $clean && is_author() ) {
         $user = get_queried_object();
-        $desc = sprintf( 'Reporting and analysis by %s for %s — Pakistan’s business and economy news.', $user instanceof \WP_User ? $user->display_name : 'our writers', site_name() );
+        $desc = sprintf( 'Reporting and analysis by %s for %s, covering Pakistan’s business, economy and markets.', $user instanceof \WP_User ? $user->display_name : 'our writers', site_name() );
     } elseif ( is_podcast_archive() && '' === $clean ) {
         $desc = podcast_info()['description'];
     } elseif ( '' === $clean && is_search() ) {
@@ -149,7 +149,7 @@ add_filter( 'wpseo_opengraph_desc', function ( $desc, $presentation = null ) {
 function title( string $title ): string {
     $title  = trim( $title );
     $site   = preg_quote( site_name(), '/' );
-    $suffix = '/\s+[-–—|·•:~]\s+' . $site . '\s*$/u';
+    $suffix = '/\s+[-|:~\x{2013}\x{2014}\x{00B7}\x{2022}]\s+' . $site . '\s*$/u';
     $paged  = max( (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
 
     if ( $paged > 1 && ! is_singular() && ! preg_match( '/\bpage\s+' . $paged . '\b/i', $title ) ) {
@@ -178,12 +178,25 @@ add_filter( 'wpseo_title', function ( $title ) {
     return title( (string) $title );
 }, 15 );
 
-// og:title is the headline itself; og:site_name already carries the brand.
+// Virtual routes (core/routes.php set_page_title) join the page name and the brand with an em dash; use the same
+// " - " separator as Yoast's titles so every title on the site reads alike (and the house style holds).
+$hr_route_title = static function ( $title ) {
+    if ( '' === current_route() || ! is_string( $title ) ) {
+        return $title;
+    }
+    return (string) preg_replace( '/\s+[\x{2013}\x{2014}\x{2015}|]\s+(?=' . preg_quote( site_name(), '/' ) . '\s*$)/u', ' - ', $title );
+};
+add_filter( 'pre_get_document_title', $hr_route_title, 30 );
+add_filter( 'wpseo_title', $hr_route_title, 30 );
+unset( $hr_route_title );
+
+// og:title is the headline itself; og:site_name already carries the brand. The front page keeps Yoast's own title
+// (its page is called "Home", which says nothing in a share preview).
 add_filter( 'wpseo_opengraph_title', function ( $title ) {
     if ( '' !== current_route() ) {
-        return trim( preg_replace( '/\s+[-–—|]\s+' . preg_quote( site_name(), '/' ) . '\s*$/u', '', wp_get_document_title() ) );
+        return trim( preg_replace( '/\s+[-|:\x{2013}\x{2014}]\s+' . preg_quote( site_name(), '/' ) . '\s*$/u', '', wp_get_document_title() ) );
     }
-    if ( is_singular() ) {
+    if ( is_singular() && ! is_front_page() ) {
         $id = get_queried_object_id();
         if ( '' === trim( (string) get_post_meta( $id, '_yoast_wpseo_opengraph-title', true ) ) ) {
             return html_entity_decode( wp_strip_all_tags( get_the_title( $id ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
@@ -197,19 +210,30 @@ add_filter( 'wpseo_twitter_card_type', static fn() => 'summary_large_image' );
 // Virtual routes are their own pages, not the home page.
 add_filter( 'wpseo_opengraph_url', static fn( $url ) => '' !== current_route() ? current_url() : $url, 15 );
 add_filter( 'wpseo_opengraph_type', static fn( $type ) => '' !== current_route() ? 'website' : $type, 15 );
-add_filter( 'wpseo_schema_webpage', function ( $piece ) {
-    if ( '' === current_route() || ! is_array( $piece ) ) {
-        return $piece;
+// Yoast has no indexable for virtual routes, so its graph holds only WebSite and Organization there. Add the page
+// itself, so /verify/ and the other routes are described as their own WebPage within the site.
+add_filter( 'wpseo_schema_graph', function ( $graph ) {
+    if ( '' === current_route() || ! is_array( $graph ) ) {
+        return $graph;
     }
-    $url            = current_url();
-    $piece['@id']   = $url;
-    $piece['url']   = $url;
-    $piece['name']  = wp_get_document_title();
-    $piece['description'] = description( '' );
-    unset( $piece['breadcrumb'], $piece['potentialAction'], $piece['primaryImageOfPage'], $piece['image'], $piece['thumbnailUrl'], $piece['about'] );
-    return $piece;
+    foreach ( $graph as $node ) {
+        if ( is_array( $node ) && in_array( 'WebPage', (array) ( $node['@type'] ?? array() ), true ) ) {
+            return $graph;
+        }
+    }
+    $url     = current_url();
+    $graph[] = array_filter( array(
+        '@type'       => 'WebPage',
+        '@id'         => $url,
+        'url'         => $url,
+        'name'        => wp_get_document_title(),
+        'description' => plain_text( (string) apply_filters( 'wpseo_metadesc', description( '' ), null ) ), // the same text as the meta description
+        'isPartOf'    => array( '@id' => home_url( '/#website' ) ),
+        'publisher'   => array( '@id' => home_url( '/#organization' ) ),
+        'inLanguage'  => get_bloginfo( 'language' ),
+    ) );
+    return $graph;
 }, 15 );
-add_filter( 'wpseo_schema_breadcrumb', static fn( $piece ) => '' !== current_route() ? array() : $piece, 15 );
 
 /** Canonical URL of the current virtual route (path only, no query string). */
 function current_url(): string {

@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
         <div class="hr-cc__intro">
             <h2 class="hr-cc__title" id="hr-cc-title">Cookies on Headline Recorder</h2>
             <p class="hr-cc__text" id="hr-cc-text">
-                We use necessary cookies to run the site and keep your account secure, and — with your permission — analytics to understand what readers value.
+                We use necessary cookies to run the site and keep your account secure, and, with your permission, analytics to understand what readers value.
                 <a class="hr-cc__link" href="<?php echo esc_url( $policy_url ); ?>">How we use cookies</a>
             </p>
         </div>

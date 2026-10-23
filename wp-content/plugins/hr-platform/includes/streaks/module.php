@@ -18,7 +18,7 @@
  *   Helpers (HR\Platform\Streaks): summary( $uid ): array (view), refresh( $uid ), erase( $uid ), dashboard_url(),
  *   dashboard_page(): renders /dashboard/ (called by the theme's page-dashboard.php; see dashboard.php).
  *   Filter 'hr_login_default_redirect' (accounts): a reader's first sign-in lands on /dashboard/ (tour.php).
- *   Cron: 'hr_streak_reminders' daily at 19:00 site time (monitored as 'streak-reminders'); see reminders.php.
+ *   Cron: 'hr_streak_reminders' daily at 19:00 Pakistan time (day_zone()) (monitored as 'streak-reminders'); see reminders.php.
  *   Route: /reading/unsubscribe/?u=<id>&t=<token> (reminder unsubscribe; GET confirms, POST unsubscribes).
  * Storage: table {prefix}hr_reads; user meta listed in META_KEYS (includes the old theme dashboard's keys).
  */

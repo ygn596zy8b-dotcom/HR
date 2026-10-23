@@ -73,7 +73,7 @@
   transition: border-color .2s, color .2s, background-color .2s;
 }
 .hrp-subscribe__link .hr-icon { width: 16px; height: 16px; color: var(--hrp-red); flex: none; }
-.hrp-subscribe__link:hover { border-color: var(--hrp-red); color: var(--hrp-red); }
+.hrp-subscribe__link:hover { border-color: var(--hrp-red); color: var(--hrp-red-deep); }
 .hrp-subscribe__link--feed { border-color: var(--hrp-ink); font-weight: 700; }
 .hrp-follow__hint { margin: 0; font-size: 14px; line-height: 1.5; color: var(--hrp-muted); }
 .hrp-dark .hrp-subscribe__link { border-color: #3a3a40; color: #fff; }
@@ -116,7 +116,9 @@
 .hrp-podcast-featured .hrp-player { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--hrp-line); }
 .hrp-podcast-featured__title { font-size: clamp(24px, 3.2vw, 36px); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 8px; overflow-wrap: anywhere; }
 .hrp-podcast-featured__title a, .hrp-ep__title a { color: inherit; text-decoration: none; }
-.hrp-podcast-featured__title a:hover, .hrp-ep__title a:hover { color: var(--hrp-red); }
+.hrp-podcast-featured__title a:hover, .hrp-ep__title a:hover { color: var(--hrp-red-deep); }
+/* Small red text on white uses the deep red (AA contrast); the bright red stays for large type and the dark bands. */
+.hrp-podcast-featured .hrp-eyebrow { color: var(--hrp-red-deep); }
 .hrp-podcast-featured__excerpt { margin: 0 0 20px; font-size: 17px; max-width: 70ch; }
 
 .hrp-podcast-list__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; border-top: 3px solid var(--hrp-ink); padding-top: 12px; margin-bottom: 4px; }
@@ -140,7 +142,7 @@
 @media (max-width: 640px) {
   .hrp-ep { grid-template-columns: 36px minmax(0, 1fr); padding-inline: 4px; }
   .hrp-ep__actions { grid-column: 2; }
-  .hrp-ep__num { font-size: 18px; }
+  .hrp-ep__num { font-size: 18px; color: var(--hrp-red-deep); }
 }
 
 /* Episode page */
@@ -186,9 +188,9 @@
 .hrp-related__card:hover { border-color: var(--hrp-red); }
 .hrp-related__card img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
 .hrp-related__text { display: grid; gap: 6px; padding: 14px 16px 16px; }
-.hrp-related__cat { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hrp-red); }
+.hrp-related__cat { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hrp-red-deep); }
 .hrp-related__title { font-size: 17px; font-weight: 700; line-height: 1.3; }
-.hrp-related__card:hover .hrp-related__title { color: var(--hrp-red); }
+.hrp-related__card:hover .hrp-related__title { color: var(--hrp-red-deep); }
 .hrp-related__date { color: var(--hrp-muted); }
 
 /* ---------- Home hero (theme's Additional CSS styles sections under body #page, hence the scope) ---------- */

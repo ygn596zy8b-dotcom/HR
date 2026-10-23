@@ -155,8 +155,8 @@ header.site-header canvas,
     }
 
     .site-description, 
-    .site-branding p, 
-    .custom-logo-link + p,
+    .site-branding p:not(.site-title),
+    .custom-logo-link + p:not(.site-title),
     p[class*="description"] {
         display: none !important;
     }

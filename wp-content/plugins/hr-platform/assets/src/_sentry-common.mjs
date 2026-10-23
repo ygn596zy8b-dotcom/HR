@@ -21,6 +21,8 @@ import {
 
 const SENSITIVE_TERMS = ['pass', 'pwd', 'token', 'key', 'nonce', 'secret', 'sig', 'code', 'email', 'auth', 'login'];
 const SENSITIVE = new RegExp(SENSITIVE_TERMS.join('|'), 'i');
+// Short names used by emailed links: verify and unsubscribe (?u=<id>&t=<token>). Matched exactly, not as substrings.
+const SENSITIVE_EXACT = new Set(['t', 'u', 'k']);
 const EMAIL = /[A-Z0-9._%+-]+(?:@|%40)[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const QUERY_PARAM = /([?&;])([^=&#\s;?]+)=([^&#\s;?]*)/g;
 
@@ -35,7 +37,10 @@ function decode(s) {
 function scrubString(s) {
   return s
     .replace(EMAIL, '[email]')
-    .replace(QUERY_PARAM, (m, sep, name) => (SENSITIVE.test(decode(name)) ? `${sep}${name}=[Filtered]` : m));
+    .replace(QUERY_PARAM, (m, sep, name) => {
+      const n = decode(name);
+      return SENSITIVE.test(n) || SENSITIVE_EXACT.has(n.toLowerCase()) ? `${sep}${name}=[Filtered]` : m;
+    });
 }
 
 // Strings anywhere in the event (messages, exception values, breadcrumb URLs, span descriptions) lose emails and

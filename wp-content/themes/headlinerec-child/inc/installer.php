@@ -194,6 +194,9 @@ add_action( 'admin_post_hr_install', function () {
     // PHP settings (php2shell mitigation). A failure here is reported on the page but does not stop the install.
     hr_installer_apply_bundled_user_ini();
 
+    // Maintenance pages (update-time drop-in and the static page served without PHP). Reported, never fatal.
+    hr_installer_install_maintenance_files();
+
     if ( ! $errors ) {
         // Its weaker headers would override ours (see infra/litespeed/htaccess-hardening.conf).
         deactivate_plugins( 'headers-security-advanced-hsts-wp/headers-security-advanced-hsts-wp.php' );
@@ -242,6 +245,9 @@ function hr_installer_page() {
             <tr><td>Platform plugin (bundled)</td><td><?php echo esc_html( $s['bundled'] ); ?></td></tr>
             <tr><td>Platform plugin (installed)</td><td><?php echo esc_html( $s['installed'] ?: 'not installed' ); ?><?php echo $s['active'] ? ' · active' : ''; ?></td></tr>
             <tr><td>Security must-use plugins</td><td><?php echo $s['mu'] ? 'installed' : 'not installed'; ?><?php echo $s['mu_list'] ? ' (' . esc_html( implode( ', ', $s['mu_list'] ) ) . ')' : ''; ?></td></tr>
+            <?php foreach ( hr_installer_maintenance_targets() as $hr_mt ) : ?>
+                <tr><td><?php echo esc_html( $hr_mt['label'] ); ?></td><td><?php echo esc_html( hr_installer_maintenance_state_label( hr_installer_maintenance_state( $hr_mt ) ) ); ?></td></tr>
+            <?php endforeach; ?>
         </table>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:16px">
             <input type="hidden" name="action" value="hr_install">
@@ -298,10 +304,129 @@ function hr_installer_page() {
             <ol>
                 <li><a href="<?php echo esc_url( admin_url( 'options-general.php?page=hr-platform' ) ); ?>">Settings &gt; Headline Recorder</a>: paste the signing keyset and the submissions public key, set the notify email, podcast and Sentry options.</li>
                 <li>Reader submissions arrive in <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=hr_submission' ) ); ?>">Submissions</a>. Podcast episodes: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=hr_episode' ) ); ?>">Episodes</a>. Logos: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=hr_client' ) ); ?>">Client logos</a>.</li>
+                <li>Maintenance mode has its own menu: <a href="<?php echo esc_url( admin_url( 'admin.php?page=hr-maintenance' ) ); ?>">Maintenance</a>. For PHP update day, its "Server-level page" keeps a static page up even if PHP fails (manual version: <code>bundled/maintenance-mode.conf</code>).</li>
                 <li>Paste <code>bundled/htaccess-hardening.conf</code> (in this theme) at the top of <code>.htaccess</code> and copy <code>bundled/webroot/robots.txt</code> + <code>.well-known/security.txt</code> to the site root.</li>
                 <li>Check <a href="<?php echo esc_url( admin_url( 'site-health.php' ) ); ?>">Tools &gt; Site Health</a>: it says whether this server's PHP is patched against php2shell.</li>
             </ol>
         <?php endif; ?>
+    </div>
+    <?php
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Maintenance pages (MSBJ). The switch itself lives in the hr-maintenance must-use plugin (wp-admin > Maintenance).
+// The installer places the two pages it needs, each only when the target is missing or was written by us (marker
+// comment): another plugin's maintenance drop-in or someone's own maintenance.html is never replaced.
+// ---------------------------------------------------------------------------------------------------------------
+
+function hr_installer_maintenance_targets(): array {
+    return array(
+        'dropin' => array(
+            'label'  => 'Maintenance page during updates (wp-content/maintenance.php)',
+            'src'    => HR_BUNDLE_DIR . '/wp-content/maintenance.php',
+            'dest'   => WP_CONTENT_DIR . '/maintenance.php',
+            'marker' => 'hr-maintenance-dropin',
+        ),
+        'static' => array(
+            'label'  => 'Static maintenance page, works without PHP (maintenance.html)',
+            'src'    => HR_BUNDLE_DIR . '/webroot/maintenance.html',
+            'dest'   => ABSPATH . 'maintenance.html',
+            'marker' => 'hr-maintenance-page',
+        ),
+    );
+}
+
+/** missing | ours | foreign | no-bundle */
+function hr_installer_maintenance_state( array $t ): string {
+    if ( ! is_readable( $t['src'] ) ) {
+        return 'no-bundle';
+    }
+    if ( ! file_exists( $t['dest'] ) ) {
+        return 'missing';
+    }
+    return str_contains( (string) @file_get_contents( $t['dest'], false, null, 0, 4096 ), $t['marker'] ) ? 'ours' : 'foreign';
+}
+
+function hr_installer_maintenance_state_label( string $state ): string {
+    return array(
+        'ours'      => 'installed',
+        'missing'   => 'not installed',
+        'foreign'   => 'another file is in place (left untouched)',
+        'no-bundle' => 'missing from this theme copy: rebuild the theme zip',
+    )[ $state ] ?? $state;
+}
+
+/** Copies the maintenance pages where allowed. Returns error strings (also kept for the status page). */
+function hr_installer_install_maintenance_files(): array {
+    global $wp_filesystem;
+    $errors = array();
+    if ( ! $wp_filesystem ) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        if ( ! WP_Filesystem() ) {
+            return array( 'WordPress could not get direct file access for the maintenance pages.' );
+        }
+    }
+    foreach ( hr_installer_maintenance_targets() as $key => $t ) {
+        $state = hr_installer_maintenance_state( $t );
+        if ( ! in_array( $state, array( 'missing', 'ours' ), true ) ) {
+            continue;
+        }
+        // The static page carries the headline and message saved in wp-admin > Maintenance when available.
+        if ( 'static' === $key && function_exists( 'hr_maintenance_document' ) && function_exists( 'hr_maintenance_settings' ) ) {
+            $ok = $wp_filesystem->put_contents( $t['dest'], hr_maintenance_document( hr_maintenance_settings() ), FS_CHMOD_FILE );
+        } else {
+            $ok = $wp_filesystem->copy( $t['src'], $t['dest'], true, FS_CHMOD_FILE );
+        }
+        if ( ! $ok ) {
+            $errors[] = 'Could not write ' . $t['dest'];
+        }
+    }
+    return $errors;
+}
+
+// Right after the theme is uploaded, before "Install" has run, the Maintenance menu is already there: it offers to
+// install the must-use plugin that provides the real screen.
+add_action( 'admin_menu', function () {
+    if ( function_exists( 'hr_maintenance_admin_page' ) ) {
+        return;
+    }
+    add_menu_page( 'Maintenance', 'Maintenance', 'install_plugins', 'hr-maintenance', 'hr_installer_maintenance_setup_page', 'dashicons-hammer', 3 );
+} );
+
+add_action( 'admin_post_hr_install_maintenance', function () {
+    hr_installer_check_request( 'hr_install_maintenance' );
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    if ( ! WP_Filesystem() ) {
+        wp_die( 'WordPress could not get direct file access. Upload bundled/mu-plugins/hr-maintenance.php from this theme to wp-content/mu-plugins/ by FTP instead.' );
+    }
+    global $wp_filesystem;
+    if ( ! $wp_filesystem->is_dir( WPMU_PLUGIN_DIR ) ) {
+        $wp_filesystem->mkdir( WPMU_PLUGIN_DIR );
+    }
+    $src = HR_BUNDLE_DIR . '/mu-plugins/hr-maintenance.php';
+    if ( ! is_readable( $src ) || ! $wp_filesystem->copy( $src, WPMU_PLUGIN_DIR . '/hr-maintenance.php', true, FS_CHMOD_FILE ) ) {
+        wp_die( 'Could not copy hr-maintenance.php to ' . esc_html( WPMU_PLUGIN_DIR ) . '.' );
+    }
+    hr_installer_install_maintenance_files();
+    wp_safe_redirect( admin_url( 'admin.php?page=hr-maintenance' ) );
+    exit;
+} );
+
+function hr_installer_maintenance_setup_page() {
+    if ( ! current_user_can( 'install_plugins' ) ) {
+        return;
+    }
+    ?>
+    <div class="wrap">
+        <h1>Maintenance</h1>
+        <p style="max-width:640px">One step left: install the maintenance controls that ship with this theme. You then get an on/off switch, the
+            headline and message visitors see, a preview, and a server-level page for PHP update days. Nothing changes for visitors
+            until you switch maintenance mode on.</p>
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <input type="hidden" name="action" value="hr_install_maintenance">
+            <?php wp_nonce_field( 'hr_install_maintenance' ); ?>
+            <?php submit_button( 'Install maintenance controls', 'primary', 'submit', false ); ?>
+        </form>
     </div>
     <?php
 }

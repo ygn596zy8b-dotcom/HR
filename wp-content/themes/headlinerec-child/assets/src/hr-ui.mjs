@@ -58,6 +58,7 @@ if (!reduce) {
     num.splitText(num.data.length - post.length);
     const final = num.data;
     const box = document.createElement('span');
+    box.className = 'hr-countup'; // inline-block (hr-elevate.css); keeps the figure's own colour
     box.style.display = 'inline-block';
     num.replaceWith(box);
     box.append(num);

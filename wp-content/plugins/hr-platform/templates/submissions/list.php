@@ -1,6 +1,6 @@
 <?php
 /**
- * /account/submissions/ — the reader's own submissions with status and the editors' note. A submission can be
+ * /account/submissions/: the reader's own submissions with status and the editors' note. A submission can be
  * withdrawn until an editor starts on it.
  * Theme override: headlinerec-child/hr/submissions/list.php
  *

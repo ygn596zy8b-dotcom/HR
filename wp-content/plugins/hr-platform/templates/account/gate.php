@@ -7,6 +7,7 @@
 use function HR\Platform\icon;
 use function HR\Platform\Accounts\hidden_fields;
 use function HR\Platform\Accounts\mask_email;
+use function HR\Platform\Accounts\account_url;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 ?>
@@ -18,5 +19,5 @@ if ( ! defined( 'ABSPATH' ) ) exit;
         <?php hidden_fields( 'resend_verify' ); ?>
         <button type="submit" class="hrp-btn hra-submit"><?php echo icon( 'mail' ); // phpcs:ignore -- static SVG ?><span>Send a new link</span></button>
     </form>
-    <p class="hra-note">Wrong address? Change it in Settings → Email.</p>
+    <p class="hra-note">Wrong address? <a href="<?php echo esc_url( account_url( 'settings' ) . '#email' ); ?>">Change it in Settings</a>.</p>
 </div>

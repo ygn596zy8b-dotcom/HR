@@ -10,7 +10,8 @@
  *   } );
  *
  * Types: text, textarea, url, email, number, checkbox, select (with 'options'), json, image (attachment ID).
- * Secrets never go here — they are wp-config.php constants.
+ * Optional per field: 'max_length' (characters; defaults below), 'sanitize' (callable run last), 'validate' (json).
+ * Secrets never go here: they are wp-config.php constants.
  */
 
 namespace HR\Platform;
@@ -43,8 +44,21 @@ add_action( 'admin_init', function () {
     ) );
 } );
 
+/** add_settings_error() lives in wp-admin; the sanitizer also runs for update_option() calls from cron or WP-CLI. */
+function settings_error( string $key, string $message ): void {
+    if ( function_exists( 'add_settings_error' ) ) {
+        add_settings_error( 'hr_platform_settings', $key, $message );
+    } else {
+        error_log( 'hr-platform settings: ' . $message );
+    }
+}
+
+/** Default length caps per field type, in characters (json: bytes). */
+const SETTING_MAX_LENGTH = array( 'text' => 500, 'textarea' => 10000, 'url' => 2048, 'email' => 254, 'json' => 262144 );
+
+// options.php has already unslashed the posted values; unslashing again would eat backslashes (JSON escapes).
 function sanitize_settings( $input ): array {
-    $input = is_array( $input ) ? wp_unslash( $input ) : array();
+    $input = is_array( $input ) ? $input : array();
     $old   = (array) get_option( 'hr_platform_settings', array() );
     $out   = $old;
     foreach ( settings_schema() as $section ) {
@@ -58,7 +72,15 @@ function sanitize_settings( $input ): array {
             if ( null === $raw ) {
                 continue;
             }
-            $raw = is_string( $raw ) ? trim( $raw ) : '';
+            $raw = is_string( $raw ) || is_int( $raw ) ? trim( (string) $raw ) : '';
+            $max = (int) ( $field['max_length'] ?? SETTING_MAX_LENGTH[ $type ] ?? SETTING_MAX_LENGTH['text'] );
+            if ( 'json' === $type && strlen( $raw ) > $max ) {
+                settings_error( $key, sprintf( '%s: too long. The previous value was kept.', $field['label'] ?? $key ) );
+                continue;
+            }
+            if ( 'json' !== $type && mb_strlen( $raw ) > $max ) {
+                $raw = mb_substr( $raw, 0, $max );
+            }
             switch ( $type ) {
                 case 'textarea':
                     $out[ $key ] = sanitize_textarea_field( $raw );
@@ -70,8 +92,10 @@ function sanitize_settings( $input ): array {
                     $out[ $key ] = sanitize_email( $raw );
                     break;
                 case 'number':
-                case 'image':
                     $out[ $key ] = '' === $raw ? '' : (int) $raw;
+                    break;
+                case 'image':
+                    $out[ $key ] = '' === $raw ? '' : absint( $raw );
                     break;
                 case 'select':
                     $out[ $key ] = array_key_exists( $raw, (array) ( $field['options'] ?? array() ) ) ? $raw : ( $field['default'] ?? '' );
@@ -86,7 +110,7 @@ function sanitize_settings( $input ): array {
                     if ( $valid ) {
                         $out[ $key ] = wp_json_encode( $decoded, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT );
                     } else {
-                        add_settings_error( 'hr_platform_settings', $key, sprintf( '%s: not valid. The previous value was kept.', $field['label'] ?? $key ) );
+                        settings_error( $key, sprintf( '%s: not valid. The previous value was kept.', $field['label'] ?? $key ) );
                     }
                     break;
                 default:
@@ -142,7 +166,7 @@ function settings_page(): void {
                                     <button type="button" class="button hr-pick-image" data-target="<?php echo esc_attr( $fid ); ?>">Choose image</button>
                                     <span class="hr-image-preview"><?php echo $value ? wp_get_attachment_image( (int) $value, array( 64, 64 ) ) : ''; ?></span>
                                 <?php else : ?>
-                                    <input id="<?php echo esc_attr( $fid ); ?>" type="<?php echo esc_attr( in_array( $type, array( 'url', 'email', 'number' ), true ) ? $type : 'text' ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text">
+                                    <input id="<?php echo esc_attr( $fid ); ?>" type="<?php echo esc_attr( in_array( $type, array( 'url', 'email', 'number' ), true ) ? $type : 'text' ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text"<?php echo 'number' === $type ? '' : ' maxlength="' . (int) ( $field['max_length'] ?? SETTING_MAX_LENGTH[ $type ] ?? SETTING_MAX_LENGTH['text'] ) . '"'; ?>>
                                 <?php endif; ?>
                                 <?php if ( ! empty( $field['description'] ) ) : ?>
                                     <p class="description"><?php echo wp_kses_post( $field['description'] ); ?></p>
@@ -164,7 +188,15 @@ function settings_page(): void {
         var frame = wp.media({ title: 'Choose image', library: { type: 'image' }, multiple: false });
         frame.on('select', function () {
             var att = frame.state().get('selection').first().toJSON();
-            document.getElementById(btn.dataset.target).value = att.id;
+            var input = document.getElementById(btn.dataset.target);
+            input.value = att.id;
+            var preview = input.parentNode.querySelector('.hr-image-preview');
+            var src = att.sizes && (att.sizes.thumbnail || att.sizes.full) ? (att.sizes.thumbnail || att.sizes.full).url : att.url;
+            if (preview && src) {
+                var img = document.createElement('img');
+                img.src = src; img.alt = ''; img.width = 64; img.height = 64; img.style.objectFit = 'contain';
+                preview.replaceChildren(img);
+            }
         });
         frame.open();
     });
