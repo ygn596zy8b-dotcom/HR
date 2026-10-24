@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 const NONCE = 'hr_podcast_episode';
 
 add_action( 'add_meta_boxes_' . CPT, function () {
-    add_meta_box( 'hr-episode', 'Episode details', __NAMESPACE__ . '\\meta_box', CPT, 'normal', 'high' );
+    add_meta_box( 'hr-episode', 'Episode audio and details', __NAMESPACE__ . '\\meta_box', CPT, 'normal', 'high' );
 } );
 
 function meta_box( \WP_Post $post ): void {
@@ -203,3 +203,8 @@ add_action( 'admin_post_hr_podcast_generate', function () {
     wp_safe_redirect( add_query_arg( 'hr_ai', 'created', $back ) );
     exit;
 } );
+
+// The block editor's empty body says "Type / to choose a block", which reads as if an episode were text: point to the
+// audio box instead (the body is optional show notes).
+add_filter( 'write_your_story', static fn( $text, $post ) => CPT === ( $post->post_type ?? '' ) ? 'Optional show notes or script. Upload the episode audio in "Episode audio and details" below.' : $text, 10, 2 );
+add_filter( 'enter_title_here', static fn( $text, $post ) => CPT === ( $post->post_type ?? '' ) ? 'Episode title' : $text, 10, 2 );

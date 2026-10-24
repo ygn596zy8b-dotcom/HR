@@ -143,10 +143,36 @@ function staff_without_mfa(): int {
 // ---------------------------------------------------------------------------------------------------------------
 
 add_filter( 'manage_users_columns', function ( $columns ) {
-    $columns['hr_verified'] = 'Email verified';
-    $columns['hr_mfa']      = '2FA/Passkey';
+    $columns['hr_verified']   = 'Email verified';
+    $columns['hr_mfa']        = '2FA/Passkey';
+    $columns['hr_registered'] = 'Registered';
+    $columns['hr_last_login'] = 'Last sign-in';
+    $columns['hr_reading']    = 'Reading';
     return $columns;
 } );
+
+add_filter( 'manage_users_sortable_columns', function ( $columns ) {
+    $columns['hr_registered'] = 'registered';
+    return $columns;
+} );
+
+/** "23 Oct 2026, 7:15 pm" in the site time zone, or a dash. */
+function admin_date( int $ts ): string {
+    return $ts > 0 ? esc_html( wp_date( 'j M Y, g:i a', $ts ) ) : '<span aria-hidden="true">-</span><span class="screen-reader-text">Never</span>';
+}
+
+/** Reading summary for admins: current and best streak, articles and op-eds finished, last read day. */
+function admin_reading( int $uid ): string {
+    $streak = (int) get_user_meta( $uid, '_hr_streak_count', true );
+    $best   = (int) get_user_meta( $uid, '_hr_longest_streak', true );
+    $counts = function_exists( '\\HR\\Platform\\Streaks\\counts' ) && function_exists( '\\HR\\Platform\\Streaks\\today' )
+        ? \HR\Platform\Streaks\counts( $uid, \HR\Platform\Streaks\today() )
+        : array( 'total' => 0, 'opeds' => 0, 'last' => '' );
+    if ( ! $counts['total'] && ! $streak ) {
+        return 'No reads yet';
+    }
+    return esc_html( sprintf( '%d-day streak (best %d) · %d read (%d op-eds)%s', $streak, $best, $counts['total'], $counts['opeds'], $counts['last'] ? ' · last ' . $counts['last'] : '' ) );
+}
 
 add_filter( 'manage_users_custom_column', function ( $output, $column, $uid ) {
     $uid = (int) $uid;
@@ -163,6 +189,16 @@ add_filter( 'manage_users_custom_column', function ( $output, $column, $uid ) {
             $parts[] = sprintf( _n( '%d passkey', '%d passkeys', $count ), $count );
         }
         return $parts ? esc_html( implode( ' + ', $parts ) ) : 'None';
+    }
+    if ( 'hr_registered' === $column ) {
+        $user = get_userdata( $uid );
+        return admin_date( $user ? (int) strtotime( $user->user_registered . ' UTC' ) : 0 );
+    }
+    if ( 'hr_last_login' === $column ) {
+        return admin_date( (int) get_user_meta( $uid, 'hr_last_login', true ) );
+    }
+    if ( 'hr_reading' === $column ) {
+        return admin_reading( $uid );
     }
     return $output;
 }, 10, 3 );
@@ -185,6 +221,14 @@ add_action( 'edit_user_profile', function ( $profile ) {
                 Email <?php echo is_verified( $uid ) ? 'verified' : 'not verified'; ?> ·
                 two-step verification <?php echo has_totp( $uid ) ? 'on (' . (int) recovery_remaining( $uid ) . ' recovery codes left)' : 'off'; ?> ·
                 <?php echo (int) passkey_count( $uid ); ?> passkey(s)
+            </td>
+        </tr>
+        <tr>
+            <th scope="row">Account activity</th>
+            <td>
+                Registered <?php echo admin_date( (int) strtotime( $profile->user_registered . ' UTC' ) ); // phpcs:ignore -- escaped ?> ·
+                last sign-in <?php echo admin_date( (int) get_user_meta( $uid, 'hr_last_login', true ) ); // phpcs:ignore -- escaped ?><br>
+                <?php echo admin_reading( $uid ); // phpcs:ignore -- escaped ?>
             </td>
         </tr>
         <tr>
