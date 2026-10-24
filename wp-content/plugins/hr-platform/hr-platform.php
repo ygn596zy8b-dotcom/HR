@@ -45,7 +45,7 @@ require_once __DIR__ . '/includes/core/settings.php';
 // Exceptions and ParseErrors are caught below. A compile error (for example "Cannot redeclare" or a syntax PHP only
 // reports as a fatal) cannot be caught: the request that hits it records the module in `hr_platform_quarantine` from a
 // shutdown handler, and every later request skips that module until one of its files changes (then it is retried).
-const MODULES = array( 'monitoring', 'accounts', 'streaks', 'submissions', 'podcast', 'clients', 'signing', 'site', 'feeds', 'edge' );
+const MODULES = array( 'monitoring', 'accounts', 'streaks', 'submissions', 'podcast', 'clients', 'signing', 'site', 'feeds', 'edge', 'research' );
 
 /** Fingerprint of a module's PHP files (path, mtime, size); changes with every deploy of that module. */
 function module_signature( string $module ): string {

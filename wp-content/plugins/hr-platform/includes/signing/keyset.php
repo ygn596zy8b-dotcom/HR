@@ -43,7 +43,7 @@ add_filter( 'hr_settings_schema', function ( $schema ) {
                 'validate'    => __NAMESPACE__ . '\\is_valid_keyset_sig',
                 'description' => 'Proves the key list above was approved with your offline key, so a compromised server cannot add its own key unnoticed. '
                     . 'On your PC: download <code>/.well-known/pqsig-keys.json</code> from the site, run <code>node cli.mjs sign pqsig-keys.json --key signing.secret.json --type keyset --url /.well-known/pqsig-keys.json</code> in <code>security/pq</code>, and paste the contents of <code>pqsig-keys.json.sig.json</code> here. '
-                    . 'Repeat whenever the key list changes. ' . ( is_admin() && 'hr-platform' === ( $_GET['page'] ?? '' ) ? 'Status: <strong>' . ( keyset_certified_by() ? 'certified by key ' . esc_html( substr( keyset_certified_by(), 0, 16 ) ) . '…' : 'not certified' ) . '</strong>.' : '' ),
+                    . 'Repeat whenever the key list changes. ' . ( is_admin() && 'hr-platform' === ( $_GET['page'] ?? '' ) ? 'Status: <strong>' . ( keyset_certified_by() ? 'certified by key ' . esc_html( substr( keyset_certified_by(), 0, 16 ) ) . '…' : ( keyset_signature() ? 'not certified: this certificate does not match the current key list (the list changed after it was signed, or the downloaded file was altered, e.g. by opening and re-saving it). Download the list again with <code>curl.exe -o pqsig-keys.json ' . esc_html( home_url( '/.well-known/pqsig-keys.json' ) ) . '</code>, sign it, and paste the new certificate' : 'not certified' ) ) . '</strong>.' : '' ),
             ),
         ),
     );
