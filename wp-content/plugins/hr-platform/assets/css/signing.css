@@ -135,3 +135,16 @@
 @media (prefers-reduced-motion: reduce) {
   .hr-pqsig-pill { transition: none; }
 }
+/* Publisher key check: three status rows between the hero and the forms. */
+.hr-verify-trust{max-width:1200px;margin:0 auto;padding:20px 24px 0}
+.hr-verify-trust__list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;margin:0;padding:0;list-style:none;background:var(--hrp-line,#e5e5e5);border:1px solid var(--hrp-line,#e5e5e5)}
+.hr-verify-trust__list li{display:flex;gap:12px;align-items:flex-start;margin:0;padding:14px 16px;background:#fff;font-size:14px;line-height:1.45}
+.hr-verify-trust__list strong{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.hr-verify-trust__list code{font-size:12px}
+.hr-verify-trust__dot{flex:none;width:10px;height:10px;margin-top:5px;border-radius:50%;background:#9ca3af}
+.hr-verify-trust__list li[data-state="ok"] .hr-verify-trust__dot{background:#0b7a4b}
+.hr-verify-trust__list li[data-state="warn"] .hr-verify-trust__dot{background:#b45309}
+.hr-verify-trust__list li[data-state="busy"] .hr-verify-trust__dot{animation:hr-trust-pulse 1s ease-in-out infinite alternate}
+@keyframes hr-trust-pulse{from{opacity:.35}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.hr-verify-trust__list li .hr-verify-trust__dot{animation:none}}
+@media (max-width:600px){.hr-verify-trust{padding:16px 16px 0}}

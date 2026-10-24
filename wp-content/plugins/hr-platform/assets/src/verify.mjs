@@ -153,33 +153,37 @@ function init(root) {
     return `Key list certified by key ${trust.certified.slice(0, 16)}…, published in DNS${trust.dnssec ? ' with DNSSEC validation' : ' (DNSSEC not validated)'}.`;
   }
 
+  function setTrust(name, state, text) {
+    const li = root.querySelector(`[data-hr-trust="${name}"]`);
+    if (!li) return;
+    li.dataset.state = state;
+    li.querySelector('[data-hr-trust-text]').textContent = text;
+  }
+
   async function certify() {
-    const line = el('p', 'Checking the publisher key list…', 'hr-verify-trust');
-    root.prepend(line);
+    let certified = '', pins = [], dnssec = false, dnsOk = false;
     try {
       const cert = parseJson(await fetchBytes(REST + 'signing/keyset-certificate'));
       const bytes = b64u.dec(String(cert?.keyset || ''));
       const ks = parseJson(bytes);
-      let certified = '';
       if (cert?.signature && Array.isArray(ks?.keys)) {
         const r = verify(cert.signature, bytes, ks);
         if (r.ok && r.header.type === 'keyset') certified = String(r.header.kid).toLowerCase();
       }
       if (certified) keyset = ks; // verify articles against exactly the certified list
-      let pins = [], dnssec = false;
-      try {
-        const host = location.hostname.replace(/^www\./, '');
-        const res = await fetch(`https://cloudflare-dns.com/dns-query?name=_pqsig.${encodeURIComponent(host)}&type=TXT`, { headers: { accept: 'application/dns-json' } });
-        const j = await res.json();
-        dnssec = j?.AD === true;
-        pins = (Array.isArray(j?.Answer) ? j.Answer : []).map((a) => (String(a?.data || '').replace(/"/g, '').match(/kid=([0-9a-f]{64})/i) || [])[1]).filter(Boolean).map((k) => k.toLowerCase());
-      } catch { /* DNS unreachable: reported as not pinned */ }
-      trust = { certified, pinned: !!certified && pins.includes(certified), dnssec };
-    } catch {
-      trust = { certified: '', pinned: false, dnssec: false };
-    }
-    line.textContent = trustText();
-    line.dataset.state = trust.certified && trust.pinned ? 'ok' : 'warn';
+    } catch { /* reported as not certified */ }
+    try {
+      const host = location.hostname.replace(/^www\./, '');
+      const res = await fetch(`https://cloudflare-dns.com/dns-query?name=_pqsig.${encodeURIComponent(host)}&type=TXT`, { headers: { accept: 'application/dns-json' } });
+      const j = await res.json();
+      dnsOk = true;
+      dnssec = j?.AD === true;
+      pins = (Array.isArray(j?.Answer) ? j.Answer : []).map((a) => (String(a?.data || '').replace(/"/g, '').match(/kid=([0-9a-f]{64})/i) || [])[1]).filter(Boolean).map((k) => k.toLowerCase());
+    } catch { /* DNS lookup blocked or offline */ }
+    trust = { certified, pinned: !!certified && pins.includes(certified), dnssec };
+    setTrust('cert', certified ? 'ok' : 'warn', certified ? `Signed by offline key ${certified.slice(0, 16)}…` : 'Our key list is not certified by the offline key. Treat results with caution.');
+    setTrust('dns', trust.pinned ? 'ok' : 'warn', trust.pinned ? 'The certifying key ID matches our _pqsig DNS record.' : dnsOk ? 'The certifying key ID was not found in our _pqsig DNS record.' : 'DNS could not be reached from this browser.');
+    setTrust('dnssec', dnssec ? 'ok' : 'warn', dnssec ? 'The DNS answer was cryptographically validated.' : 'Not validated (the DNS zone is not DNSSEC-signed yet, or the lookup failed).');
   }
 
   async function loadKeyset() {

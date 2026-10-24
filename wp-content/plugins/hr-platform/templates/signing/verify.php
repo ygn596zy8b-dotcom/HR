@@ -24,6 +24,15 @@ $hr_feeds = array_values( array_filter( (array) ( $feeds ?? array() ), static fn
         </ul>
     </header>
 
+    <section class="hr-verify-trust" aria-labelledby="hr-verify-trust-h">
+        <h2 id="hr-verify-trust-h" class="hr-verify-sr">Publisher key check</h2>
+        <ul class="hr-verify-trust__list">
+            <li data-hr-trust="cert" data-state="busy"><span class="hr-verify-trust__dot" aria-hidden="true"></span><span><strong>Key list certified</strong><span data-hr-trust-text>Checking the offline signature on our key list…</span></span></li>
+            <li data-hr-trust="dns" data-state="busy"><span class="hr-verify-trust__dot" aria-hidden="true"></span><span><strong>Key published in DNS</strong><span data-hr-trust-text>Looking up <code>_pqsig</code>…</span></span></li>
+            <li data-hr-trust="dnssec" data-state="busy"><span class="hr-verify-trust__dot" aria-hidden="true"></span><span><strong>DNSSEC</strong><span data-hr-trust-text>Checking…</span></span></li>
+        </ul>
+    </section>
+
     <div class="hr-verify-body">
         <section class="hr-verify-section" aria-labelledby="hr-verify-check-h">
             <p class="hrp-eyebrow">Check something</p>
@@ -72,7 +81,7 @@ $hr_feeds = array_values( array_filter( (array) ( $feeds ?? array() ), static fn
         <section class="hr-verify-section" aria-labelledby="hr-verify-keys-h">
             <p class="hrp-eyebrow">Publisher keys</p>
             <h2 id="hr-verify-keys-h" class="hr-verify-h2">Our signing keys</h2>
-            <p class="hrp-muted">Compare this key ID with the one we publish in our DNSSEC-signed DNS record (<code>_pqsig</code> TXT) or in print. Partners should pin it. Machine-readable: <a href="<?php echo esc_url( $keys_url ); ?>">/.well-known/pqsig-keys.json</a></p>
+            <p class="hrp-muted">Our key list is signed with an offline key whose ID we publish in DNS (<code>_pqsig</code> TXT record); the check above confirms both automatically. Partners should pin it. Machine-readable: <a href="<?php echo esc_url( $keys_url ); ?>">/.well-known/pqsig-keys.json</a></p>
             <ul class="hr-verify-keys">
                 <?php if ( ! $hr_keys ) : ?>
                     <li>No signing key is published yet.</li>
