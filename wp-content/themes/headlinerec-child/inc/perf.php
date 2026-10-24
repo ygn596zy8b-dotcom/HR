@@ -94,7 +94,7 @@ function hr_home_sections_cached() {
     // The home page had no <main> landmark: the sections are its main content.
     echo '<main id="hr-home-main">' . $html . '</main>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped by the template when it was rendered
 }
-foreach ( array( 'clean_post_cache', 'clean_term_cache', 'customize_save_after', 'update_option_hr_platform_settings' ) as $hr_hook ) {
+foreach ( array( 'clean_post_cache', 'clean_term_cache', 'customize_save_after', 'update_option_hr_platform_settings', 'upgrader_process_complete', 'after_switch_theme', 'activated_plugin', 'hr_install' ) as $hr_hook ) {
     add_action( $hr_hook, static fn() => delete_transient( 'hr_home_sections' ) );
 }
 unset( $hr_hook );

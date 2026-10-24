@@ -19,12 +19,12 @@ $hint = 'hrp-follow-hint-' . $hrp_follow_count;
         <?php foreach ( subscribe_links() as $key => [ $label, $url ] ) : ?>
             <li>
                 <?php if ( 'rss' === $key ) : ?>
-                    <a class="hrp-subscribe__link hrp-subscribe__link--feed" href="<?php echo esc_url( $url ); ?>" aria-describedby="<?php echo esc_attr( $hint ); ?>"><?php echo icon( 'rss' ); // phpcs:ignore -- static SVG ?><span><?php echo esc_html( $label ); ?></span></a>
+                    <a class="hrp-subscribe__link hrp-subscribe__link--feed" href="<?php echo esc_url( $url ); ?>" <?php echo empty( $no_hint ) ? 'aria-describedby="' . esc_attr( $hint ) . '"' : ''; ?>><?php echo icon( 'rss' ); // phpcs:ignore -- static SVG ?><span><?php echo esc_html( $label ); ?></span></a>
                 <?php else : ?>
                     <a class="hrp-subscribe__link" href="<?php echo esc_url( $url ); ?>" rel="noopener"><?php echo icon( 'headphones' ); // phpcs:ignore ?><span><?php echo esc_html( $label ); ?></span></a>
                 <?php endif; ?>
             </li>
         <?php endforeach; ?>
     </ul>
-    <p class="hrp-follow__hint" id="<?php echo esc_attr( $hint ); ?>">Opens the podcast's feed link. Add it to Apple Podcasts, Pocket Casts or any podcast app and every new episode arrives automatically.</p>
+    <?php if ( empty( $no_hint ) ) : ?><p class="hrp-follow__hint" id="<?php echo esc_attr( $hint ); ?>">Opens the podcast's feed link. Add it to Apple Podcasts, Pocket Casts or any podcast app and every new episode arrives automatically.</p><?php endif; ?>
 </div>
