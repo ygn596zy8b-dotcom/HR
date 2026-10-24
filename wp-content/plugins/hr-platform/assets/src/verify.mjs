@@ -13,6 +13,7 @@ function init(root) {
   let keyset = null;
   let keysetLoad = null;
   let signedText = null;
+  let trust = null;
 
   const sameOrigin = (u) => {
     const url = new URL(u, location.href);
@@ -69,6 +70,7 @@ function init(root) {
     out.hidden = false;
     out.dataset.state = result.ok ? 'ok' : 'fail';
     out.append(verdict(result.ok ? 'Authentic: this is exactly what the publisher signed.' : 'Not verified'));
+    if (result.ok) out.append(el('p', trustText(), 'hr-verify-trust-note'));
     out.removeAttribute('aria-describedby');
     announce('');
     if (!result.ok) {
@@ -142,6 +144,44 @@ function init(root) {
     announce(text);
   }
 
+  // Trust anchors: the key list must be signed by a key whose ID is published in DNS (checked over DNS-over-HTTPS;
+  // "AD" means the resolver validated DNSSEC). Without both, a compromised web server could add a key of its own.
+  function trustText() {
+    if (!trust) return 'The publisher key list has not been checked yet.';
+    if (!trust.certified) return 'Caution: the publisher key list is not certified by its offline key.';
+    if (!trust.pinned) return 'Caution: the key that certified the key list is not published in DNS.';
+    return `Key list certified by key ${trust.certified.slice(0, 16)}…, published in DNS${trust.dnssec ? ' with DNSSEC validation' : ' (DNSSEC not validated)'}.`;
+  }
+
+  async function certify() {
+    const line = el('p', 'Checking the publisher key list…', 'hr-verify-trust');
+    root.prepend(line);
+    try {
+      const cert = parseJson(await fetchBytes(REST + 'signing/keyset-certificate'));
+      const bytes = b64u.dec(String(cert?.keyset || ''));
+      const ks = parseJson(bytes);
+      let certified = '';
+      if (cert?.signature && Array.isArray(ks?.keys)) {
+        const r = verify(cert.signature, bytes, ks);
+        if (r.ok && r.header.type === 'keyset') certified = String(r.header.kid).toLowerCase();
+      }
+      if (certified) keyset = ks; // verify articles against exactly the certified list
+      let pins = [], dnssec = false;
+      try {
+        const host = location.hostname.replace(/^www\./, '');
+        const res = await fetch(`https://cloudflare-dns.com/dns-query?name=_pqsig.${encodeURIComponent(host)}&type=TXT`, { headers: { accept: 'application/dns-json' } });
+        const j = await res.json();
+        dnssec = j?.AD === true;
+        pins = (Array.isArray(j?.Answer) ? j.Answer : []).map((a) => (String(a?.data || '').replace(/"/g, '').match(/kid=([0-9a-f]{64})/i) || [])[1]).filter(Boolean).map((k) => k.toLowerCase());
+      } catch { /* DNS unreachable: reported as not pinned */ }
+      trust = { certified, pinned: !!certified && pins.includes(certified), dnssec };
+    } catch {
+      trust = { certified: '', pinned: false, dnssec: false };
+    }
+    line.textContent = trustText();
+    line.dataset.state = trust.certified && trust.pinned ? 'ok' : 'warn';
+  }
+
   async function loadKeyset() {
     keyset = parseJson(await fetchBytes(KEYSET_URL));
     if (!Array.isArray(keyset?.keys)) throw new Error('bad keyset');
@@ -195,7 +235,7 @@ function init(root) {
     say(`✗ Differs from the signed original. First difference near: “…${got.slice(Math.max(0, i - 30), i + 30)}…”`, 'diff');
   });
 
-  keysetLoad = loadKeyset();
+  keysetLoad = loadKeyset().then(certify, certify);
   const params = new URLSearchParams(location.search);
   const post = params.get('post');
   const q = params.get('sig') || (post && /^\d{1,20}$/.test(post) ? `/signed/${post}.sig.json` : '');

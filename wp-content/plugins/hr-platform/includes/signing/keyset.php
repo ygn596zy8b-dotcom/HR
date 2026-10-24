@@ -36,9 +36,59 @@ add_filter( 'hr_settings_schema', function ( $schema ) {
                     . 'For a key made on an offline machine (<code>cd security/pq &amp;&amp; node cli.mjs keygen sign signing</code>), paste the contents of <code>signing.public.json</code> here. '
                     . 'To rotate, add the new key to the list; to revoke one, add <code>"revoked": "YYYY-MM-DD"</code> to it and everything it signed is signed again with a current key.',
             ),
+            'pq_keyset_sig' => array(
+                'label'       => 'Keyset certificate (offline signature)',
+                'type'        => 'json',
+                'default'     => '',
+                'validate'    => __NAMESPACE__ . '\\is_valid_keyset_sig',
+                'description' => 'Proves the key list above was approved with your offline key, so a compromised server cannot add its own key unnoticed. '
+                    . 'On your PC: download <code>/.well-known/pqsig-keys.json</code> from the site, run <code>node cli.mjs sign pqsig-keys.json --key signing.secret.json --type keyset --url /.well-known/pqsig-keys.json</code> in <code>security/pq</code>, and paste the contents of <code>pqsig-keys.json.sig.json</code> here. '
+                    . 'Repeat whenever the key list changes. ' . ( is_admin() ? 'Status: <strong>' . ( keyset_certified_by() ? 'certified by key ' . esc_html( substr( keyset_certified_by(), 0, 16 ) ) . '…' : 'not certified' ) . '</strong>.' : '' ),
+            ),
         ),
     );
     return $schema;
+} );
+
+function is_valid_keyset_sig( $data ): bool {
+    return is_array( $data ) && is_string( $data['protected'] ?? null ) && is_string( $data['mldsa87'] ?? null ) && is_string( $data['ed448'] ?? null ) && strlen( (string) wp_json_encode( $data ) ) < 16384;
+}
+
+/** The stored offline signature over the exact keyset bytes, or null. */
+function keyset_signature(): ?array {
+    $doc = json_decode( (string) setting( 'pq_keyset_sig' ), true );
+    return is_array( $doc ) && is_valid_keyset_sig( $doc ) ? $doc : null;
+}
+
+/** Key ID that certified the current keyset (a non-revoked key in it signed type "keyset" over keyset_json()), or ''. */
+function keyset_certified_by(): string {
+    static $memo = null;
+    if ( null !== $memo ) {
+        return $memo;
+    }
+    $doc  = keyset_signature();
+    $json = $doc ? keyset_json() : '';
+    if ( ! $doc || '' === $json ) {
+        return $memo = '';
+    }
+    // Verification costs ~30 ms; cache the answer for this exact keyset + signature pair.
+    $cache = 'hr_pqsig_cert_' . md5( $json . wp_json_encode( $doc ) );
+    $kid   = get_transient( $cache );
+    if ( false === $kid ) {
+        $kid = '';
+        if ( function_exists( __NAMESPACE__ . '\\verify_document' ) && verify_document( $doc, $json ) ) {
+            $header = json_decode( (string) \HR\Platform\b64url_decode( $doc['protected'] ), true );
+            $kid    = 'keyset' === ( $header['type'] ?? '' ) ? (string) $header['kid'] : '';
+        }
+        set_transient( $cache, $kid, DAY_IN_SECONDS );
+    }
+    return $memo = (string) $kid;
+}
+
+// The verify page checks the DNS pin over DNS-over-HTTPS (a reader's browser cannot query TXT records directly).
+add_filter( 'hr_csp_sources', function ( array $sources ): array {
+    $sources['connect-src'][] = 'https://cloudflare-dns.com';
+    return $sources;
 } );
 
 function is_valid_keyset( $data ): bool {

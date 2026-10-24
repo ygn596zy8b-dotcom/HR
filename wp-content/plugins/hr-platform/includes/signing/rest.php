@@ -37,6 +37,11 @@ add_action( 'rest_api_init', function () {
         'callback'            => __NAMESPACE__ . '\\rest_keyset',
         'permission_callback' => '__return_true',
     ) );
+    register_rest_route( 'hr/v1', '/signing/keyset-certificate', array(
+        'methods'             => 'GET',
+        'callback'            => __NAMESPACE__ . '\\rest_keyset_certificate',
+        'permission_callback' => '__return_true',
+    ) );
     register_rest_route( 'hr/v1', '/canonical', array(
         'methods'             => 'GET',
         'callback'            => __NAMESPACE__ . '\\rest_canonical',
@@ -489,6 +494,16 @@ function store_feed_snapshot( string $key, string $xml, $sig ): string {
 function rest_keyset(): \WP_REST_Response {
     $keyset   = keyset();
     $response = new \WP_REST_Response( $keyset ?? array( 'code' => 'not_found' ), $keyset ? 200 : 404 );
+    $response->header( 'Access-Control-Allow-Origin', '*' );
+    $response->header( 'Cache-Control', 'public, max-age=300' );
+    return $response;
+}
+
+/** Exact keyset bytes plus the offline signature over them, so verifiers check what was signed byte for byte. */
+function rest_keyset_certificate(): \WP_REST_Response {
+    $json     = keyset_json();
+    $doc      = keyset_signature();
+    $response = new \WP_REST_Response( array( 'keyset' => b64url( $json ), 'signature' => $doc ), '' === $json ? 404 : 200 );
     $response->header( 'Access-Control-Allow-Origin', '*' );
     $response->header( 'Cache-Control', 'public, max-age=300' );
     return $response;

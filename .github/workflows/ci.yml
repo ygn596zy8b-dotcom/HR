@@ -31,6 +31,9 @@ jobs:
           php --version
           find wp-content deploy -name '*.php' -not -path '*/vendor/*' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
 
+      - name: NIST ACVP known-answer tests (ML-DSA-87)
+        run: php wp-content/plugins/hr-platform/tests/pq/acvp-test.php
+
       - name: Install build tools (scripts disabled)
         run: npm ci --ignore-scripts
 

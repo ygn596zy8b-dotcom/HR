@@ -146,3 +146,15 @@ with the "Content signer" role and an application password. Uploads go through t
   `hr_pqsig_selftest`, `hr_pqsig_autosign_lock`. Cron hooks: `hr_pqsig_autosign` (every 5 minutes) and
   `hr_pqsig_autosign_retry`. Sentry cron monitor slug: `pq-autosign`.
 - Tests: `wp eval-file wp-content/plugins/hr-platform/tests/signing-test.php` and `cd security/pq && npm test`.
+
+## Certify the key list with your offline key (do this once, and again whenever keys change)
+A compromised server could add its own key to the list. To prevent that, the list is signed with your **offline** key and the verify page checks that signature and the key ID published in DNS (`_pqsig` TXT record, DNSSEC-validated where available).
+1. Download `https://headlinerecorder.com/.well-known/pqsig-keys.json` to `D:\HR\security\pq\`.
+2. In PowerShell: `cd D:\HR\security\pq` then
+   `node cli.mjs sign pqsig-keys.json --key signing.secret.json --type keyset --url /.well-known/pqsig-keys.json`
+3. Open the new `pqsig-keys.json.sig.json`, copy everything, paste it into **Settings > Headline Recorder > Keyset certificate**, save. The field shows "certified by key ...".
+4. Make sure the `_pqsig` DNS record contains the **offline** key's ID (the one `signing.secret.json` belongs to).
+The verify page then shows "Key list certified by key ..., published in DNS". Generating or revoking a server key changes the list: repeat steps 1-3.
+
+## Known-answer tests
+`php wp-content/plugins/hr-platform/tests/pq/acvp-test.php` runs NIST ACVP vectors for ML-DSA-87 (10 keyGen, 10 deterministic sigGen, 15 sigVer including invalid signatures). It runs in CI on every change.
