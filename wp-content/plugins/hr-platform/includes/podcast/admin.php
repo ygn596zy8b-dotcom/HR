@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 const NONCE = 'hr_podcast_episode';
 
 add_action( 'add_meta_boxes_' . CPT, function () {
-    add_meta_box( 'hr-episode', 'Episode audio and details', __NAMESPACE__ . '\\meta_box', CPT, 'normal', 'high' );
+    add_meta_box( 'hr-episode', 'Episode audio and details', __NAMESPACE__ . '\\meta_box', CPT, 'hr_episode_top', 'high' );
 } );
 
 function meta_box( \WP_Post $post ): void {
@@ -208,3 +208,12 @@ add_action( 'admin_post_hr_podcast_generate', function () {
 // audio box instead (the body is optional show notes).
 add_filter( 'write_your_story', static fn( $text, $post ) => CPT === ( $post->post_type ?? '' ) ? 'Optional show notes or script. Upload the episode audio in "Episode audio and details" below.' : $text, 10, 2 );
 add_filter( 'enter_title_here', static fn( $text, $post ) => CPT === ( $post->post_type ?? '' ) ? 'Episode title' : $text, 10, 2 );
+
+// Episodes are audio first: the classic editor shows the "Episode audio and details" box directly under the title,
+// where the block editor tucks meta boxes away at the bottom of the screen.
+add_filter( 'use_block_editor_for_post_type', static fn( $use, $type ) => CPT === $type ? false : $use, 10, 2 );
+add_action( 'edit_form_after_title', static function ( $post ) {
+    if ( CPT === ( $post->post_type ?? '' ) ) {
+        do_meta_boxes( get_current_screen(), 'hr_episode_top', $post );
+    }
+} );
